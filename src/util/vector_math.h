@@ -1798,3 +1798,35 @@ mat4<T> createTranslationMatrix4(T x, T y, T z) {
     result(2, 3) = z;
     return result;
 }
+
+namespace hash {
+
+    u32 fnv1a(const u8* data, size_t len);
+
+    template <typename T> struct hash;
+
+    template <>
+    struct hash<vec2i>
+    {
+        u32 operator()(vec2i key) const noexcept
+        {
+            return fnv1a((u8*)&key.x, sizeof(key));
+        }
+    };
+    template <>
+    struct hash<vec3i>
+    {
+        u32 operator()(vec3i key) const noexcept
+        {
+            return fnv1a((u8*)&key.x, sizeof(key));
+        }
+    };
+    template <>
+    struct hash<vec4i>
+    {
+        u32 operator()(vec4i key) const noexcept
+        {
+            return fnv1a((u8*)&key.x, sizeof(key));
+        }
+    };
+}

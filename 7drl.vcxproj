@@ -135,9 +135,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\actor.cpp" />
     <ClCompile Include="src\game.cpp" />
     <ClCompile Include="src\global.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\map.cpp" />
+    <ClCompile Include="src\util\linear_map.cpp" />
     <ClCompile Include="src\util\random.cpp" />
     <ClCompile Include="src\util\scalar_math.cpp" />
     <ClCompile Include="src\util\string.cpp" />
@@ -146,8 +149,12 @@
     <ClCompile Include="src\window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\actor.h" />
     <ClInclude Include="src\game.h" />
     <ClInclude Include="src\global.h" />
+    <ClInclude Include="src\map.h" />
+    <ClInclude Include="src\types.h" />
+    <ClInclude Include="src\util\linear_map.h" />
     <ClInclude Include="src\util\random.h" />
     <ClInclude Include="src\util\scalar_math.h" />
     <ClInclude Include="src\util\string.h" />

@@ -18,8 +18,7 @@ int main(int argc, const char** argv)
 
     while (frame_start())
     {
-        g_game.term->clear();
-        g_game.term->write(vec2i(10, 10), "Hello, world!", 0xffffffff, 0);
+        updateGame();
 
         render_buffer(g_game.term);
         frame_end();
