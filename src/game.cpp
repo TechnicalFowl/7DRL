@@ -4,6 +4,7 @@
 
 #include "actor.h"
 #include "map.h"
+#include "procgen.h"
 #include "vterm.h"
 #include "window.h"
 
@@ -39,8 +40,25 @@ void InfoLog::logf(u32 color, const char* fmt, ...)
     entries.emplace_back(msg, color);
 }
 
+std::vector<sstring> smartSplit(const sstring& s, int row_size)
+{
+    int last = 0;
+    std::vector<sstring> rows;
+    while (last < (int)s.size() && (int)s.size() - last > row_size)
+    {
+        int prev = s.lastIndexOf(' ', last + row_size);
+        rows.emplace_back(s.substring(last, prev));
+        last = prev + 1;
+    }
+    if (last < (int)s.size())
+        rows.emplace_back(s.substring(last));
+    return rows;
+}
+
 void initGame(int w, int h)
 {
+    g_game.w = w;
+    g_game.h = h;
     g_game.term = new TextBuffer(w, h);
 
     g_game.log.log("Welcome.");
@@ -61,6 +79,8 @@ void initGame(int w, int h)
 
     g_game.current_level = new Map("level_0");
     Map& map = *g_game.current_level;
+
+    generate(map);
 
     Player* player = new Player(vec2i(0, 0));
     map.player = player;
@@ -118,7 +138,13 @@ void updateGame()
     }
 
     g_game.term->clear();
-    g_game.term->write(vec2i(10, 10), "Hello, world!", 0xffffffff, 0);
+    sstring top_bar = "Testing";
+    sstring bottom_bar = "H 10/10";
+
+    g_game.term->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF000000, LayerPriority_UI - 1);
+    g_game.term->write(vec2i(2, 0), bottom_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+    g_game.term->fillBg(vec2i(0, g_game.h - 1), vec2i(49, g_game.h - 1), 0xFF101010, LayerPriority_UI - 1);
+    g_game.term->write(vec2i(2, g_game.h - 1), top_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
 
     map.render(*g_game.term, map.player->pos);
 }
