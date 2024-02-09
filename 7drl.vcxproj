@@ -140,6 +140,7 @@
     <ClCompile Include="src\global.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\map.cpp" />
+    <ClCompile Include="src\procgen.cpp" />
     <ClCompile Include="src\util\linear_map.cpp" />
     <ClCompile Include="src\util\random.cpp" />
     <ClCompile Include="src\util\scalar_math.cpp" />
@@ -153,6 +154,7 @@
     <ClInclude Include="src\game.h" />
     <ClInclude Include="src\global.h" />
     <ClInclude Include="src\map.h" />
+    <ClInclude Include="src\procgen.h" />
     <ClInclude Include="src\types.h" />
     <ClInclude Include="src\util\linear_map.h" />
     <ClInclude Include="src\util\random.h" />

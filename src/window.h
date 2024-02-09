@@ -2,6 +2,14 @@
 
 #include <vector>
 
+#include "GL/glew.h"
+#include "GLFW/glfw3.h"
+#undef APIENTRY
+#include "GL/freeglut.h"
+#undef APIENTRY
+#undef far
+#undef near
+
 #include "util/vector_math.h"
 
 #define GLSL(SRC) "#version 330 core\n" # SRC
@@ -46,6 +54,17 @@ struct VertexBuffer
     std::vector<DrawCommandData> commands;
 };
 
+struct Inputs
+{
+    bool keys[GLFW_KEY_LAST + 1]{ 0 };
+    bool last_keys[GLFW_KEY_LAST + 1]{ 0 };
+    bool buttons[GLFW_MOUSE_BUTTON_LAST + 1]{ 0 };
+    bool last_buttons[GLFW_MOUSE_BUTTON_LAST + 1]{ 0 };
+    vec2f mouse_pos;
+    vec2f mouse_delta;
+    vec2f scroll;
+};
+
 struct Window
 {
     GLFWwindow* window;
@@ -61,6 +80,8 @@ struct Window
     Texture* font_texture;
 
     VertexBuffer* vb;
+
+    Inputs inputs;
 };
 extern Window g_window;
 
@@ -75,6 +96,14 @@ void vb_init(VertexBuffer* vb);
 void vb_clear(VertexBuffer* vb);
 void vb_upload(VertexBuffer* vb);
 void vb_draw(VertexBuffer* vb);
+
+bool input_key_pressed(int key);
+bool input_key_down(int key);
+bool input_key_released(int key);
+
+bool input_mouse_button_pressed(int button);
+bool input_mouse_button_down(int button);
+bool input_mouse_button_released(int button);
 
 void render_buffer(TextBuffer* term);
 

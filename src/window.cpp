@@ -2,14 +2,6 @@
 
 #include <cstdio>
 
-#include "GL/glew.h"
-#include "GLFW/glfw3.h"
-#undef APIENTRY
-#include "GL/freeglut.h"
-#undef APIENTRY
-#undef far
-#undef near
-
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -35,20 +27,17 @@ static void glfw_error_callback(int error, const char* description)
 
 void render_glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    //if (ImGui::GetIO().WantCaptureKeyboard) return;
-    //input_on_key_event(key, scancode, action, mods);
+    g_window.inputs.keys[key] = action != GLFW_RELEASE;
 }
 
 void render_glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-    //if (ImGui::GetIO().WantCaptureMouse) return;
-    //input_on_mouse_button_event(button, action, mods);
+    g_window.inputs.buttons[button] = action != GLFW_RELEASE;
 }
 
 void render_glfw_mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    //if (ImGui::GetIO().WantCaptureMouse) return;
-    //input_on_mouse_scroll_event(xoffset, yoffset);
+    g_window.inputs.scroll = vec2f((float) xoffset, (float) yoffset);
 }
 
 void window_open(const char* title, int w, int h)
@@ -153,7 +142,17 @@ void window_open(const char* title, int w, int h)
 
 bool frame_start()
 {
+    memcpy(g_window.inputs.last_keys, g_window.inputs.keys, sizeof(g_window.inputs.keys));
+    memcpy(g_window.inputs.last_buttons, g_window.inputs.buttons, sizeof(g_window.inputs.buttons));
+    g_window.inputs.scroll = vec2f(0.0f, 0.0f);
+
     glfwPollEvents();
+
+    vec2d pos;
+    glfwGetCursorPos(g_window.window, &pos.x, &pos.y);
+
+    g_window.inputs.mouse_delta = pos.cast<float>() - g_window.inputs.mouse_pos;
+    g_window.inputs.mouse_pos = pos.cast<float>();
 
     if (glfwWindowShouldClose(g_window.window))
         return false;
@@ -179,6 +178,14 @@ void frame_end()
 
     glfwSwapBuffers(g_window.window);
 }
+
+bool input_key_pressed(int key) { return g_window.inputs.keys[key] && !g_window.inputs.last_keys[key]; }
+bool input_key_down(int key) { return g_window.inputs.keys[key]; }
+bool input_key_released(int key) { return !g_window.inputs.keys[key] && g_window.inputs.last_keys[key]; }
+
+bool input_mouse_button_pressed(int button) { return g_window.inputs.buttons[button] && !g_window.inputs.last_buttons[button]; }
+bool input_mouse_button_down(int button) { return g_window.inputs.buttons[button]; }
+bool input_mouse_button_released(int button) { return !g_window.inputs.buttons[button] && g_window.inputs.last_buttons[button]; }
 
 struct CharTexture
 {
