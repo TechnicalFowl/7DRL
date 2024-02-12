@@ -18,18 +18,23 @@ Direction rotate_90_cw[]{
     Left,
     Up,
 };
+Direction rotate90(Direction d) { return rotate_90_cw[d]; }
+
 Direction rotate_180[]{
     Down,
     Left,
     Up,
     Right,
 };
+Direction rotate180(Direction d) { return rotate_180[d]; }
+
 Direction rotate_270_cw[]{
     Left,
     Up,
     Right,
     Down,
 };
+Direction rotate270(Direction d) { return rotate_270_cw[d]; }
 
 vec2i rotateCW(vec2i p, Direction dir)
 {
