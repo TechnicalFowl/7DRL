@@ -3,6 +3,66 @@
 #include "actor.h"
 #include "game.h"
 
+vec2i directions[]{
+    vec2i(0, 1),
+    vec2i(1, 0),
+    vec2i(0, -1),
+    vec2i(-1, 0)
+};
+
+vec2i direction(Direction d) { return directions[d]; }
+
+Direction rotate_90_cw[]{
+    Right,
+    Down,
+    Left,
+    Up,
+};
+Direction rotate_180[]{
+    Down,
+    Left,
+    Up,
+    Right,
+};
+Direction rotate_270_cw[]{
+    Left,
+    Up,
+    Right,
+    Down,
+};
+
+vec2i rotateCW(vec2i p, Direction dir)
+{
+    switch (dir)
+    {
+    case Left:
+        return vec2i(-p.y, p.x);
+    case Down:
+        return vec2i(-p.x, -p.y);
+    case Right:
+        return vec2i(p.y, -p.x);
+    default:
+    case Up:
+        return p;
+    }
+}
+
+vec2i rotateCCW(vec2i p, Direction dir)
+{
+    switch (dir)
+    {
+    case Right:
+        return vec2i(-p.y, p.x);
+    case Down:
+        return vec2i(-p.x, -p.y);
+    case Left:
+        return vec2i(p.y, -p.x);
+    default:
+    case Up:
+        return p;
+    }
+}
+
 Map::Map(const sstring& name)
     : name(name)
 {
@@ -65,19 +125,15 @@ void Map::setTile(vec2i pos, Terrain trr)
     }
 }
 
-void Map::trySetTile(vec2i pos, Terrain trr)
+bool Map::trySetTile(vec2i pos, Terrain trr)
 {
     auto it = tiles.find(pos);
     if (it.found)
-    {
-        return;
-    }
-    else
-    {
-        tiles.insert(pos, Tile(pos, trr));
-        min = ::min(min, pos);
-        max = ::max(max, pos);
-    }
+        return false;
+    tiles.insert(pos, Tile(pos, trr));
+    min = ::min(min, pos);
+    max = ::max(max, pos);
+    return true;
 }
 
 bool Map::spawn(Actor* a)
@@ -189,4 +245,14 @@ vec2i Map::findNearestEmpty(vec2i p, Terrain trr, int max)
         }
     }
     return p; // No nearaby place found!
+}
+
+vec2i ReferenceFrame::toLocal(vec2i p) const
+{
+    return rotateCCW(p - origin, up);
+}
+
+vec2i ReferenceFrame::toGlobal(vec2i p) const
+{
+    return rotateCW(p, up) + origin;
 }

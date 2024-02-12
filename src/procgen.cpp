@@ -7,50 +7,6 @@
 
 #include "map.h"
 
-enum Direction
-{
-    Up,
-    Right,
-    Down,
-    Left,
-};
-
-vec2i directions[] {
-    vec2i(0, 1),
-    vec2i(1, 0),
-    vec2i(0, -1),
-    vec2i(-1, 0)
-};
-
-Direction rotate_90[]{
-    Right,
-    Down,
-    Left,
-    Up,
-};
-Direction rotate_180[]{
-    Down,
-    Left,
-    Up,
-    Right,
-};
-Direction rotate_270[]{
-    Left,
-    Up,
-    Right,
-    Down,
-};
-
-vec2i rotate(vec2i p, Direction dir)
-{
-    while (dir != Up)
-    {
-        dir = rotate_90[dir];
-        p = vec2i(p.y, -p.x);
-    }
-    return p;
-}
-
 typedef void (*room_builder)(Map& map, pcg32& rng, vec2i pos, vec2i size);
 
 void empty_room_builder(Map& map, pcg32& rng, vec2i pos, vec2i size) {}
@@ -128,7 +84,7 @@ struct PrefabRoomGenerator
         for (auto& conn : proto->connectors)
         {
             vec2i pos(rng.nextInt(conn.min.x, conn.max.x), rng.nextInt(conn.min.y, conn.max.y));
-            pos += directions[conn.dir] * var[conn.dir];
+            pos += direction(conn.dir) * var[conn.dir];
             placed.unused_connectors.emplace_back(pos, conn.dir);
         }
         return placed;
@@ -161,7 +117,7 @@ struct PrefabRoomGenerator
             {
                 vec2i pos = placed.bounds.lower + conn.pos;
                 if (map.getTile(pos) != Terrain::StoneWall) continue;
-                vec2i dir = directions[conn.dir];
+                vec2i dir = direction(conn.dir);
                 vec2i next = pos + dir;
                 if (map.getTile(next) == Terrain::StoneWall)
                 {

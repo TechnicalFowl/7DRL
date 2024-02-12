@@ -9,6 +9,17 @@
 struct Actor;
 struct Player;
 
+enum Direction
+{
+    Up,
+    Right,
+    Down,
+    Left,
+};
+
+vec2i direction(Direction d);
+vec2i rotate(vec2i p, Direction dir);
+
 struct Tile
 {
     vec2i pos;
@@ -38,7 +49,7 @@ struct Map
     bool isPassable(vec2i p) const;
     Terrain getTile(vec2i p) const;
     void setTile(vec2i pos, Terrain trr);
-    void trySetTile(vec2i pos, Terrain trr);
+    bool trySetTile(vec2i pos, Terrain trr);
 
     bool spawn(Actor* a);
     bool move(Actor* a, vec2i to);
@@ -47,4 +58,35 @@ struct Map
 
     vec2i findNearestEmpty(vec2i p, int max = 3);
     vec2i findNearestEmpty(vec2i p, Terrain trr, int max = 3);
+};
+
+struct ReferenceFrame
+{
+    Map& map;
+    vec2i origin;
+    Direction up;
+
+    ReferenceFrame(Map& map, vec2i origin)
+        : map(map), origin(origin), up(Up)
+    {
+    }
+
+    ReferenceFrame(Map& map, vec2i origin, Direction up)
+        : map(map), origin(origin), up(up)
+    {
+    }
+
+    vec2i toLocal(vec2i p) const;
+    vec2i toGlobal(vec2i p) const;
+
+    bool isPassable(vec2i p) const { return map.isPassable(toGlobal(p)); }
+    Terrain getTile(vec2i p) const { return map.getTile(toGlobal(p)); }
+    void setTile(vec2i pos, Terrain trr) { map.setTile(toGlobal(pos), trr); }
+    bool trySetTile(vec2i pos, Terrain trr) { return map.trySetTile(toGlobal(pos), trr); }
+
+    bool spawn(Actor* a) { return map.spawn(a); }
+    bool move(Actor* a, vec2i to) { return map.move(a, toGlobal(to)); }
+
+    vec2i findNearestEmpty(vec2i p, int max = 3) { return map.findNearestEmpty(toGlobal(p), max); }
+    vec2i findNearestEmpty(vec2i p, Terrain trr, int max = 3) { return map.findNearestEmpty(toGlobal(p), trr, max); }
 };
