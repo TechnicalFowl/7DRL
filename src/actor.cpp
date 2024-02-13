@@ -7,6 +7,7 @@
 
 struct OffenseStats
 {
+    float speed = 1.0f;
     float accuracy = 0.0f;
     int damage[DamageTypeCount]{ 0, 0, 0, 0, 0, 0, 0 };
 };
@@ -27,6 +28,10 @@ OffenseStats getOffense(Living* attacker)
         {
             flat_accuracy += mod.flat;
             mult_accuracy *= mod.percent;
+        } break;
+        case ModifierType::Speed:
+        {
+            stats.speed *= mod.percent;
         } break;
         case ModifierType::Damage:
         {
@@ -51,6 +56,10 @@ OffenseStats getOffense(Living* attacker)
             {
                 flat_accuracy += mod.flat;
                 mult_accuracy *= mod.percent;
+            } break;
+            case ModifierType::Speed:
+            {
+                stats.speed *= mod.percent;
             } break;
             case ModifierType::Damage:
             {
@@ -150,20 +159,21 @@ int calculateDamage(Living* attacker, Living* target, pcg32& rng)
     return damage;
 }
 
-ActionData::ActionData(Action a, Actor* act)
-    : action(a), actor(act)
+ActionData::ActionData(Action a, Actor* act, float e)
+    : action(a), actor(act), energy(e)
 {
     move = vec2i(0, 0);
 }
 
-ActionData::ActionData(Action a, Actor* act, vec2i p)
-    : action(a), actor(act)
+ActionData::ActionData(Action a, Actor* act, float e, vec2i p)
+    : action(a), actor(act), energy(e)
 {
     move = p;
 }
 
 bool ActionData::apply(Map& map, pcg32& rng)
 {
+    actor->stored_energy -= energy;
     static vec2i dirs[] = { vec2i(0, 1), vec2i(0, -1), vec2i(1, 0), vec2i(-1, 0) };
     switch (action)
     {
@@ -316,7 +326,7 @@ Living::Living(vec2i p, ActorType ty)
 
 Player::Player(vec2i pos)
     : Living(pos, ActorType::Player)
-    , next_action(Action::Wait, this)
+    , next_action(Action::Wait, this, 0.0f)
 {
     ActorInfo& ai = g_game.reg.actor_info[int(type)];
     health = ai.max_health;
@@ -328,7 +338,7 @@ void Player::tryMove(const Map& map, vec2i dir)
     auto it = map.tiles.find(pos + dir);
     if (!it.found)
     {
-        next_action = ActionData(Action::Move, this, dir);
+        next_action = ActionData(Action::Move, this, 1.0f, dir);
         return;
     }
     else
@@ -336,24 +346,25 @@ void Player::tryMove(const Map& map, vec2i dir)
         TerrainInfo& ti = g_game.reg.terrain_info[int(it.value.terrain)];
         if (!ti.passable)
         {
-            next_action = ActionData(Action::Wait, this);
+            next_action = ActionData(Action::Wait, this, 0.0f);
             return;
         }
         if (it.value.actor)
         {
             if (it.value.actor->type == ActorType::Door)
             {
-                next_action = ActionData(Action::Open, this, dir);
+                next_action = ActionData(Action::Open, this, 1.0f, dir);
                 return;
             }
             else
             {
-                next_action = ActionData(Action::Attack, this, dir);
+                OffenseStats stats = getOffense(this);
+                next_action = ActionData(Action::Attack, this, stats.speed, dir);
                 return;
             }
         }
     }
-    next_action = ActionData(Action::Move, this, dir);
+    next_action = ActionData(Action::Move, this, 1.0f, dir);
 }
 
 Monster::Monster(vec2i pos, ActorType ty)
@@ -374,21 +385,34 @@ void Door::render(TextBuffer& buffer, vec2i origin, bool dim)
     buffer.setTile(pos - origin, open ? '.' : '#', col, ai.priority);
 }
 
-ActionData Monster::update(const Map& map, pcg32& rng)
+ActionData Monster::update(const Map& map, pcg32& rng, float dt)
 {
-    for (int i = 0; i < 4; ++i)
+    stored_energy += dt;
+    OffenseStats stats = getOffense(this);
+    bool lack_energy = false;
+    if (stored_energy >= 1.0f / stats.speed)
     {
-        auto it = map.tiles.find(pos + direction(Direction(i)));
-        if (it.found && it.value.actor && it.value.actor->type == ActorType::Player)
-            return ActionData(Action::Attack, this, direction(Direction(i)));
+        for (int i = 0; i < 4; ++i)
+        {
+            auto it = map.tiles.find(pos + direction(Direction(i)));
+            if (it.found && it.value.actor && it.value.actor->type == ActorType::Player)
+                return ActionData(Action::Attack, this, 1.0f / stats.speed, direction(Direction(i)));
+        }
     }
+    else
+        lack_energy = true;
 
     int dir = rng.nextInt(0, 8);
-    for (int i = 0; i < 4; ++i)
+    if (stored_energy >= 1.0f)
     {
-        if (dir == i && map.isPassable(pos + direction(Direction(i))))
-            return ActionData(Action::Move, this, direction(Direction(i)));
+        for (int i = 0; i < 4; ++i)
+        {
+            if (dir == i && map.isPassable(pos + direction(Direction(i))))
+                return ActionData(Action::Move, this, 1.0f, direction(Direction(i)));
+        }
     }
+    else
+        lack_energy = true;
 
-    return ActionData(Action::Wait, this);
+    return ActionData(Action::Wait, this, lack_energy ? 0.0f : dt);
 }

@@ -93,6 +93,7 @@ void initGame(int w, int h)
 
     Monster* goblin = new Monster(map.findNearestEmpty(vec2i(8, 8), Terrain::DirtFloor), ActorType::Goblin);
     goblin->inate_modifiers.emplace_back(ModifierType::Accuracy, 50.0f, 1.0f);
+    goblin->inate_modifiers.emplace_back(ModifierType::Speed, 0.0f, 0.5f);
     Equipment* goblin_spear = goblin->equipment[int(EquipmentSlot::MainHand)] = new Equipment('/', 0xffffffff, ItemType::Equipment, "Goblin Spear", EquipmentSlot::MainHand);
     goblin_spear->modifiers.emplace_back(ModifierType::Damage, DamageType::Piercing, 3.0f, 1.0f);
     map.spawn(goblin);
@@ -164,17 +165,20 @@ void updateGame()
     if (input_key_pressed(GLFW_KEY_O))
     {
         do_turn = true;
-        map.player->next_action = ActionData(Action::Open, map.player);
+        map.player->next_action = ActionData(Action::Open, map.player, 1.0f);
     }
 
     vec2i mouse_pos = game_mouse_pos();
 
     if (do_turn)
     {
+        float dt = map.player->next_action.energy;
+
         std::vector<ActionData> actions;
         for (Actor* a : map.actors)
         {
-            ActionData act = a->update(map, g_game.rng);
+            // @Todo: Allow polling multiple actions per turn if the actor has enough stored energy?
+            ActionData act = a->update(map, g_game.rng, dt);
             if (act.action != Action::Wait) actions.emplace_back(act);
         }
 

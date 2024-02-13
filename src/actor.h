@@ -54,6 +54,7 @@ enum class ModifierType
     Resistances,
     Accuracy,
     Dodge,
+    Speed,
 };
 
 struct EquipmentModifier
@@ -82,13 +83,14 @@ struct ActionData
 {
     Action action;
     Actor* actor;
+    float energy;
     union
     {
         vec2i move;
     };
 
-    ActionData(Action a, Actor* act);
-    ActionData(Action a, Actor* act, vec2i p);
+    ActionData(Action a, Actor* act, float e);
+    ActionData(Action a, Actor* act, float e, vec2i p);
 
     bool apply(Map& map, pcg32& rng);
 };
@@ -98,9 +100,11 @@ struct Actor
     vec2i pos;
     ActorType type;
 
+    float stored_energy = 0.0f;
+
     Actor(vec2i pos, ActorType ty) : pos(pos), type(ty) {}
 
-    virtual ActionData update(const Map& map, pcg32& rng) { return ActionData(Action::Wait, this); }
+    virtual ActionData update(const Map& map, pcg32& rng, float dt) { stored_energy += dt; return ActionData(Action::Wait, this, dt); }
 
     virtual void render(TextBuffer& buffer, vec2i origin, bool dim=false);
 };
@@ -130,7 +134,7 @@ struct Player : Living
 
     Player(vec2i pos);
 
-    ActionData update(const Map& map, pcg32& rng) override { return next_action; }
+    ActionData update(const Map& map, pcg32& rng, float dt) override { return next_action; }
 
     void tryMove(const Map& map, vec2i dir);
 };
@@ -141,7 +145,7 @@ struct Monster : Living
 
     Monster(vec2i pos, ActorType ty);
 
-    ActionData update(const Map& map, pcg32& rng) override;
+    ActionData update(const Map& map, pcg32& rng, float dt) override;
 };
 
 struct Door : Actor
