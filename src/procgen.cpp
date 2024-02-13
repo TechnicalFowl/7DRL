@@ -169,7 +169,10 @@ struct DenseRoomGenerator
             case Down: return vec2i(bounds.upper.x, bounds.lower.y);
             case Left: return vec2i(bounds.lower.x, bounds.lower.y);
             case Right: return vec2i(bounds.upper.x, bounds.upper.y);
+            default: break;
             }
+            debug_assert(false);
+            return vec2i();
         }
 
     };
@@ -269,7 +272,7 @@ struct DenseRoomGenerator
                 vec2i step_adj = direction(dir);
                 vec2i step = direction(rotate90(dir));
                 vec2i end_pos = room.getWallStart(rotate90(dir));
-                int length = (end_pos - begin_pos).length();
+                int length = scalar::floori((end_pos - begin_pos).length());
                 debug_assert(begin_pos + step * length == end_pos);
 
                 vec2i top = (begin_pos + end_pos) / 2 + step_adj;

@@ -1,5 +1,7 @@
 #include "map.h"
 
+#include <deque>
+
 #include "actor.h"
 #include "game.h"
 
@@ -77,21 +79,45 @@ void Map::render(TextBuffer& buffer, vec2i origin)
 {
     vec2i bl = origin - vec2i(25, 22);
 
+    linear_map<vec2i, bool> los;
+    for (int x = -10; x <= 10; ++x)
+    {
+        auto path = findRay(player->pos, player->pos + vec2i(x, 10));
+        for (vec2i p: path) los.insert(p, true);
+        path = findRay(player->pos, player->pos + vec2i(x, -10));
+        for (vec2i p: path) los.insert(p, true);
+    }
+    for (int y = -9; y <= 9; ++y)
+    {
+        auto path = findRay(player->pos, player->pos + vec2i(10, y));
+        for (vec2i p: path) los.insert(p, true);
+        path = findRay(player->pos, player->pos + vec2i(-10, y));
+        for (vec2i p: path) los.insert(p, true);
+    }
+
     for (auto it : tiles)
     {
-        if (it.value.actor)
+        bool visible = los.find(it.key).found;
+        if (!it.value.explored)
         {
-            it.value.actor->render(buffer, bl);
+            if (!visible) continue;
+            it.value.explored = true;
         }
-        else if (it.value.ground)
+        if (it.value.actor && visible)
         {
-            it.value.ground->render(buffer, bl);
+            it.value.actor->render(buffer, bl, !visible);
+        }
+        else if (it.value.ground && visible)
+        {
+            it.value.ground->render(buffer, bl, !visible);
         }
         if (it.value.terrain != Terrain::Empty)
         {
             TerrainInfo& ti = g_game.reg.terrain_info[(int)it.value.terrain];
-            buffer.setBg(it.value.pos - bl, ti.bg_color, LayerPriority_Background);
-            buffer.setTile(it.value.pos - bl, ti.character, ti.color, LayerPriority_Tiles);
+            u32 bgcol = !visible ? scalar::convertToGrayscale(ti.bg_color, 0.5f) : ti.bg_color;
+            buffer.setBg(it.value.pos - bl, bgcol, LayerPriority_Background);
+            u32 col = !visible ? scalar::convertToGrayscale(ti.color, 0.5f) : ti.color;
+            buffer.setTile(it.value.pos - bl, ti.character, col, LayerPriority_Tiles);
         }
     }
 }
@@ -99,6 +125,16 @@ void Map::render(TextBuffer& buffer, vec2i origin)
 bool Map::isPassable(vec2i p) const
 {
     return g_game.reg.terrain_info[(int)getTile(p)].passable;
+}
+
+bool Map::isExplored(vec2i p) const
+{
+    auto it = tiles.find(p);
+    if (it.found)
+    {
+        return it.value.explored;
+    }
+    return false;
 }
 
 Terrain Map::getTile(vec2i p) const
@@ -250,6 +286,107 @@ vec2i Map::findNearestEmpty(vec2i p, Terrain trr, int max)
         }
     }
     return p; // No nearaby place found!
+}
+
+std::vector<vec2i> Map::findPath(vec2i from, vec2i to)
+{
+    std::deque<vec2i> open;
+    linear_map<vec2i, vec2i> came_from;
+    linear_map<vec2i, int> cost_so_far;
+
+    open.push_back(from);
+    cost_so_far.insert(from, 0);
+
+    while (!open.empty())
+    {
+        vec2i current = open.front();
+        open.pop_front();
+        if (current == to) break;
+        for (vec2i d : directions)
+        {
+            vec2i next = current + d;
+            if (!isPassable(next)) continue;
+            int new_cost = cost_so_far[current] + 1;
+            if (!cost_so_far.find(next).found || new_cost < cost_so_far[next])
+            {
+                cost_so_far.insert(next, new_cost);
+                int priority = new_cost + abs(to.x - next.x) + abs(to.y - next.y);
+                bool placed = false;
+                for (auto it = open.begin(); it != open.end(); ++it)
+                {
+                    int it_priority = cost_so_far[*it] + abs(it->x - next.x) + abs(it->y - next.y);
+                    if (it_priority > priority)
+                    {
+                        open.insert(it, next);
+                        placed = true;
+                        break;
+                    }
+                }
+                if (!placed)
+                    open.push_back(next);
+                came_from.insert(next, current);
+            }
+        }
+    }
+
+    std::vector<vec2i> result;
+    vec2i current = to;
+    while (current != from)
+    {
+        result.push_back(current);
+        auto it = came_from.find(current);
+        if (!it.found) return std::vector<vec2i>();
+        current = it.value;
+    }
+    result.push_back(from);
+    std::reverse(result.begin(), result.end());
+    return result;
+}
+
+std::vector<vec2i> Map::findRay(vec2i from, vec2i to)
+{
+    float x0 = from.x + 0.5f;
+    float y0 = from.y + 0.5f;
+    float x1 = to.x + 0.5f;
+    float y1 = to.y + 0.5f;
+
+    float dx = abs(x1 - x0);
+    float dy = abs(y1 - y0);
+
+    int x = scalar::floori(x0);
+    int y = scalar::floori(y0);
+
+    int n = 1 + scalar::floori(dx + dy);
+    int x_inc = (x1 > x0) ? 1 : -1;
+    int y_inc = (y1 > y0) ? 1 : -1;
+
+    float error = dx - dy;
+    dx *= 2;
+    dy *= 2;
+
+    std::vector<vec2i> result;
+    for (; n > 0; --n)
+    {
+        result.push_back(vec2i(x, y));
+        if (!isPassable(vec2i(x, y))) break;
+        if (error > 0)
+        {
+            x += x_inc;
+            error -= dy;
+        }
+        else
+        {
+            y += y_inc;
+            error += dx;
+        }
+    }
+    return result;
+}
+
+bool Map::isVisible(vec2i from, vec2i to)
+{
+    auto steps = findRay(from, to);
+    return steps.back() == to;
 }
 
 vec2i ReferenceFrame::toLocal(vec2i p) const

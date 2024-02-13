@@ -171,4 +171,6 @@ namespace scalar
     u32 flipEndian(u32 val);
     u64 flipEndian(u64 val);
 
+    u32 convertToGrayscale(u32 color, float mag=1.0f);
+
 } // namespace scalar

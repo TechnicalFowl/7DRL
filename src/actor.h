@@ -42,7 +42,7 @@ struct Actor
 
     virtual ActionData update(const Map& map, pcg32& rng) { return ActionData(Action::Wait, this); }
 
-    virtual void render(TextBuffer& buffer, vec2i origin);
+    virtual void render(TextBuffer& buffer, vec2i origin, bool dim=false);
 };
 
 struct GroundItem : Actor
@@ -51,7 +51,7 @@ struct GroundItem : Actor
 
     GroundItem(vec2i pos, const Item& item);
 
-    virtual void render(TextBuffer& buffer, vec2i origin) override;
+    virtual void render(TextBuffer& buffer, vec2i origin, bool dim = false) override;
 };
 
 struct Player : Actor
@@ -83,5 +83,5 @@ struct Door : Actor
 
     Door(vec2i pos);
 
-    virtual void render(TextBuffer& buffer, vec2i origin) override;
+    virtual void render(TextBuffer& buffer, vec2i origin, bool dim = false) override;
 };

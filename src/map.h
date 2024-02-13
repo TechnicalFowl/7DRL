@@ -29,6 +29,7 @@ struct Tile
     Terrain terrain = Terrain::Empty;
     Actor* ground = nullptr;
     Actor* actor = nullptr;
+    bool explored = false;
 
     Tile(vec2i pos) : pos(pos) {}
     Tile(vec2i pos, Terrain trr) : pos(pos), terrain(trr) {}
@@ -50,6 +51,7 @@ struct Map
     void render(TextBuffer& buffer, vec2i origin);
 
     bool isPassable(vec2i p) const;
+    bool isExplored(vec2i p) const;
     Terrain getTile(vec2i p) const;
     void setTile(vec2i pos, Terrain trr);
     bool trySetTile(vec2i pos, Terrain trr);
@@ -61,6 +63,11 @@ struct Map
 
     vec2i findNearestEmpty(vec2i p, int max = 3);
     vec2i findNearestEmpty(vec2i p, Terrain trr, int max = 3);
+
+    std::vector<vec2i> findPath(vec2i from, vec2i to);
+    std::vector<vec2i> findRay(vec2i from, vec2i to);
+
+    bool isVisible(vec2i from, vec2i to);
 };
 
 struct ReferenceFrame
@@ -83,6 +90,7 @@ struct ReferenceFrame
     vec2i toGlobal(vec2i p) const;
 
     bool isPassable(vec2i p) const { return map.isPassable(toGlobal(p)); }
+    bool isExplored(vec2i p) const { return map.isExplored(toGlobal(p)); }
     Terrain getTile(vec2i p) const { return map.getTile(toGlobal(p)); }
     void setTile(vec2i pos, Terrain trr) { map.setTile(toGlobal(pos), trr); }
     bool trySetTile(vec2i pos, Terrain trr) { return map.trySetTile(toGlobal(pos), trr); }
@@ -92,4 +100,6 @@ struct ReferenceFrame
 
     vec2i findNearestEmpty(vec2i p, int max = 3) { return map.findNearestEmpty(toGlobal(p), max); }
     vec2i findNearestEmpty(vec2i p, Terrain trr, int max = 3) { return map.findNearestEmpty(toGlobal(p), trr, max); }
+
+    bool isVisible(vec2i from, vec2i to) { return map.isVisible(toGlobal(from), toGlobal(to)); }
 };

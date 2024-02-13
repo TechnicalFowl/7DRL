@@ -48,4 +48,16 @@ namespace scalar
     {
         return sizeof(n) * 8 - bsr(n) - 1;
     }
+
+
+    u32 convertToGrayscale(u32 color, float mag)
+    {
+        u32 r = (color >> 16) & 0xff;
+        u32 g = (color >> 8) & 0xff;
+        u32 b = color & 0xff;
+
+        float gray = (0.2126f * (r / 255.0f) + 0.7152f * (g / 255.0f) + 0.0722f * (b / 255.0f)) * mag;
+        u32 grayColor = scalar::floori(gray * 255.0f);
+        return (color & 0xFF000000) | (grayColor << 16) | (grayColor << 8) | grayColor;
+    }
 }

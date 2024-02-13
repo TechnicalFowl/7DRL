@@ -120,6 +120,9 @@ void updateGame()
         do_turn = true;
         map.player->next_action = ActionData(Action::Open, map.player);
     }
+    vec2i bl = map.player->pos - vec2i(25, 22);
+    vec2f mouse_posf = g_window.inputs.mouse_pos / 16;
+    vec2i mouse_pos = vec2i(scalar::floori(mouse_posf.x), scalar::floori(g_game.term->h - mouse_posf.y)) + bl;
 
     if (do_turn)
     {
@@ -138,7 +141,19 @@ void updateGame()
     }
 
     g_game.term->clear();
-    sstring top_bar = "Testing";
+
+#if 0
+    // Pathfinding debug
+    auto path = map.findPath(map.player->pos, mouse_pos);
+    g_game.term->setBg(mouse_pos - bl, 0xFF00FF00, LayerPriority_Debug);
+    for (vec2i p : path)
+    {
+        g_game.term->setBg(p - bl, 0xFFFF00FF, LayerPriority_Debug);
+    }
+#endif
+
+    sstring top_bar;
+    top_bar.appendf("Mx: %d %d Px: %d %d", mouse_pos.x, mouse_pos.y, map.player->pos.x, map.player->pos.y);
     sstring bottom_bar = "H 10/10";
 
     g_game.term->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF000000, LayerPriority_UI - 1);

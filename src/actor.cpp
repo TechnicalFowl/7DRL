@@ -99,10 +99,11 @@ bool ActionData::apply(Map& map)
     return false;
 }
 
-void Actor::render(TextBuffer& buffer, vec2i origin)
+void Actor::render(TextBuffer& buffer, vec2i origin, bool dim)
 {
     ActorInfo& ai = g_game.reg.actor_info[int(type)];
-    buffer.setTile(pos - origin, ai.character, ai.color, ai.priority);
+    u32 col = dim ? scalar::convertToGrayscale(ai.color, 0.5f) : ai.color;
+    buffer.setTile(pos - origin, ai.character, col, ai.priority);
 }
 
 GroundItem::GroundItem(vec2i pos, const Item& item)
@@ -112,11 +113,13 @@ GroundItem::GroundItem(vec2i pos, const Item& item)
 
 }
 
-void GroundItem::render(TextBuffer& buffer, vec2i origin)
+void GroundItem::render(TextBuffer& buffer, vec2i origin, bool dim)
 {
     ActorInfo& ai = g_game.reg.actor_info[int(type)];
     ItemTypeInfo& iti = g_game.reg.item_type_info[int(item.type)];
-    buffer.setTile(pos - origin, item.character ? item.character : iti.character, item.color ? item.color : iti.color, ai.priority);
+    u32 col = item.color ? item.color : iti.color;
+        col = dim ? scalar::convertToGrayscale(col, 0.5f) : col;
+    buffer.setTile(pos - origin, item.character ? item.character : iti.character, col, ai.priority);
 }
 
 Player::Player(vec2i pos)
@@ -174,10 +177,11 @@ Door::Door(vec2i pos)
 
 }
 
-void Door::render(TextBuffer& buffer, vec2i origin)
+void Door::render(TextBuffer& buffer, vec2i origin, bool dim)
 {
     ActorInfo& ai = g_game.reg.actor_info[int(type)];
-    buffer.setTile(pos - origin, open ? '.' : '#', ai.color, ai.priority);
+    u32 col = dim ? scalar::convertToGrayscale(ai.color, 0.5f) : ai.color;
+    buffer.setTile(pos - origin, open ? '.' : '#', col, ai.priority);
 }
 
 ActionData Monster::update(const Map& map, pcg32& rng)
