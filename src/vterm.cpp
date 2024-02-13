@@ -22,8 +22,8 @@ void TextBuffer::write(vec2i p, const char* text, u32 color, int priority)
     char n;
     while (n = *text++)
     {
-        p.x++;
         setText(p, n, color, priority);
+        p.x++;
     }
 }
 
