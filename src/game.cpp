@@ -141,55 +141,76 @@ void updateGame()
 {
     Map& map = *g_game.current_level;
 
-    bool do_turn = false;
-    if (input_key_pressed(GLFW_KEY_UP))
+    if (g_game.console_input_displayed)
     {
-        do_turn = true;
-        map.player->tryMove(map, vec2i(0, 1));
-    }
-    if (input_key_pressed(GLFW_KEY_DOWN))
-    {
-        do_turn = true;
-        map.player->tryMove(map, vec2i(0, -1));
-    }
-    if (input_key_pressed(GLFW_KEY_RIGHT))
-    {
-        do_turn = true;
-        map.player->tryMove(map, vec2i(1, 0));
-    }
-    if (input_key_pressed(GLFW_KEY_LEFT))
-    {
-        do_turn = true;
-        map.player->tryMove(map, vec2i(-1, 0));
-    }
-    if (input_key_pressed(GLFW_KEY_O))
-    {
-        do_turn = true;
-        map.player->next_action = ActionData(Action::Open, map.player, 1.0f);
-    }
-
-    vec2i mouse_pos = game_mouse_pos();
-
-    if (do_turn)
-    {
-        float dt = map.player->next_action.energy;
-
-        std::vector<ActionData> actions;
-        for (Actor* a : map.actors)
+        InputTextResult res = input_handle_text(g_game.console_input, g_game.console_cursor);
+        if (res != InputTextResult::Continue)
         {
-            // @Todo: Allow polling multiple actions per turn if the actor has enough stored energy?
-            ActionData act = a->update(map, g_game.rng, dt);
-            if (act.action != Action::Wait) actions.emplace_back(act);
+            if (res == InputTextResult::Finished)
+            {
+                std::vector<sstring> args = g_game.console_input.split(' ');
+            }
+            g_game.console_input = "";
+            g_game.console_cursor = 0;
+            g_game.console_input_displayed = false;
+        }
+    }
+    else
+    {
+        bool do_turn = false;
+        if (input_key_pressed(GLFW_KEY_UP))
+        {
+            do_turn = true;
+            map.player->tryMove(map, vec2i(0, 1));
+        }
+        if (input_key_pressed(GLFW_KEY_DOWN))
+        {
+            do_turn = true;
+            map.player->tryMove(map, vec2i(0, -1));
+        }
+        if (input_key_pressed(GLFW_KEY_RIGHT))
+        {
+            do_turn = true;
+            map.player->tryMove(map, vec2i(1, 0));
+        }
+        if (input_key_pressed(GLFW_KEY_LEFT))
+        {
+            do_turn = true;
+            map.player->tryMove(map, vec2i(-1, 0));
+        }
+        if (input_key_pressed(GLFW_KEY_O))
+        {
+            do_turn = true;
+            map.player->next_action = ActionData(Action::Open, map.player, 1.0f);
+        }
+        if (input_key_pressed(GLFW_KEY_3) && (input_key_down(GLFW_KEY_LEFT_SHIFT) || input_key_down(GLFW_KEY_RIGHT_SHIFT)))
+        {
+            g_game.console_input_displayed = true;
         }
 
-        for (ActionData& act : actions)
+        if (do_turn)
         {
-            act.apply(map, g_game.rng);
+            float dt = map.player->next_action.energy;
+
+            std::vector<ActionData> actions;
+            for (Actor* a : map.actors)
+            {
+                // @Todo: Allow polling multiple actions per turn if the actor has enough stored energy?
+                ActionData act = a->update(map, g_game.rng, dt);
+                if (act.action != Action::Wait) actions.emplace_back(act);
+            }
+
+            for (ActionData& act : actions)
+            {
+                act.apply(map, g_game.rng);
+            }
+            map.turn++;
         }
-        map.turn++;
     }
 
     g_game.term->clear();
+
+    vec2i mouse_pos = game_mouse_pos();
 
 #if 0
     // Pathfinding debug
@@ -203,13 +224,22 @@ void updateGame()
 
     sstring top_bar;
     top_bar.appendf("Mx: %d %d Px: %d %d", mouse_pos.x, mouse_pos.y, map.player->pos.x, map.player->pos.y);
-    sstring bottom_bar;
-    bottom_bar.appendf("Turn: %d H: %d/%d", map.turn, map.player->health, map.player->max_health);
-
-    g_game.term->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF000000, LayerPriority_UI - 1);
-    g_game.term->write(vec2i(2, 0), bottom_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
     g_game.term->fillBg(vec2i(0, g_game.h - 1), vec2i(49, g_game.h - 1), 0xFF101010, LayerPriority_UI - 1);
     g_game.term->write(vec2i(2, g_game.h - 1), top_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+
+    sstring bottom_bar;
+    if (g_game.console_input_displayed)
+    {
+        bottom_bar.appendf("# %s", g_game.console_input);
+        if (g_window.frame_count % 30 < 15)
+            g_game.term->setBg(vec2i(1 + g_game.console_cursor / 2, 0), 0xFFA0A0A0, LayerPriority_UI - 1);
+    }
+    else
+    {
+        bottom_bar.appendf("Turn: %d H: %d/%d", map.turn, map.player->health, map.player->max_health);
+    }
+    g_game.term->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF000000, LayerPriority_UI - 2);
+    g_game.term->write(vec2i(2, 0), bottom_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
 
     {
         g_game.term->fillBg(vec2i(50, g_game.h - 6), vec2i(g_game.w - 1, g_game.h - 1), 0xFF000000, LayerPriority_UI);

@@ -66,6 +66,10 @@ struct Game
 
     GameState state = GameState::Ingame;
     SidebarUI sidebar = SidebarUI::Character;
+
+    sstring console_input;
+    int console_cursor = 0;
+    bool console_input_displayed = false;
 };
 extern Game g_game;
 

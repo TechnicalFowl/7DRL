@@ -177,6 +177,7 @@ void frame_end()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     glfwSwapBuffers(g_window.window);
+    g_window.frame_count++;
 }
 
 bool input_key_pressed(int key) { return g_window.inputs.keys[key] && !g_window.inputs.last_keys[key]; }
@@ -186,6 +187,92 @@ bool input_key_released(int key) { return !g_window.inputs.keys[key] && g_window
 bool input_mouse_button_pressed(int button) { return g_window.inputs.buttons[button] && !g_window.inputs.last_buttons[button]; }
 bool input_mouse_button_down(int button) { return g_window.inputs.buttons[button]; }
 bool input_mouse_button_released(int button) { return !g_window.inputs.buttons[button] && g_window.inputs.last_buttons[button]; }
+
+InputTextResult input_handle_text(sstring& text, int& cursor)
+{
+    debug_assert(cursor >= 0 && cursor <= text.size());
+    if (input_key_pressed(GLFW_KEY_ESCAPE))
+    {
+        return InputTextResult::Canceled;
+    }
+    bool shift = g_window.inputs.keys[GLFW_KEY_LEFT_SHIFT] || g_window.inputs.keys[GLFW_KEY_RIGHT_SHIFT];
+    bool ctrl = g_window.inputs.keys[GLFW_KEY_LEFT_CONTROL] || g_window.inputs.keys[GLFW_KEY_RIGHT_CONTROL];
+    bool alt = g_window.inputs.keys[GLFW_KEY_LEFT_ALT] || g_window.inputs.keys[GLFW_KEY_RIGHT_ALT];
+
+    for (int k = GLFW_KEY_A; k <= GLFW_KEY_Z; ++k)
+    {
+        if (input_key_pressed(k))
+        {
+            char c = shift ? k : k + 'a' - 'A';
+            if (cursor < text.size()) text.insert(cursor, c);
+            else                      text.append(c);
+            cursor++;
+        }
+    }
+    for (int k = 0; k <= 9; ++k)
+    {
+        if (input_key_pressed(GLFW_KEY_0 + k))
+        {
+            char c = shift ? ")!@#$%^&*("[k] : k + '0';
+            if (cursor < text.size()) text.insert(cursor, c);
+            else                      text.append(c);
+            cursor++;
+        }
+        if (input_key_pressed(GLFW_KEY_KP_0 + k))
+        {
+            char c = k + '0';
+            if (cursor < text.size()) text.insert(cursor, c);
+            else                      text.append(c);
+            cursor++;
+        }
+    }
+    int symbols[]{ GLFW_KEY_MINUS, GLFW_KEY_EQUAL, GLFW_KEY_LEFT_BRACKET, GLFW_KEY_RIGHT_BRACKET, GLFW_KEY_BACKSLASH, GLFW_KEY_SEMICOLON, GLFW_KEY_APOSTROPHE, GLFW_KEY_COMMA, GLFW_KEY_PERIOD, GLFW_KEY_SLASH, GLFW_KEY_GRAVE_ACCENT, GLFW_KEY_KP_ADD, GLFW_KEY_KP_SUBTRACT, GLFW_KEY_KP_MULTIPLY, GLFW_KEY_KP_DIVIDE, GLFW_KEY_KP_DECIMAL };
+    const char* symbols_text = "-=[]\\;',./`+-*/.";
+    const char* alt_symbols_text = "_+{}|:\"<>?~+-*/.";
+    for (int i = 0; i < sizeof(symbols) / sizeof(symbols[0]); ++i)
+    {
+        if (input_key_pressed(symbols[i]))
+        {
+            char c = shift ? alt_symbols_text[i] : symbols_text[i];
+            if (cursor < text.size()) text.insert(cursor, c);
+            else                      text.append(c);
+            cursor++;
+        }
+    }
+
+    if (input_key_pressed(GLFW_KEY_BACKSPACE))
+    {
+        // @Todo: Ctrl + Backspace should delete the previous word
+        if (cursor == text.size())
+        {
+            text.pop(1);
+            cursor--;
+        }
+        else
+        {
+            char* data = text.mut_str();
+            memmove(data + cursor - 1, data + cursor, text.size() - (size_t) cursor);
+            text.pop(1);
+            cursor--;
+        }
+    }
+    if (input_key_pressed(GLFW_KEY_DELETE))
+    {
+        // @Todo: Ctrl + Delete should delete the next word
+        if (cursor < text.size())
+        {
+            char* data = text.mut_str();
+            memmove(data + cursor, data + cursor + 1, text.size() - (size_t) cursor);
+            text.pop(1);
+        }
+    }
+
+    if (input_key_pressed(GLFW_KEY_ENTER))
+    {
+        return InputTextResult::Finished;
+    }
+    return InputTextResult::Continue;
+}
 
 struct CharTexture
 {

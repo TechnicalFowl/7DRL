@@ -675,6 +675,25 @@ namespace strings
         return -1;
     }
 
+    void string::pop(u32 count)
+    {
+        if (isSmallString())
+        {
+            u32 sz = 23 - small[23];
+            small[sz - count] = '\0';
+            small[23] = (char)(23 - (sz - count));
+        }
+        else
+        {
+            ensureOwnership();
+            u32 sz = large.length;
+            large.data[sz-count] = '\0';
+            large.length = sz - count;
+            if (large.length < 24)
+                tryShrinkToSmall();
+        }
+    }
+
     void string::trim()
     {
         trim(isWhitespace);
@@ -1384,6 +1403,24 @@ namespace strings
             }
             return 0;
         }
+    }
+
+    std::vector<string> string::split(char c) const
+    {
+        std::vector<sstring> parts;
+        int last = 0;
+        int next = indexOf(c);
+        while (next != -1 && last < (int) size())
+        {
+            parts.emplace_back(c_str() + last, next - last);
+            last = next + 1;
+            next = indexOf(c, last);
+        }
+        if (last < (int)size())
+        {
+            parts.emplace_back(c_str() + last, size() - last);
+        }
+        return parts;
     }
 
     bool equals(const char* a, const char* b)

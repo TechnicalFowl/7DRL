@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 namespace strings
 {
 
@@ -180,6 +182,8 @@ namespace strings
         char charAt(u32 index) const;
 
         int compareTo(const string& s) const;
+
+        std::vector<string> split(char c) const;
     };
 
     bool equals(const char* a, const char* b);

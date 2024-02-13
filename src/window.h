@@ -11,6 +11,7 @@
 #undef near
 
 #include "util/vector_math.h"
+#include "util/string.h"
 
 #define GLSL(SRC) "#version 330 core\n" # SRC
 
@@ -82,6 +83,8 @@ struct Window
     VertexBuffer* vb;
 
     Inputs inputs;
+
+    u64 frame_count = 0;
 };
 extern Window g_window;
 
@@ -104,6 +107,15 @@ bool input_key_released(int key);
 bool input_mouse_button_pressed(int button);
 bool input_mouse_button_down(int button);
 bool input_mouse_button_released(int button);
+
+enum class InputTextResult
+{
+    Continue,
+    Finished,
+    Canceled,
+};
+
+InputTextResult input_handle_text(sstring& text, int& cursor);
 
 void render_buffer(TextBuffer* term);
 
