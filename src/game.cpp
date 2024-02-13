@@ -97,6 +97,10 @@ void initGame(int w, int h)
     Equipment* goblin_spear = goblin->equipment[int(EquipmentSlot::MainHand)] = new Equipment('/', 0xffffffff, ItemType::Equipment, "Goblin Spear", EquipmentSlot::MainHand);
     goblin_spear->modifiers.emplace_back(ModifierType::Damage, DamageType::Piercing, 3.0f, 1.0f);
     map.spawn(goblin);
+
+    Equipment* sword = new Equipment('/', 0xffffffff, ItemType::Equipment, "Sword", EquipmentSlot::MainHand);
+    sword->modifiers.emplace_back(ModifierType::Damage, DamageType::Slashing, 5.0f, 1.0f);
+    map.spawn(new GroundItem(map.findNearestEmpty(vec2i(2, 2), Terrain::DirtFloor), sword));
 }
 
 vec2i game_mouse_pos()
@@ -187,6 +191,11 @@ void updateGame()
         {
             g_game.console_input_displayed = true;
         }
+        if (input_key_pressed(GLFW_KEY_COMMA))
+        {
+            do_turn = true;
+            map.player->next_action = ActionData(Action::Pickup, map.player, 1.0f);
+        }
 
         if (do_turn)
         {
@@ -251,6 +260,26 @@ void updateGame()
     case SidebarUI::Character:
     {
         drawUIFrame(g_game.term, vec2i(50, 1), vec2i(g_game.w - 1, g_game.h - 7), "Character");
+
+        int y = g_game.h - 8;
+        g_game.term->write(vec2i(102, y--), "Equipment -----------", 0xFFFFFFFF, LayerPriority_UI);
+        for (int i = 0; i < EquipmentSlotCount; ++i)
+        {
+            if (map.player->equipment[i])
+            {
+                sstring slot_text;
+                slot_text.appendf("%s: %s", EquipmentSlotNames[i], map.player->equipment[i]->name.c_str());
+                g_game.term->write(vec2i(102, y--), slot_text.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            }
+        }
+        g_game.term->write(vec2i(102, y--), "Inventory -----------", 0xFFFFFFFF, LayerPriority_UI);
+        for (Item* item : map.player->inventory)
+        {
+            if (y < 2) break;
+            sstring slot_text;
+            slot_text.appendf("%s", item->name.c_str());
+            g_game.term->write(vec2i(102, y--), slot_text.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
 
     } break;
     case SidebarUI::GameLog:

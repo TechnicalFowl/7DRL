@@ -47,6 +47,7 @@ enum class EquipmentSlot
     __COUNT,
 };
 constexpr int EquipmentSlotCount = int(EquipmentSlot::__COUNT);
+extern const char* EquipmentSlotNames[EquipmentSlotCount];
 
 enum class ModifierType
 {
@@ -131,6 +132,8 @@ struct Living : Actor
 struct Player : Living
 {
     ActionData next_action;
+
+    std::vector<Item*> inventory;
 
     Player(vec2i pos);
 

@@ -5,6 +5,17 @@
 #include "game.h"
 #include "map.h"
 
+const char* EquipmentSlotNames[EquipmentSlotCount]
+{
+    "Main",
+    "Off",
+
+    "Head",
+    "Body",
+    "Legs",
+    "Feet",
+};
+
 struct OffenseStats
 {
     float speed = 1.0f;
@@ -186,6 +197,19 @@ bool ActionData::apply(Map& map, pcg32& rng)
             return false;
         }
         return true;
+    } break;
+    case Action::Pickup:
+    {
+        debug_assert(actor->type == ActorType::Player);
+        auto it = map.tiles.find(actor->pos);
+        if (it.found && it.value.ground && it.value.ground->type == ActorType::GroundItem)
+        {
+            GroundItem* item = (GroundItem*)it.value.ground;
+            Player* pl = (Player*) actor;
+            pl->inventory.push_back(item->item);
+            bool removed = map.remove(item);
+            debug_assert(removed);
+        }
     } break;
     case Action::Open:
     {
