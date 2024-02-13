@@ -10,6 +10,14 @@
 
 struct Map;
 
+enum class GameState
+{
+    Title,
+    MainMenu,
+    Ingame,
+    GameOver,
+};
+
 enum class SidebarUI
 {
     Character,
@@ -56,6 +64,7 @@ struct Game
 
     Map* current_level;
 
+    GameState state = GameState::Ingame;
     SidebarUI sidebar = SidebarUI::Character;
 };
 extern Game g_game;

@@ -5,6 +5,151 @@
 #include "game.h"
 #include "map.h"
 
+struct OffenseStats
+{
+    float accuracy = 0.0f;
+    int damage[DamageTypeCount]{ 0, 0, 0, 0, 0, 0, 0 };
+};
+
+OffenseStats getOffense(Living* attacker)
+{
+    OffenseStats stats;
+    float flat_accuracy = 0.0f;
+    float mult_accuracy = 1.0f;
+    float flat_dmg[DamageTypeCount]{ 0, 0, 0, 0, 0, 0, 0 };
+    float mult_dmg[DamageTypeCount]{ 1, 1, 1, 1, 1, 1, 1 };
+
+    for (auto& mod : attacker->inate_modifiers)
+    {
+        switch (mod.type)
+        {
+        case ModifierType::Accuracy:
+        {
+            flat_accuracy += mod.flat;
+            mult_accuracy *= mod.percent;
+        } break;
+        case ModifierType::Damage:
+        {
+            flat_dmg[int(mod.dmg)] += mod.flat;
+            mult_dmg[int(mod.dmg)] *= mod.percent;
+        } break;
+        default:
+            break;
+        }
+    }
+
+    for (int i = 0; i < EquipmentSlotCount; ++i)
+    {
+        Equipment* e = attacker->equipment[i];
+        if (!e) continue;
+
+        for (auto& mod : e->modifiers)
+        {
+            switch (mod.type)
+            {
+            case ModifierType::Accuracy:
+            {
+                flat_accuracy += mod.flat;
+                mult_accuracy *= mod.percent;
+            } break;
+            case ModifierType::Damage:
+            {
+                flat_dmg[int(mod.dmg)] += mod.flat;
+                mult_dmg[int(mod.dmg)] *= mod.percent;
+            } break;
+            default:
+                break;
+            }
+        }
+    }
+
+    stats.accuracy = scalar::max(flat_accuracy * mult_accuracy, 0);
+    for (int i = 0; i < DamageTypeCount; ++i)
+    {
+        stats.damage[i] = scalar::max(scalar::floori(flat_dmg[i] * mult_dmg[i]), 0);
+    }
+    return stats;
+}
+
+struct DefenceStats
+{
+    float dodge = 0.0f;
+    float resistances[DamageTypeCount]{ 1, 1, 1, 1, 1, 1, 1 };
+    float armor[DamageTypeCount]{ 0, 0, 0, 0, 0, 0, 0 };
+};
+
+DefenceStats getDefence(Living* target)
+{
+    DefenceStats stats;
+    float flat_dodge = 0.0f;
+    float mult_dodge = 1.0f;
+
+    for (auto& mod : target->inate_modifiers)
+    {
+        switch (mod.type)
+        {
+        case ModifierType::Dodge:
+        {
+            flat_dodge += mod.flat;
+            mult_dodge *= mod.percent;
+        } break;
+        case ModifierType::Damage:
+        {
+            stats.armor[int(mod.dmg)] += mod.flat;
+            stats.resistances[int(mod.dmg)] *= mod.percent;
+        } break;
+        default:
+            break;
+        }
+    }
+
+    for (int i = 0; i < EquipmentSlotCount; ++i)
+    {
+        Equipment* e = target->equipment[i];
+        if (!e) continue;
+
+        for (auto& mod : e->modifiers)
+        {
+            switch (mod.type)
+            {
+            case ModifierType::Dodge:
+            {
+                flat_dodge += mod.flat;
+                mult_dodge *= mod.percent;
+            } break;
+            case ModifierType::Damage:
+            {
+                stats.armor[int(mod.dmg)] += mod.flat;
+                stats.resistances[int(mod.dmg)] *= mod.percent;
+            } break;
+            default:
+                break;
+            }
+        }
+    }
+
+    stats.dodge = scalar::max(flat_dodge * mult_dodge, 0);
+    return stats;
+}
+
+int calculateDamage(Living* attacker, Living* target, pcg32& rng)
+{
+    OffenseStats off = getOffense(attacker);
+    DefenceStats def = getDefence(target);
+
+    float hit_chance = off.accuracy / (off.accuracy + def.dodge);
+    if (hit_chance < rng.nextFloat()) return 0;
+
+    int damage = 0;
+    for (int i = 0; i < DamageTypeCount; ++i)
+    {
+        if (off.damage[i] == 0) continue;
+        int dmg = scalar::floori((off.damage[i] - def.armor[i]) * def.resistances[i]);
+        damage += scalar::max(dmg, 0);
+    }
+    return damage;
+}
+
 ActionData::ActionData(Action a, Actor* act)
     : action(a), actor(act)
 {
@@ -17,8 +162,7 @@ ActionData::ActionData(Action a, Actor* act, vec2i p)
     move = p;
 }
 
-
-bool ActionData::apply(Map& map)
+bool ActionData::apply(Map& map, pcg32& rng)
 {
     static vec2i dirs[] = { vec2i(0, 1), vec2i(0, -1), vec2i(1, 0), vec2i(-1, 0) };
     switch (action)
@@ -83,9 +227,49 @@ bool ActionData::apply(Map& map)
             if (it.value.actor)
             {
                 Actor* target = it.value.actor;
-                ActorInfo& ai = g_game.reg.actor_info[int(target->type)];
-                if (actor == map.player) g_game.log.logf("You attack the %s.", ai.name);
-                return true;
+                ActorInfo& ti = g_game.reg.actor_info[int(target->type)];
+                ActorInfo& ai = g_game.reg.actor_info[int(actor->type)];
+
+                switch (target->type)
+                {
+                case ActorType::Player:
+                case ActorType::Goblin:
+                {
+                    Living* l_actor = (Living*)actor;
+                    Living* l_target = (Living*)target;
+
+                    int damage = calculateDamage(l_actor, l_target, rng);
+                    if (damage > 0)
+                    {
+                        l_target->health -= damage;
+                        if (l_target->health <= 0)
+                        {
+                            if (actor == map.player)
+                            {
+                                g_game.log.logf("You kill the %s.", ti.name);
+                                map.remove(target);
+                            }
+                            if (target == map.player)
+                            {
+                                g_game.log.logf("The %s kills you.", ai.name);
+                                g_game.state = GameState::GameOver;
+                            }
+                        }
+                        else
+                        {
+                            if (actor == map.player) g_game.log.logf("You attack the %s dealing %d damage.", ti.name, damage);
+                            if (target == map.player) g_game.log.logf("The %s attacks you dealing %d damage.", ai.name, damage);
+                        }
+                    }
+                    else
+                    {
+                        if (actor == map.player) g_game.log.logf("You attack the %s but miss.", ti.name);
+                        if (target == map.player) g_game.log.logf("The %s attacks you but misses.", ai.name);
+                    }
+                    return true;
+                }
+                default: break;
+                }
             }
         }
         if (actor == map.player) g_game.log.log("There is nothing to attack?");
@@ -106,7 +290,7 @@ void Actor::render(TextBuffer& buffer, vec2i origin, bool dim)
     buffer.setTile(pos - origin, ai.character, col, ai.priority);
 }
 
-GroundItem::GroundItem(vec2i pos, const Item& item)
+GroundItem::GroundItem(vec2i pos, Item* item)
     : Actor(pos, ActorType::GroundItem)
     , item(item)
 {
@@ -116,14 +300,22 @@ GroundItem::GroundItem(vec2i pos, const Item& item)
 void GroundItem::render(TextBuffer& buffer, vec2i origin, bool dim)
 {
     ActorInfo& ai = g_game.reg.actor_info[int(type)];
-    ItemTypeInfo& iti = g_game.reg.item_type_info[int(item.type)];
-    u32 col = item.color ? item.color : iti.color;
+    ItemTypeInfo& iti = g_game.reg.item_type_info[int(item->type)];
+    u32 col = item->color ? item->color : iti.color;
         col = dim ? scalar::convertToGrayscale(col, 0.5f) : col;
-    buffer.setTile(pos - origin, item.character ? item.character : iti.character, col, ai.priority);
+    buffer.setTile(pos - origin, item->character ? item->character : iti.character, col, ai.priority);
+}
+
+Living::Living(vec2i p, ActorType ty)
+    : Actor(p, ty)
+{
+    ActorInfo& ai = g_game.reg.actor_info[int(type)];
+    health = ai.max_health;
+    max_health = ai.max_health;
 }
 
 Player::Player(vec2i pos)
-    : Actor(pos, ActorType::Player)
+    : Living(pos, ActorType::Player)
     , next_action(Action::Wait, this)
 {
     ActorInfo& ai = g_game.reg.actor_info[int(type)];
@@ -165,10 +357,8 @@ void Player::tryMove(const Map& map, vec2i dir)
 }
 
 Monster::Monster(vec2i pos, ActorType ty)
-    : Actor(pos, ty)
+    : Living(pos, ty)
 {
-    ActorInfo& ai = g_game.reg.actor_info[int(type)];
-    health = ai.max_health;
 }
 
 Door::Door(vec2i pos)
@@ -186,15 +376,19 @@ void Door::render(TextBuffer& buffer, vec2i origin, bool dim)
 
 ActionData Monster::update(const Map& map, pcg32& rng)
 {
+    for (int i = 0; i < 4; ++i)
+    {
+        auto it = map.tiles.find(pos + direction(Direction(i)));
+        if (it.found && it.value.actor && it.value.actor->type == ActorType::Player)
+            return ActionData(Action::Attack, this, direction(Direction(i)));
+    }
+
     int dir = rng.nextInt(0, 8);
-    if (dir == 0 && map.isPassable(pos + vec2i(1, 0)))
-        return ActionData(Action::Move, this, vec2i(1, 0));
-    else if (dir == 1 && map.isPassable(pos + vec2i(-1, 0)))
-        return ActionData(Action::Move, this, vec2i(-1, 0));
-    else if (dir == 2 && map.isPassable(pos + vec2i(0, 1)))
-        return ActionData(Action::Move, this, vec2i(0, 1));
-    else if (dir == 3 && map.isPassable(pos + vec2i(0, -1)))
-        return ActionData(Action::Move, this, vec2i(0, -1));
+    for (int i = 0; i < 4; ++i)
+    {
+        if (dir == i && map.isPassable(pos + direction(Direction(i))))
+            return ActionData(Action::Move, this, direction(Direction(i)));
+    }
 
     return ActionData(Action::Wait, this);
 }

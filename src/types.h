@@ -30,6 +30,7 @@ enum class Terrain
 enum class ItemType
 {
     Generic,
+    Equipment,
 
     __COUNT,
     Invalid,

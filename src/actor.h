@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "util/string.h"
 
 #include "types.h"
@@ -18,6 +20,64 @@ struct Item
     Item(int id, u32 color, ItemType type, const sstring& name) : character(id), color(color), type(type), name(name) {}
 };
 
+enum class DamageType
+{
+    Blunt,
+    Piercing,
+    Slashing,
+    Fire,
+    Cold,
+    Acid,
+    Poison,
+
+    __COUNT,
+};
+constexpr int DamageTypeCount = int(DamageType::__COUNT);
+
+enum class EquipmentSlot
+{
+    MainHand,
+    OffHand,
+
+    Head,
+    Body,
+    Legs,
+    Feet,
+
+    __COUNT,
+};
+constexpr int EquipmentSlotCount = int(EquipmentSlot::__COUNT);
+
+enum class ModifierType
+{
+    Damage,
+    Resistances,
+    Accuracy,
+    Dodge,
+};
+
+struct EquipmentModifier
+{
+    ModifierType type;
+    DamageType dmg;
+    float flat;
+    float percent;
+
+    EquipmentModifier(ModifierType type, DamageType dmg, float flat, float percent)
+        : type(type), dmg(dmg), flat(flat), percent(percent) {}
+    EquipmentModifier(ModifierType type, float flat, float percent)
+        : type(type), dmg(DamageType::Blunt), flat(flat), percent(percent) {}
+};
+
+struct Equipment : Item
+{
+    EquipmentSlot slot;
+    std::vector<EquipmentModifier> modifiers;
+
+    Equipment(int id, u32 color, ItemType type, const sstring& name, EquipmentSlot slot)
+        : Item(id, color, type, name), slot(slot) {}
+};
+
 struct ActionData
 {
     Action action;
@@ -30,7 +90,7 @@ struct ActionData
     ActionData(Action a, Actor* act);
     ActionData(Action a, Actor* act, vec2i p);
 
-    bool apply(Map& map);
+    bool apply(Map& map, pcg32& rng);
 };
 
 struct Actor
@@ -47,18 +107,26 @@ struct Actor
 
 struct GroundItem : Actor
 {
-    Item item;
+    Item* item;
 
-    GroundItem(vec2i pos, const Item& item);
+    GroundItem(vec2i pos, Item* item);
 
     virtual void render(TextBuffer& buffer, vec2i origin, bool dim = false) override;
 };
 
-struct Player : Actor
+struct Living : Actor
+{
+    int health;
+    int max_health;
+    std::vector<EquipmentModifier> inate_modifiers;
+    Equipment* equipment[EquipmentSlotCount]{ nullptr };
+
+    Living(vec2i pos, ActorType type);
+};
+
+struct Player : Living
 {
     ActionData next_action;
-
-    int health = 10;
 
     Player(vec2i pos);
 
@@ -67,10 +135,9 @@ struct Player : Actor
     void tryMove(const Map& map, vec2i dir);
 };
 
-struct Monster : Actor
+struct Monster : Living
 {
     sstring name;
-    int health = 10;
 
     Monster(vec2i pos, ActorType ty);
 

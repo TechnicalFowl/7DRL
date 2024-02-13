@@ -77,6 +77,7 @@ void initGame(int w, int h)
         reg.actor_info[int(ActorType::Door)] = ActorInfo(ActorType::Door, "Door", '=', 0xFFC0C0C0, LayerPriority_Objects, false, 50);
 
         reg.item_type_info[int(ItemType::Generic)] = ItemTypeInfo(ItemType::Generic, "Generic", '?', 0xFFFFFFFF);
+        reg.item_type_info[int(ItemType::Equipment)] = ItemTypeInfo(ItemType::Equipment, "Equipment", ')', 0xFFFFFFFF);
     }
 
     g_game.current_level = new Map("level_0");
@@ -85,10 +86,15 @@ void initGame(int w, int h)
     generate(map);
 
     Player* player = new Player(vec2i(0, 0));
+    player->inate_modifiers.emplace_back(ModifierType::Accuracy, 100.0f, 1.0f);
+    player->inate_modifiers.emplace_back(ModifierType::Damage, DamageType::Blunt, 1.0f, 1.0f);
     map.player = player;
     map.spawn(player);
 
     Monster* goblin = new Monster(map.findNearestEmpty(vec2i(8, 8), Terrain::DirtFloor), ActorType::Goblin);
+    goblin->inate_modifiers.emplace_back(ModifierType::Accuracy, 50.0f, 1.0f);
+    Equipment* goblin_spear = goblin->equipment[int(EquipmentSlot::MainHand)] = new Equipment('/', 0xffffffff, ItemType::Equipment, "Goblin Spear", EquipmentSlot::MainHand);
+    goblin_spear->modifiers.emplace_back(ModifierType::Damage, DamageType::Piercing, 3.0f, 1.0f);
     map.spawn(goblin);
 }
 
@@ -174,7 +180,7 @@ void updateGame()
 
         for (ActionData& act : actions)
         {
-            act.apply(map);
+            act.apply(map, g_game.rng);
         }
         map.turn++;
     }
@@ -193,7 +199,8 @@ void updateGame()
 
     sstring top_bar;
     top_bar.appendf("Mx: %d %d Px: %d %d", mouse_pos.x, mouse_pos.y, map.player->pos.x, map.player->pos.y);
-    sstring bottom_bar = "H 10/10";
+    sstring bottom_bar;
+    bottom_bar.appendf("Turn: %d H: %d/%d", map.turn, map.player->health, map.player->max_health);
 
     g_game.term->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF000000, LayerPriority_UI - 1);
     g_game.term->write(vec2i(2, 0), bottom_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
