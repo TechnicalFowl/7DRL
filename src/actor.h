@@ -80,6 +80,24 @@ struct Equipment : Item
         : Item(id, color, type, name), slot(slot) {}
 };
 
+enum class WeaponType
+{
+    Melee,
+    Ranged,
+
+    __COUNT,
+};
+constexpr int WeaponTypeCount = int(WeaponType::__COUNT);
+extern const char* WeaponTypeNames[WeaponTypeCount];
+
+struct Weapon : Equipment
+{
+    WeaponType weapon_type;
+
+    Weapon(int id, u32 color, ItemType type, const sstring& name, WeaponType wt)
+        : Equipment(id, color, type, name, EquipmentSlot::MainHand), weapon_type(wt) {}
+};
+
 struct ActionData
 {
     Action action;
@@ -88,10 +106,12 @@ struct ActionData
     union
     {
         vec2i move;
+        Item* item;
     };
 
     ActionData(Action a, Actor* act, float e);
     ActionData(Action a, Actor* act, float e, vec2i p);
+    ActionData(Action a, Actor* act, float e, Item* i);
 
     bool apply(Map& map, pcg32& rng);
 };
@@ -102,6 +122,7 @@ struct Actor
     ActorType type;
 
     float stored_energy = 0.0f;
+    bool dead = false;
 
     Actor(vec2i pos, ActorType ty) : pos(pos), type(ty) {}
 
@@ -137,7 +158,7 @@ struct Player : Living
 
     Player(vec2i pos);
 
-    ActionData update(const Map& map, pcg32& rng, float dt) override { return next_action; }
+    ActionData update(const Map& map, pcg32& rng, float dt) override { ActionData cpy = next_action; next_action = ActionData(Action::Wait, this, 0.0f); return cpy; }
 
     void tryMove(const Map& map, vec2i dir);
 };

@@ -243,31 +243,6 @@ bool Map::move(Actor* a, vec2i to)
     return true;
 }
 
-bool Map::remove(Actor* a)
-{
-    ActorInfo& ai = g_game.reg.actor_info[int(a->type)];
-    auto ait = std::find(actors.begin(), actors.end(), a);
-    if (ait != actors.end()) actors.erase(ait);
-    else return false;
-    auto it = tiles.find(a->pos);
-    if (it.found)
-    {
-        TerrainInfo& ti = g_game.reg.terrain_info[(int)it.value.terrain];
-        if (ai.is_ground)
-        {
-            debug_assert(it.value.ground == a);
-            it.value.ground = nullptr;
-        }
-        else
-        {
-            debug_assert(it.value.actor == a);
-            it.value.actor = nullptr;
-        }
-        return true;
-    }
-    return false;
-}
-
 void Map::clear()
 {
     tiles.clear();

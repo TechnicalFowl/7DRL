@@ -14,6 +14,7 @@ enum class Action
     Pickup,
     Drop,
     Equip,
+    Unequip,
     UseOn,
 };
 
@@ -31,6 +32,7 @@ enum class ItemType
 {
     Generic,
     Equipment,
+    Weapon,
 
     __COUNT,
     Invalid,

@@ -58,7 +58,6 @@ struct Map
 
     bool spawn(Actor* a);
     bool move(Actor* a, vec2i to);
-    bool remove(Actor* a);
 
     void clear();
 

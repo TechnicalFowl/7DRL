@@ -16,6 +16,12 @@ const char* EquipmentSlotNames[EquipmentSlotCount]
     "Feet",
 };
 
+const char* WeaponTypeNames[WeaponTypeCount]
+{
+    "Melee",
+    "Ranged",
+};
+
 struct OffenseStats
 {
     float speed = 1.0f;
@@ -173,13 +179,19 @@ int calculateDamage(Living* attacker, Living* target, pcg32& rng)
 ActionData::ActionData(Action a, Actor* act, float e)
     : action(a), actor(act), energy(e)
 {
-    move = vec2i(0, 0);
+    item = nullptr;
 }
 
 ActionData::ActionData(Action a, Actor* act, float e, vec2i p)
     : action(a), actor(act), energy(e)
 {
     move = p;
+}
+
+ActionData::ActionData(Action a, Actor* act, float e, Item* i)
+    : action(a), actor(act), energy(e)
+{
+    item = i;
 }
 
 bool ActionData::apply(Map& map, pcg32& rng)
@@ -207,8 +219,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
             GroundItem* item = (GroundItem*)it.value.ground;
             Player* pl = (Player*) actor;
             pl->inventory.push_back(item->item);
-            bool removed = map.remove(item);
-            debug_assert(removed);
+            item->dead = true;
         }
     } break;
     case Action::Open:
@@ -264,6 +275,8 @@ bool ActionData::apply(Map& map, pcg32& rng)
                 ActorInfo& ti = g_game.reg.actor_info[int(target->type)];
                 ActorInfo& ai = g_game.reg.actor_info[int(actor->type)];
 
+                if (target->dead) break;
+
                 switch (target->type)
                 {
                 case ActorType::Player:
@@ -281,7 +294,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
                             if (actor == map.player)
                             {
                                 g_game.log.logf("You kill the %s.", ti.name);
-                                map.remove(target);
+                                target->dead = true;
                             }
                             if (target == map.player)
                             {
@@ -308,6 +321,31 @@ bool ActionData::apply(Map& map, pcg32& rng)
         }
         if (actor == map.player) g_game.log.log("There is nothing to attack?");
         return false;
+    } break;
+    case Action::Equip:
+    {
+        debug_assert(actor->type == ActorType::Player);
+        Player* pl = (Player*) actor;
+        debug_assert(item && (item->type == ItemType::Equipment || item->type == ItemType::Weapon));
+        Equipment* e = (Equipment*) item;
+        auto it = std::find(pl->inventory.begin(), pl->inventory.end(), e);
+        debug_assert(it != pl->inventory.end());
+        pl->inventory.erase(it);
+        if (pl->equipment[int(e->slot)])
+        {
+            pl->inventory.push_back(pl->equipment[int(e->slot)]);
+        }
+        pl->equipment[int(e->slot)] = e;
+    } break;
+    case Action::Unequip:
+    {
+        debug_assert(actor->type == ActorType::Player);
+        Player* pl = (Player*) actor;
+        debug_assert(item && (item->type == ItemType::Equipment || item->type == ItemType::Weapon));
+        Equipment* e = (Equipment*) item;
+        debug_assert(pl->equipment[int(e->slot)] == e);
+        pl->equipment[int(e->slot)] = nullptr;
+        pl->inventory.push_back(e);
     } break;
     default:
     {

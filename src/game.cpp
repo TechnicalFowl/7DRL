@@ -98,9 +98,13 @@ void initGame(int w, int h)
     goblin_spear->modifiers.emplace_back(ModifierType::Damage, DamageType::Piercing, 3.0f, 1.0f);
     map.spawn(goblin);
 
-    Equipment* sword = new Equipment('/', 0xffffffff, ItemType::Equipment, "Sword", EquipmentSlot::MainHand);
+    Weapon* sword = new Weapon('/', 0xffffffff, ItemType::Equipment, "Sword", WeaponType::Melee);
     sword->modifiers.emplace_back(ModifierType::Damage, DamageType::Slashing, 5.0f, 1.0f);
     map.spawn(new GroundItem(map.findNearestEmpty(vec2i(2, 2), Terrain::DirtFloor), sword));
+
+    Weapon* bow = new Weapon(']', 0xffffffff, ItemType::Equipment, "Bow", WeaponType::Ranged);
+    bow->modifiers.emplace_back(ModifierType::Damage, DamageType::Piercing, 4.0f, 1.0f);
+    map.spawn(new GroundItem(map.findNearestEmpty(vec2i(3, 2), Terrain::DirtFloor), bow));
 }
 
 vec2i game_mouse_pos()
@@ -134,9 +138,9 @@ bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color)
     sstring text; text.appendf("[%s]", label);
 
     vec2f mouse = screen_mouse_pos();
-    bool hovered = mouse.x >= pos.x && mouse.x < pos.x + (text.size() / 2.0f) && scalar::floori(mouse.y) == pos.y;
+    bool hovered = mouse.x >= pos.x / 2.0f && mouse.x < (pos.x + text.size()) / 2.0f && scalar::floori(mouse.y) == pos.y;
 
-    term->write(vec2i(pos.x * 2, pos.y), text.c_str(), hovered ? 0xFF00FF00 : color, LayerPriority_UI);
+    term->write(vec2i(pos.x, pos.y), text.c_str(), hovered ? 0xFF00FF00 : color, LayerPriority_UI);
     
     return hovered && input_mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT);
 }
@@ -161,7 +165,7 @@ void updateGame()
     }
     else
     {
-        bool do_turn = false;
+        bool do_turn = map.player->next_action.action != Action::Wait;
         if (input_key_pressed(GLFW_KEY_UP))
         {
             do_turn = true;
@@ -211,7 +215,36 @@ void updateGame()
 
             for (ActionData& act : actions)
             {
+                if (act.actor->dead) continue;
                 act.apply(map, g_game.rng);
+            }
+            for (auto it = map.actors.begin(); it != map.actors.end();)
+            {
+                if ((*it)->dead)
+                {
+                    ActorInfo& ai = g_game.reg.actor_info[int((*it)->type)];
+                    auto tile_it = map.tiles.find((*it)->pos);
+                    if (tile_it.found)
+                    {
+                        TerrainInfo& ti = g_game.reg.terrain_info[(int)tile_it.value.terrain];
+                        if (ai.is_ground)
+                        {
+                            debug_assert(tile_it.value.ground == *it);
+                            tile_it.value.ground = nullptr;
+                        }
+                        else
+                        {
+                            debug_assert(tile_it.value.actor == *it);
+                            tile_it.value.actor = nullptr;
+                        }
+                    }
+                    delete *it;
+                    it = map.actors.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
             }
             map.turn++;
         }
@@ -263,24 +296,52 @@ void updateGame()
 
         int y = g_game.h - 8;
         g_game.term->write(vec2i(102, y--), "Equipment -----------", 0xFFFFFFFF, LayerPriority_UI);
+        std::vector<Equipment*> unequip;
         for (int i = 0; i < EquipmentSlotCount; ++i)
         {
-            if (map.player->equipment[i])
+            Equipment* e = map.player->equipment[i];
+            if (e)
             {
+                debug_assert(e->slot == EquipmentSlot(i));
                 sstring slot_text;
-                slot_text.appendf("%s: %s", EquipmentSlotNames[i], map.player->equipment[i]->name.c_str());
-                g_game.term->write(vec2i(102, y--), slot_text.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+                slot_text.appendf("%s: %s", EquipmentSlotNames[i], e->name.c_str());
+                if (drawButton(g_game.term, vec2i(102, y--), slot_text.c_str(), 0xFFFFFFFF))
+                {
+                    unequip.push_back((Equipment*)e);
+                }
             }
         }
         g_game.term->write(vec2i(102, y--), "Inventory -----------", 0xFFFFFFFF, LayerPriority_UI);
+        std::vector<Equipment*> equip;
         for (Item* item : map.player->inventory)
         {
             if (y < 2) break;
             sstring slot_text;
             slot_text.appendf("%s", item->name.c_str());
-            g_game.term->write(vec2i(102, y--), slot_text.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            if (item->type == ItemType::Equipment || item->type == ItemType::Weapon)
+            {
+                if (drawButton(g_game.term, vec2i(102, y--), slot_text.c_str(), 0xFFFFFFFF))
+                {
+                    equip.push_back((Equipment*) item);
+                }
+            }
+            else
+            {
+                g_game.term->write(vec2i(102, y--), slot_text.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            }
         }
 
+        if (!unequip.empty())
+        {
+            Equipment* e = unequip.front();
+            debug_assert(map.player->equipment[int(e->slot)] == e);
+            map.player->next_action = ActionData(Action::Unequip, map.player, 0.1f, e);
+        }
+        else if (!equip.empty())
+        {
+            Equipment* e = equip.front();
+            map.player->next_action = ActionData(Action::Equip, map.player, 0.1f, e);
+        }
     } break;
     case SidebarUI::GameLog:
     {
@@ -305,11 +366,11 @@ void updateGame()
     }
     {
         g_game.term->fillBg(vec2i(50, 0), vec2i(g_game.w - 1, 0), 0xFF000000, LayerPriority_UI);
-        if (drawButton(g_game.term, vec2i(52, 0), "Character", g_game.sidebar == SidebarUI::Character ? 0xFFFFFFFF : 0xFFB0B0B0))
+        if (drawButton(g_game.term, vec2i(104, 0), "Character", g_game.sidebar == SidebarUI::Character ? 0xFFFFFFFF : 0xFFB0B0B0))
         {
             g_game.sidebar = SidebarUI::Character;
         }
-        if (drawButton(g_game.term, vec2i(58, 0), "Log", g_game.sidebar == SidebarUI::GameLog ? 0xFFFFFFFF : 0xFFB0B0B0))
+        if (drawButton(g_game.term, vec2i(116, 0), "Log", g_game.sidebar == SidebarUI::GameLog ? 0xFFFFFFFF : 0xFFB0B0B0))
         {
             g_game.sidebar = SidebarUI::GameLog;
         }
