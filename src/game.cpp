@@ -219,6 +219,15 @@ void updateGame()
                 }
             }
         }
+        if (input_mouse_button_pressed(GLFW_MOUSE_BUTTON_1))
+        {
+            if (map.player->is_aiming)
+            {
+                vec2i target = mouse_pos;
+                do_turn = true;
+                map.player->next_action = ActionData(Action::Zap, map.player, 1.0f, target);
+            }
+        }
 
         if (do_turn)
         {
