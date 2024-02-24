@@ -98,11 +98,11 @@ void initGame(int w, int h)
     goblin_spear->modifiers.emplace_back(ModifierType::Damage, DamageType::Piercing, 3.0f, 1.0f);
     map.spawn(goblin);
 
-    Weapon* sword = new Weapon('/', 0xffffffff, ItemType::Equipment, "Sword", WeaponType::Melee);
+    Weapon* sword = new Weapon('/', 0xffffffff, ItemType::Weapon, "Sword", WeaponType::Melee);
     sword->modifiers.emplace_back(ModifierType::Damage, DamageType::Slashing, 5.0f, 1.0f);
     map.spawn(new GroundItem(map.findNearestEmpty(vec2i(2, 2), Terrain::DirtFloor), sword));
 
-    Weapon* bow = new Weapon(']', 0xffffffff, ItemType::Equipment, "Bow", WeaponType::Ranged);
+    Weapon* bow = new Weapon(']', 0xffffffff, ItemType::Weapon, "Bow", WeaponType::Ranged);
     bow->modifiers.emplace_back(ModifierType::Damage, DamageType::Piercing, 4.0f, 1.0f);
     map.spawn(new GroundItem(map.findNearestEmpty(vec2i(3, 2), Terrain::DirtFloor), bow));
 }
@@ -148,6 +148,7 @@ bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color)
 void updateGame()
 {
     Map& map = *g_game.current_level;
+    vec2i mouse_pos = game_mouse_pos();
 
     if (g_game.console_input_displayed)
     {
@@ -200,6 +201,24 @@ void updateGame()
             do_turn = true;
             map.player->next_action = ActionData(Action::Pickup, map.player, 1.0f);
         }
+        if (input_key_pressed(GLFW_KEY_Z))
+        {
+            if (map.player->is_aiming)
+            {
+                vec2i target = mouse_pos;
+                do_turn = true;
+                map.player->next_action = ActionData(Action::Zap, map.player, 1.0f, target);
+            }
+            else if (map.player->equipment[int(EquipmentSlot::MainHand)]
+                && map.player->equipment[int(EquipmentSlot::MainHand)]->type == ItemType::Weapon)
+            {
+                Weapon* w = (Weapon*) map.player->equipment[int(EquipmentSlot::MainHand)];
+                if (w->weapon_type == WeaponType::Ranged)
+                {
+                    map.player->is_aiming = true;
+                }
+            }
+        }
 
         if (do_turn)
         {
@@ -217,6 +236,10 @@ void updateGame()
             {
                 if (act.actor->dead) continue;
                 act.apply(map, g_game.rng);
+                if (act.actor->type == ActorType::Player)
+                {
+                    ((Player*) act.actor)->is_aiming = false;
+                }
             }
             for (auto it = map.actors.begin(); it != map.actors.end();)
             {
@@ -252,8 +275,6 @@ void updateGame()
 
     g_game.term->clear();
 
-    vec2i mouse_pos = game_mouse_pos();
-
 #if 0
     // Pathfinding debug
     auto path = map.findPath(map.player->pos, mouse_pos);
@@ -263,6 +284,17 @@ void updateGame()
         g_game.term->setBg(p - bl, 0xFFFF00FF, LayerPriority_Debug);
     }
 #endif
+
+    if (map.player->is_aiming)
+    {
+        vec2i bl = map.player->pos - vec2i(25, 22);
+        auto path = map.findRay(map.player->pos, mouse_pos);
+        for (vec2i p : path)
+        {
+            if (p == map.player->pos) continue;
+            g_game.term->setOverlay(p - bl, 0x8000FF00, LayerPriority_Overlay);
+        }
+    }
 
     sstring top_bar;
     top_bar.appendf("Mx: %d %d Px: %d %d", mouse_pos.x, mouse_pos.y, map.player->pos.x, map.player->pos.y);
@@ -354,7 +386,7 @@ void updateGame()
         for (int i = (int) log.entries.size() - 1; i >= 0 && j < rows; --i)
         {
             auto e = log.entries[i];
-            auto parts = smartSplit(e.msg, g_game.w - 52);
+            auto parts = smartSplit(e.msg, (g_game.w - 52) * 2);
             for (int k = (int) parts.size() - 1; k >= 0 && j < rows; --k)
             {
                 g_game.term->write(vec2i(102, j), parts[k].c_str(), e.color, LayerPriority_UI);

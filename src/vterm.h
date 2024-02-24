@@ -51,6 +51,8 @@ struct TextBuffer
         u32 bg = 0;
         int priority = -1;
         int bg_priority = -1;
+        u32 overlay = 0;
+        int overlay_priority = -1;
     };
 
     int w, h;
@@ -67,4 +69,5 @@ struct TextBuffer
     void setText(vec2i p, char c, u32 color, int priority = 0);
     void setTile(vec2i p, int id, u32 color, int priority = 0);
     void setBg(vec2i p, u32 color, int priority = 0);
+    void setOverlay(vec2i p, u32 color, int priority = 0);
 };

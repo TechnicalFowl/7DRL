@@ -100,4 +100,20 @@ void TextBuffer::setBg(vec2i p, u32 color, int priority)
         ch.text[0] = TileEmpty; ch.text[1] = TileEmpty;
         ch.priority = priority;
     }
+    if (ch.overlay_priority < priority)
+    {
+        ch.overlay = 0;
+        ch.overlay_priority = priority;
+    }
+}
+
+void TextBuffer::setOverlay(vec2i p, u32 color, int priority)
+{
+    if (p.x < 0 || p.x >= w || p.y < 0 || p.y >= h) return;
+    Char& ch = buffer[p.x + p.y * w];
+    if (ch.overlay_priority < priority)
+    {
+        ch.overlay = color;
+        ch.overlay_priority = priority;
+    }
 }

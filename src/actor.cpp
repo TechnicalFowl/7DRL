@@ -347,6 +347,68 @@ bool ActionData::apply(Map& map, pcg32& rng)
         pl->equipment[int(e->slot)] = nullptr;
         pl->inventory.push_back(e);
     } break;
+    case Action::Zap:
+    {
+        auto path = map.findRay(actor->pos, move);
+        for (vec2i p : path)
+        {
+            if (actor->pos == p) continue;
+            auto it = map.tiles.find(p);
+            if (it.found)
+            {
+                if (it.value.actor)
+                {
+                    Actor* target = it.value.actor;
+                    ActorInfo& ti = g_game.reg.actor_info[int(target->type)];
+                    ActorInfo& ai = g_game.reg.actor_info[int(actor->type)];
+
+                    if (target->dead) break;
+
+                    switch (target->type)
+                    {
+                    case ActorType::Player:
+                    case ActorType::Goblin:
+                    {
+                        Living* l_actor = (Living*)actor;
+                        Living* l_target = (Living*)target;
+
+                        int damage = calculateDamage(l_actor, l_target, rng);
+                        if (damage > 0)
+                        {
+                            l_target->health -= damage;
+                            if (l_target->health <= 0)
+                            {
+                                if (actor == map.player)
+                                {
+                                    g_game.log.logf("You kill the %s.", ti.name);
+                                    target->dead = true;
+                                }
+                                if (target == map.player)
+                                {
+                                    g_game.log.logf("The %s kills you.", ai.name);
+                                    g_game.state = GameState::GameOver;
+                                }
+                            }
+                            else
+                            {
+                                if (actor == map.player) g_game.log.logf("You attack the %s dealing %d damage.", ti.name, damage);
+                                if (target == map.player) g_game.log.logf("The %s attacks you dealing %d damage.", ai.name, damage);
+                            }
+                        }
+                        else
+                        {
+                            if (actor == map.player) g_game.log.logf("You attack the %s but miss.", ti.name);
+                            if (target == map.player) g_game.log.logf("The %s attacks you but misses.", ai.name);
+                        }
+                        return true;
+                    }
+                    default: break;
+                    }
+                }
+            }
+        }
+        if (actor == map.player) g_game.log.log("Your arrow doesn't hit anything.");
+    } break;
     default:
     {
         g_game.log.logf(0xFFFF0000, "Err: Invalid action %d", (int)action);

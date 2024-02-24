@@ -457,6 +457,7 @@ void render_buffer(TextBuffer* term)
         
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
     mat4f camera_transform = ortho(0.0f, (float) term->w, 0.0f, (float) term->h);
     mat4f i;
 
@@ -508,6 +509,10 @@ void render_buffer(TextBuffer* term)
                         vb_push_quad(g_window.vb, vec2f(x0, (float)y), vec2f(x0 + 0.5f, y + 1.0f), makeColor(ch.color), t0, t1);
                     }
                 }
+            }
+            if ((ch.overlay & 0xFFFFFF) != 0)
+            {
+                vb_push_quad(g_window.vb, vec2f((float)x, (float)y), vec2f(x + 1.0f, y + 1.0f), makeColor(ch.overlay), blank.lower, blank.upper);
             }
         }
     }
