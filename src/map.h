@@ -9,20 +9,6 @@
 struct Actor;
 struct Player;
 
-enum Direction
-{
-    Up,
-    Right,
-    Down,
-    Left,
-};
-
-vec2i direction(Direction d);
-Direction rotate90(Direction d);
-Direction rotate180(Direction d);
-Direction rotate270(Direction d);
-vec2i rotate(vec2i p, Direction dir);
-
 struct Tile
 {
     vec2i pos;

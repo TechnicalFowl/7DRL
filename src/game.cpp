@@ -57,6 +57,30 @@ std::vector<sstring> smartSplit(const sstring& s, int row_size)
     return rows;
 }
 
+char getProjectileCharacter(Direction dir)
+{
+    return " |-/||\\>-\\-^/<v+"[dir];
+}
+
+ProjectileAnimation::ProjectileAnimation(const vec2i& from, const vec2i& to, u32 color, int c)
+    : from(from), to(to), color(color), character(c)
+{
+    points = g_game.current_level->findRay(from, to);
+    if (character == 0)
+        character = getProjectileCharacter(getDirection(from, to));
+}
+
+bool ProjectileAnimation::draw()
+{
+    if (points.empty())
+        return false;
+
+    vec2i bl = g_game.current_level->player->pos - vec2i(25, 22);
+    g_game.term->setTile(points[0] - bl, character, color, LayerPriority_Particles);
+    points.erase(points.begin());
+    return !points.empty();
+}
+
 void initGame(int w, int h)
 {
     g_game.w = w;
@@ -127,7 +151,7 @@ void drawUIFrame(TextBuffer* term, vec2i min, vec2i max, const char* title)
     term->fillBg(vec2i(min.x, max.y), vec2i(max.x, max.y), 0xFF404040, LayerPriority_UI - 2);
     term->fillBg(vec2i(max.x, min.y), vec2i(max.x, max.y), 0xFF404040, LayerPriority_UI - 2);
     term->fillBg(vec2i(min.x + 1, min.y + 1), vec2i(max.x - 1, max.y - 1), 0xFF000000, LayerPriority_UI - 2);
-    size_t title_len = strlen(title);
+    int title_len = (int) strlen(title);
     term->fillText(vec2i(min.x * 2, max.y), vec2i(min.x * 2 + 6, max.y), '=', 0xFFA0A0A0, LayerPriority_UI - 1);
     term->fillText(vec2i(min.x * 2 + 9 + title_len, max.y), vec2i(max.x*2 + 1, max.y), '=', 0xFFA0A0A0, LayerPriority_UI - 1);
     term->write(vec2i(min.x * 2 + 8, max.y), title, 0xFFA0A0A0, LayerPriority_UI - 1);
@@ -229,7 +253,7 @@ void updateGame()
             }
         }
 
-        if (do_turn)
+        if (g_game.animations.empty() && do_turn)
         {
             float dt = map.player->next_action.energy;
 
@@ -415,6 +439,15 @@ void updateGame()
         {
             g_game.sidebar = SidebarUI::GameLog;
         }
+    }
+
+    for (auto it = g_game.animations.begin(); it != g_game.animations.end();)
+    {
+        Animation* a = *it;
+        if (!a->draw())
+            it = g_game.animations.erase(it);
+        else
+            ++it;
     }
 
     map.render(*g_game.term, map.player->pos);

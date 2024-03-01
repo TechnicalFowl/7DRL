@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util/direction.h"
 #include "util/vector_math.h"
 
 enum LayerPriority_
@@ -15,7 +16,7 @@ enum LayerPriority_
     LayerPriority_Debug = 1000,
 };
 
-enum SpecialChars
+enum SpecialChars : char
 {
     Border_Vertical = 1,
     Border_Horizontal,

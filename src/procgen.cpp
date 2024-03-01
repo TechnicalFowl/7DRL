@@ -267,7 +267,7 @@ struct DenseRoomGenerator
             int h = room.bounds.upper.y - room.bounds.lower.y + 1;
 
             for (int i = 0; i < 4; ++i) {
-                Direction dir = Direction(i);
+                Direction dir = cardinal_dirs[i];
                 vec2i begin_pos = room.getWallStart(dir);
                 vec2i step_adj = direction(dir);
                 vec2i step = direction(rotate90(dir));

@@ -350,6 +350,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
     case Action::Zap:
     {
         auto path = map.findRay(actor->pos, move);
+        g_game.animations.push_back(new ProjectileAnimation(actor->pos, move, 0xFFFFFFFF));
         for (vec2i p : path)
         {
             if (actor->pos == p) continue;

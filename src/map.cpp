@@ -5,71 +5,6 @@
 #include "actor.h"
 #include "game.h"
 
-vec2i directions[]{
-    vec2i(0, 1),
-    vec2i(1, 0),
-    vec2i(0, -1),
-    vec2i(-1, 0)
-};
-
-vec2i direction(Direction d) { return directions[d]; }
-
-Direction rotate_90_cw[]{
-    Right,
-    Down,
-    Left,
-    Up,
-};
-Direction rotate90(Direction d) { return rotate_90_cw[d]; }
-
-Direction rotate_180[]{
-    Down,
-    Left,
-    Up,
-    Right,
-};
-Direction rotate180(Direction d) { return rotate_180[d]; }
-
-Direction rotate_270_cw[]{
-    Left,
-    Up,
-    Right,
-    Down,
-};
-Direction rotate270(Direction d) { return rotate_270_cw[d]; }
-
-vec2i rotateCW(vec2i p, Direction dir)
-{
-    switch (dir)
-    {
-    case Left:
-        return vec2i(-p.y, p.x);
-    case Down:
-        return vec2i(-p.x, -p.y);
-    case Right:
-        return vec2i(p.y, -p.x);
-    default:
-    case Up:
-        return p;
-    }
-}
-
-vec2i rotateCCW(vec2i p, Direction dir)
-{
-    switch (dir)
-    {
-    case Right:
-        return vec2i(-p.y, p.x);
-    case Down:
-        return vec2i(-p.x, -p.y);
-    case Left:
-        return vec2i(p.y, -p.x);
-    default:
-    case Up:
-        return p;
-    }
-}
-
 Map::Map(const sstring& name)
     : name(name)
 {
@@ -302,7 +237,7 @@ std::vector<vec2i> Map::findPath(vec2i from, vec2i to)
         vec2i current = open.front();
         open.pop_front();
         if (current == to) break;
-        for (vec2i d : directions)
+        for (vec2i d : cardinals)
         {
             vec2i next = current + d;
             if (!isPassable(next)) continue;

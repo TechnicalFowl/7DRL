@@ -53,6 +53,27 @@ struct InfoLog
     void logf(u32 color, const char* fmt, ...);
 };
 
+struct Animation
+{
+    virtual ~Animation() {}
+    virtual bool draw() = 0;
+};
+
+struct ProjectileAnimation : Animation
+{
+    vec2i from, to;
+    u32 color;
+    int character;
+
+    std::vector<vec2i> points;
+
+    ProjectileAnimation(const vec2i& from, const vec2i& to, u32 color, int character=0);
+
+    bool draw() override;
+};
+
+char getProjectileCharacter(Direction dir);
+
 struct Game
 {
     int w, h;
@@ -70,6 +91,8 @@ struct Game
     sstring console_input;
     int console_cursor = 0;
     bool console_input_displayed = false;
+
+    std::vector<Animation*> animations;
 };
 extern Game g_game;
 
