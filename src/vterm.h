@@ -34,6 +34,17 @@ enum SpecialChars : char
     Arrow_Left,
     Arrow_Right,
     Heart,
+    LeftDiagTop,
+    LeftDiagBottom,
+    RightDiagTop,
+    RightDiagBottom,
+    LeftDiagTopInverse,
+    LeftDiagBottomInverse,
+    RightDiagTopInverse,
+    RightDiagBottomInverse,
+    FullChar,
+
+    MaxSpecialChars,
 };
 
 enum Tiles

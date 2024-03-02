@@ -417,8 +417,29 @@ void placeEngine(Map& map, vec2i p)
     decorate(map, vec2i(p.x - 2, p.y - 2), 0, '/', 0xFFFFFFFF, 0xFFFFFFFF, 0);
     decorate(map, vec2i(p.x + 2, p.y - 2), '\\', 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
 
-
     MainEngine* eng = new MainEngine(vec2i(p.x, p.y + 3));
+    map.spawn(eng);
+}
+
+void placeReactor(Map& map, vec2i p)
+{
+    decorate(map, vec2i(p.x - 1, p.y + 2), LeftDiagTopInverse, Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 2, p.y + 2), 0, RightDiagBottom, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x + 1, p.y + 2), Border_Horizontal, RightDiagTopInverse, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x + 2, p.y + 2), LeftDiagBottom, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y + 1), Border_Vertical, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x, p.y + 1), Border_TopLeft, Border_TopRight, 0xFFFF5050, 0xFFFF4040, 0);
+    decorate(map, vec2i(p.x + 1, p.y + 1), 0, Border_Vertical, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y), Border_Vertical, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x, p.y), Border_BottomLeft, Border_BottomRight, 0xFFFF4040, 0xFFFF5050, 0);
+    decorate(map, vec2i(p.x + 1, p.y), 0, Border_Vertical, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y - 1), LeftDiagBottomInverse, Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 2, p.y - 1), 0, RightDiagTop, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x, p.y - 1), Border_Horizontal, Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x + 1, p.y - 1), Border_Horizontal, RightDiagBottomInverse, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x + 2, p.y - 1), LeftDiagTop, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+
+    Reactor* eng = new Reactor(vec2i(p.x, p.y + 2));
     map.spawn(eng);
 }
 
@@ -430,9 +451,12 @@ void generate(Map& map)
 
         // Engineering
         fillRoom(map, vec2i(-4, -4), vec2i(4, 4), Terrain::ShipFloor, Terrain::ShipWall);
-        placeItem(map, vec2i(-1, -3), ItemType::WeldingTorch);
+        placeItem(map, vec2i(-3, 3), ItemType::WeldingTorch);
+        placeReactor(map, vec2i(0, -2));
         // Left Engine Storage
         fillRoom(map, vec2i(-12, -4), vec2i(-4, 0), Terrain::ShipFloor, Terrain::ShipWall);
+        placeItem(map, vec2i(-5, -2), ItemType::RepairParts);
+        placeItem(map, vec2i(-5, -3), ItemType::RepairParts);
         // Left Engine Coridor
         fillRoom(map, vec2i(-16, 0), vec2i(-4, 4), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-4, 2));

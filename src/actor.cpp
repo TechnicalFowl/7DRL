@@ -542,7 +542,7 @@ void Player::tryMove(const Map& map, vec2i dir)
                 }
             }
         }
-        if (it.value.actor)
+        if (it.value.actor && it.value.actor->type != ActorType::Decoration)
         {
             next_action = ActionData(Action::Open, this, 1.0f, dir);
             return;
@@ -653,6 +653,11 @@ PilotSeat::PilotSeat(vec2i p)
 
 MainEngine::MainEngine(vec2i p)
     : Actor(p, ActorType::Engine)
+{
+}
+
+Reactor::Reactor(vec2i p)
+    : Actor(p, ActorType::Reactor)
 {
 }
 

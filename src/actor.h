@@ -223,3 +223,8 @@ struct MainEngine : Actor
 {
     MainEngine(vec2i pos);
 };
+
+struct Reactor : Actor
+{
+    Reactor(vec2i pos);
+};

@@ -141,7 +141,7 @@ void initGame(int w, int h)
 
     generate(map);
 
-    Player* player = new Player(vec2i(0, 0));
+    Player* player = new Player(vec2i(0, 2));
     map.player = player;
     map.spawn(player);
 }

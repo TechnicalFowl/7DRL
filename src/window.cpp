@@ -313,7 +313,8 @@ rect2f getCharTexture(char c)
             char c = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"[i];
             char_map[c] = makeCharTexture(i, 2);
         }
-        for (int i = 1; i < 16; ++i)
+        // SpecialChars
+        for (int i = 1; i < MaxSpecialChars; ++i)
         {
             char_map[i] = makeCharTexture(i - 1, 3);
         }
