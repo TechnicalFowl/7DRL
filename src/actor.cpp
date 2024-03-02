@@ -255,71 +255,61 @@ bool ActionData::apply(Map& map, pcg32& rng)
                 if (!it.found) continue;
                 if (it.value.ground)
                 {
-                    if (it.value.ground->type == ActorType::InteriorDoor)
+                    if (it.value.ground->type == ActorType::InteriorDoor || it.value.ground->type == ActorType::Airlock)
                     {
-                        InteriorDoor* door = (InteriorDoor*)it.value.ground;
-                        door->open = !door->open;
-                        if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
-                        return true;
-                    }
-                    else if(it.value.ground->type == ActorType::Airlock)
-                    {
-                        Airlock* door = (Airlock*) it.value.ground;
-                        door->open = !door->open;
-                        if (door->open)
-                        {
-                            Airlock* opp = door->findOpposite(map);
-                            if (opp)
-                            {
-                                if (actor == map.player) g_game.log.logf("The airlock cycles.");
-                                opp->open = false;
-                            }
-                        }
-                        if (actor == map.player) g_game.log.logf("You %s the airlock.", door->open ? "open" : "close");
-                        return true;
+                        move = dirs[i];
+                        break;
                     }
                 }
             }
-            if (actor == map.player) g_game.log.log("There is nothing to open.");
-            return false;
-        }
-        else
-        {
-            auto it = map.tiles.find(actor->pos + move);
-            if (it.found)
+            if (move.zero())
             {
-                if (it.value.ground)
+                if (actor == map.player) g_game.log.log("There is nothing to interact with.");
+                return false;
+            }
+        }
+        auto it = map.tiles.find(actor->pos + move);
+        if (it.found)
+        {
+            if (it.value.ground)
+            {
+                if (it.value.ground->type == ActorType::InteriorDoor)
                 {
-                    if (it.value.ground->type == ActorType::InteriorDoor)
+                    InteriorDoor* door = (InteriorDoor*)it.value.ground;
+                    if (door->welded)
                     {
-                        InteriorDoor* door = (InteriorDoor*)it.value.ground;
-                        door->open = !door->open;
-                        if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
-                        return true;
+                        if (actor == map.player) g_game.log.log("The door is welded shut.");
+                        return false;
                     }
-                    else if (it.value.ground->type == ActorType::Airlock)
+                    door->open = !door->open;
+                    if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
+                    return true;
+                }
+                else if (it.value.ground->type == ActorType::Airlock)
+                {
+                    Airlock* door = (Airlock*)it.value.ground;
+                    if (door->welded)
                     {
-                        Airlock* door = (Airlock*)it.value.ground;
-                        door->open = !door->open;
-                        if (door->open)
+                        if (actor == map.player) g_game.log.log("The airlock is welded shut.");
+                        return false;
+                    }
+                    door->open = !door->open;
+                    if (door->open)
+                    {
+                        Airlock* opp = door->findOpposite(map);
+                        if (opp)
                         {
-                            Airlock* opp = door->findOpposite(map);
-                            if (opp)
-                            {
-                                if (actor == map.player) g_game.log.logf("The airlock cycles.");
-                                opp->open = false;
-                            }
+                            if (actor == map.player) g_game.log.logf("The airlock cycles.");
+                            opp->open = false;
                         }
-                        if (actor == map.player) g_game.log.logf("You %s the airlock.", door->open ? "open" : "close");
-                        return true;
                     }
+                    if (actor == map.player) g_game.log.logf("You %s the airlock.", door->open ? "open" : "close");
+                    return true;
                 }
             }
-            if (actor == map.player) g_game.log.log("There is nothing to open?");
-            return false;
         }
-        vec2i target = actor->pos + move;
-        return map.move(actor, actor->pos + move);
+        if (actor == map.player) g_game.log.log("There is nothing to interact with");
+        return false;
     } break;
 #if 0
     case Action::Zap:
@@ -386,20 +376,86 @@ bool ActionData::apply(Map& map, pcg32& rng)
         if (actor == map.player) g_game.log.log("Your arrow doesn't hit anything.");
     } break;
 #endif
-    case Action::Interact:
-    {
-        debug_assert(actor->type == ActorType::Player);
-        Player* pl = (Player*)actor;
-
-
-        g_game.log.log("There doesn't seem to be anything to do with this.");
-    } break;
     case Action::UseOn:
     {
         debug_assert(actor->type == ActorType::Player);
         Player* pl = (Player*)actor;
-
+        if (!pl->holding)
+        {
+            g_game.log.log("You aren't holding anything.");
+            return false;
+        }
+        ItemType item = pl->holding->type;
+        if (move.zero())
+        {
+            for (int i = 0; i < 4 && move.zero(); ++i)
+            {
+                auto it = map.tiles.find(actor->pos + dirs[i]);
+                if (!it.found) continue;
+                switch (item)
+                {
+                case ItemType::WeldingTorch:
+                {
+                    if (it.value.ground)
+                    {
+                        if (it.value.ground->type == ActorType::InteriorDoor || it.value.ground->type == ActorType::Airlock)
+                        {
+                            move = dirs[i];
+                        }
+                    }
+                } break;
+                default: break;
+                }
+            }
+            if (move.zero())
+            {
+                if (actor == map.player) g_game.log.log("There is nothing to use that with.");
+                return false;
+            }
+        }
+        auto it = map.tiles.find(actor->pos + move);
+        if (it.found)
+        {
+            if (it.value.ground)
+            {
+                if (it.value.ground->type == ActorType::InteriorDoor)
+                {
+                    InteriorDoor* door = (InteriorDoor*)it.value.ground;
+                    switch (item)
+                    {
+                    case ItemType::WeldingTorch:
+                    {
+                        bool was_open = door->open;
+                        door->open = false;
+                        door->welded = !door->welded;
+                        if (actor == map.player) g_game.log.logf("You %s the door.", was_open ? "close and weld" : (door->welded ? "weld shut" : "unweld"));
+                        return true;
+                    } break;
+                    default: break;
+                    }
+                }
+                else if (it.value.ground->type == ActorType::Airlock)
+                {
+                    Airlock* door = (Airlock*)it.value.ground;
+                    switch (item)
+                    {
+                    case ItemType::WeldingTorch:
+                    {
+                        bool was_open = door->open;
+                        door->open = false;
+                        door->welded = !door->welded;
+                        if (actor == map.player) g_game.log.logf("You %s the airlock.", was_open ? "close and weld" : (door->welded ? "weld shut" : "unweld"));
+                        return true;
+                    } break;
+                    default: break;
+                    }
+                    return true;
+                }
+            }
+        }
+        debug_assert(false); // The surroundings check earlier should have caught this
         g_game.log.log("That doesn't seem to do anything.");
+        return false;
     } break;
     default:
     {
@@ -488,7 +544,7 @@ void Player::tryMove(const Map& map, vec2i dir)
         }
         if (it.value.actor)
         {
-            next_action = ActionData(Action::Interact, this, 1.0f, dir);
+            next_action = ActionData(Action::Open, this, 1.0f, dir);
             return;
         }
     }

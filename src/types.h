@@ -19,7 +19,6 @@ enum class Action
     Equip,
     Unequip,
 #endif
-    Interact,
     UseOn,
 };
 

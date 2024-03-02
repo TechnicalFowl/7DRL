@@ -231,6 +231,11 @@ void updateGame()
             do_turn = true;
             map.player->next_action = ActionData(Action::Open, map.player, 1.0f);
         }
+        if (input_key_pressed(GLFW_KEY_U))
+        {
+            do_turn = true;
+            map.player->next_action = ActionData(Action::UseOn, map.player, 1.0f);
+        }
         if (input_key_pressed(GLFW_KEY_3) && (input_key_down(GLFW_KEY_LEFT_SHIFT) || input_key_down(GLFW_KEY_RIGHT_SHIFT)))
         {
             g_game.console_input_displayed = true;

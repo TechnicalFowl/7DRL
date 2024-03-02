@@ -182,6 +182,7 @@ struct Monster : Living
 struct InteriorDoor : Actor
 {
     bool open = false;
+    bool welded = false;
 
     InteriorDoor(vec2i pos);
 
@@ -192,6 +193,7 @@ struct Airlock : Actor
 {
     Direction interior;
     bool open = false;
+    bool welded = false;
 
     Airlock(vec2i pos, Direction i);
 
