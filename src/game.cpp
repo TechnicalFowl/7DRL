@@ -110,16 +110,16 @@ void initGame(int w, int h)
     {
         Registry& reg = g_game.reg;
         reg.terrain_info[int(Terrain::Empty)] = TerrainInfo(Terrain::Empty, "Empty", TileEmpty, 0, 0xFF000000, true);
-        reg.terrain_info[int(Terrain::StoneWall)] = TerrainInfo(Terrain::StoneWall, "Stone Wall", TileFull, 0xFFB0B0B0, 0, false);
-        reg.terrain_info[int(Terrain::DirtFloor)] = TerrainInfo(Terrain::DirtFloor, "Dirt Floor", TileFull, 0xFF2F1b08, 0, true);
+        //reg.terrain_info[int(Terrain::StoneWall)] = TerrainInfo(Terrain::StoneWall, "Stone Wall", TileFull, 0xFFB0B0B0, 0, false);
+        //reg.terrain_info[int(Terrain::DirtFloor)] = TerrainInfo(Terrain::DirtFloor, "Dirt Floor", TileFull, 0xFF2F1b08, 0, true);
 
         reg.actor_info[int(ActorType::Player)] = ActorInfo(ActorType::Player, "Player", '@', 0xFFFFFFFF, LayerPriority_Actors + 10, false, 10);
-        reg.actor_info[int(ActorType::Goblin)] = ActorInfo(ActorType::Goblin, "Goblin", 'g', 0xFF00FF00, LayerPriority_Actors + 1, false, 5);
+        //reg.actor_info[int(ActorType::Goblin)] = ActorInfo(ActorType::Goblin, "Goblin", 'g', 0xFF00FF00, LayerPriority_Actors + 1, false, 5);
         reg.actor_info[int(ActorType::GroundItem)] = ActorInfo(ActorType::GroundItem, "Item", '?', 0xFFFF00FF, LayerPriority_Objects + 1, true, 999);
-        reg.actor_info[int(ActorType::Door)] = ActorInfo(ActorType::Door, "Door", '=', 0xFFC0C0C0, LayerPriority_Objects, false, 50);
+        //reg.actor_info[int(ActorType::Door)] = ActorInfo(ActorType::Door, "Door", '=', 0xFFC0C0C0, LayerPriority_Objects, false, 50);
 
         reg.item_type_info[int(ItemType::Generic)] = ItemTypeInfo(ItemType::Generic, "Generic", '?', 0xFFFFFFFF);
-        reg.item_type_info[int(ItemType::Equipment)] = ItemTypeInfo(ItemType::Equipment, "Equipment", ')', 0xFFFFFFFF);
+        //reg.item_type_info[int(ItemType::Equipment)] = ItemTypeInfo(ItemType::Equipment, "Equipment", ')', 0xFFFFFFFF);
     }
 
     g_game.current_level = new Map("level_0");
@@ -128,25 +128,8 @@ void initGame(int w, int h)
     generate(map);
 
     Player* player = new Player(vec2i(0, 0));
-    player->inate_modifiers.emplace_back(ModifierType::Accuracy, 100.0f, 1.0f);
-    player->inate_modifiers.emplace_back(ModifierType::Damage, DamageType::Blunt, 1.0f, 1.0f);
     map.player = player;
     map.spawn(player);
-
-    Monster* goblin = new Monster(map.findNearestEmpty(vec2i(8, 8), Terrain::DirtFloor), ActorType::Goblin);
-    goblin->inate_modifiers.emplace_back(ModifierType::Accuracy, 50.0f, 1.0f);
-    goblin->inate_modifiers.emplace_back(ModifierType::Speed, 0.0f, 0.5f);
-    Equipment* goblin_spear = goblin->equipment[int(EquipmentSlot::MainHand)] = new Equipment('/', 0xffffffff, ItemType::Equipment, "Goblin Spear", EquipmentSlot::MainHand);
-    goblin_spear->modifiers.emplace_back(ModifierType::Damage, DamageType::Piercing, 3.0f, 1.0f);
-    map.spawn(goblin);
-
-    Weapon* sword = new Weapon('/', 0xffffffff, ItemType::Weapon, "Sword", WeaponType::Melee);
-    sword->modifiers.emplace_back(ModifierType::Damage, DamageType::Slashing, 5.0f, 1.0f);
-    map.spawn(new GroundItem(map.findNearestEmpty(vec2i(2, 2), Terrain::DirtFloor), sword));
-
-    Weapon* bow = new Weapon(']', 0xffffffff, ItemType::Weapon, "Bow", WeaponType::Ranged);
-    bow->modifiers.emplace_back(ModifierType::Damage, DamageType::Piercing, 4.0f, 1.0f);
-    map.spawn(new GroundItem(map.findNearestEmpty(vec2i(3, 2), Terrain::DirtFloor), bow));
 }
 
 vec2i game_mouse_pos()
@@ -243,6 +226,7 @@ void updateGame()
             do_turn = true;
             map.player->next_action = ActionData(Action::Pickup, map.player, 1.0f);
         }
+#if 0
         if (input_key_pressed(GLFW_KEY_Z))
         {
             if (map.player->is_aiming)
@@ -261,6 +245,7 @@ void updateGame()
                 }
             }
         }
+#endif
         if (input_mouse_button_pressed(GLFW_MOUSE_BUTTON_1))
         {
             if (map.player->is_aiming)
@@ -269,10 +254,6 @@ void updateGame()
                 do_turn = true;
                 map.player->next_action = ActionData(Action::Zap, map.player, 1.0f, target);
             }
-        }
-        if (input_key_pressed(GLFW_KEY_V))
-        {
-            g_game.modal = new TestModal;
         }
 
         if (g_game.animations.empty() && do_turn)
@@ -382,6 +363,7 @@ void updateGame()
         drawUIFrame(g_game.term, vec2i(50, 1), vec2i(g_game.w - 1, g_game.h - 7), "Character");
 
         int y = g_game.h - 8;
+#if 0
         g_game.term->write(vec2i(102, y--), "Equipment -----------", 0xFFFFFFFF, LayerPriority_UI);
         std::vector<Equipment*> unequip;
         for (int i = 0; i < EquipmentSlotCount; ++i)
@@ -429,6 +411,7 @@ void updateGame()
             Equipment* e = equip.front();
             map.player->next_action = ActionData(Action::Equip, map.player, 0.1f, e);
         }
+#endif
     } break;
     case SidebarUI::GameLog:
     {

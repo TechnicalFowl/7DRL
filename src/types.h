@@ -13,16 +13,16 @@ enum class Action
     Zap,
     Pickup,
     Drop,
+#if 0
     Equip,
     Unequip,
+#endif
     UseOn,
 };
 
 enum class Terrain
 {
     Empty,
-    StoneWall,
-    DirtFloor,
 
     __COUNT,
     Invalid,
@@ -42,8 +42,6 @@ enum class ActorType
 {
     GroundItem,
     Player,
-    Door,
-    Goblin,
 
     __COUNT,
     Invalid,

@@ -5,6 +5,7 @@
 #include "game.h"
 #include "map.h"
 
+#if 0
 const char* EquipmentSlotNames[EquipmentSlotCount]
 {
     "Main",
@@ -175,6 +176,7 @@ int calculateDamage(Living* attacker, Living* target, pcg32& rng)
     }
     return damage;
 }
+#endif
 
 ActionData::ActionData(Action a, Actor* act, float e)
     : action(a), actor(act), energy(e)
@@ -231,6 +233,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
                 auto it = map.tiles.find(actor->pos + dirs[i]);
                 if (!it.found) continue;
                 if (!it.value.actor) continue;
+#if 0
                 if (it.value.actor->type == ActorType::Door)
                 {
                     Door* door = (Door*)it.value.actor;
@@ -238,6 +241,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
                     if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
                     return true;
                 }
+#endif
             }
             if (actor == map.player) g_game.log.log("There is nothing to open.");
             return false;
@@ -249,6 +253,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
             {
                 if (it.value.actor)
                 {
+#if 0
                     if (it.value.actor->type == ActorType::Door)
                     {
                         Door* door = (Door*)it.value.actor;
@@ -256,6 +261,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
                         if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
                         return true;
                     }
+#endif
                 }
             }
             if (actor == map.player) g_game.log.log("There is nothing to open?");
@@ -277,6 +283,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
 
                 if (target->dead) break;
 
+#if 0
                 switch (target->type)
                 {
                 case ActorType::Player:
@@ -317,11 +324,13 @@ bool ActionData::apply(Map& map, pcg32& rng)
                 }
                 default: break;
                 }
+#endif
             }
         }
         if (actor == map.player) g_game.log.log("There is nothing to attack?");
         return false;
     } break;
+#if 0
     case Action::Equip:
     {
         debug_assert(actor->type == ActorType::Player);
@@ -347,6 +356,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
         pl->equipment[int(e->slot)] = nullptr;
         pl->inventory.push_back(e);
     } break;
+#endif
     case Action::Zap:
     {
         auto path = map.findRay(actor->pos, move);
@@ -365,6 +375,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
 
                     if (target->dead) break;
 
+#if 0
                     switch (target->type)
                     {
                     case ActorType::Player:
@@ -405,6 +416,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
                     }
                     default: break;
                     }
+#endif
                 }
             }
         }
@@ -476,6 +488,7 @@ void Player::tryMove(const Map& map, vec2i dir)
         }
         if (it.value.actor)
         {
+#if 0
             if (it.value.actor->type == ActorType::Door)
             {
                 next_action = ActionData(Action::Open, this, 1.0f, dir);
@@ -487,16 +500,13 @@ void Player::tryMove(const Map& map, vec2i dir)
                 next_action = ActionData(Action::Attack, this, stats.speed, dir);
                 return;
             }
+#endif
         }
     }
     next_action = ActionData(Action::Move, this, 1.0f, dir);
 }
 
-Monster::Monster(vec2i pos, ActorType ty)
-    : Living(pos, ty)
-{
-}
-
+#if 0
 Door::Door(vec2i pos)
     : Actor(pos, ActorType::Door)
 {
@@ -508,6 +518,11 @@ void Door::render(TextBuffer& buffer, vec2i origin, bool dim)
     ActorInfo& ai = g_game.reg.actor_info[int(type)];
     u32 col = dim ? scalar::convertToGrayscale(ai.color, 0.5f) : ai.color;
     buffer.setTile(pos - origin, open ? '.' : '#', col, ai.priority);
+}
+
+Monster::Monster(vec2i pos, ActorType ty)
+    : Living(pos, ty)
+{
 }
 
 ActionData Monster::update(const Map& map, pcg32& rng, float dt)
@@ -541,3 +556,4 @@ ActionData Monster::update(const Map& map, pcg32& rng, float dt)
 
     return ActionData(Action::Wait, this, lack_energy ? 0.0f : dt);
 }
+#endif

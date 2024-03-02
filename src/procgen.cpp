@@ -7,6 +7,7 @@
 
 #include "map.h"
 
+#if 0
 typedef void (*room_builder)(Map& map, pcg32& rng, vec2i pos, vec2i size);
 
 void empty_room_builder(Map& map, pcg32& rng, vec2i pos, vec2i size) {}
@@ -334,14 +335,13 @@ struct DenseRoomGenerator
         }
     }
 };
+#endif
 
 void generate(Map& map)
 {
     if (map.name == "level_0")
     {
-        DenseRoomGenerator gen;
 
-        gen.generate(map);
     }
     else
     {

@@ -20,6 +20,7 @@ struct Item
     Item(int id, u32 color, ItemType type, const sstring& name) : character(id), color(color), type(type), name(name) {}
 };
 
+#if 0
 enum class DamageType
 {
     Blunt,
@@ -97,6 +98,7 @@ struct Weapon : Equipment
     Weapon(int id, u32 color, ItemType type, const sstring& name, WeaponType wt)
         : Equipment(id, color, type, name, EquipmentSlot::MainHand), weapon_type(wt) {}
 };
+#endif
 
 struct ActionData
 {
@@ -144,8 +146,10 @@ struct Living : Actor
 {
     int health;
     int max_health;
+#if 0
     std::vector<EquipmentModifier> inate_modifiers;
     Equipment* equipment[EquipmentSlotCount]{ nullptr };
+#endif
 
     Living(vec2i pos, ActorType type);
 };
@@ -164,6 +168,7 @@ struct Player : Living
     void tryMove(const Map& map, vec2i dir);
 };
 
+#if 0
 struct Monster : Living
 {
     sstring name;
@@ -172,6 +177,7 @@ struct Monster : Living
 
     ActionData update(const Map& map, pcg32& rng, float dt) override;
 };
+#endif
 
 struct Door : Actor
 {
