@@ -56,6 +56,7 @@ enum class ActorType
 {
     GroundItem,
     Player,
+    Decoration,
 
     InteriorDoor,
     Airlock,

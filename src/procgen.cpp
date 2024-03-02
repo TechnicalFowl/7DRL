@@ -382,6 +382,20 @@ void placeItem(Map& map, vec2i p, ItemType it)
     map.spawn(ground_item);
 }
 
+void decorate(Map& map, vec2i p, int l, int r, u32 lc, u32 rc, u32 b)
+{
+    Decoration* dec = new Decoration(p, l, r, lc, rc, b);
+    map.spawn(dec);
+}
+
+void placePilotSeat(Map& map, vec2i p)
+{
+    decorate(map, vec2i(p.x, p.y + 1), '=', '=', 0xFF00FF00, 0xFF00FF00, 0);
+
+    PilotSeat* pilot_seat = new PilotSeat(p);
+    map.spawn(pilot_seat);
+}
+
 void generate(Map& map)
 {
     if (map.name == "player_ship")
@@ -431,6 +445,7 @@ void generate(Map& map)
         setDoor(map, vec2i(-2, 32));
         fillRoom(map, vec2i(0, 32), vec2i(8, 40), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(2, 32));
+        placePilotSeat(map, vec2i(4, 36));
 
         if (map.player)
             map.spawn((Actor*) map.player);

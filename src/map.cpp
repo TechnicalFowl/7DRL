@@ -38,11 +38,11 @@ void Map::render(TextBuffer& buffer, vec2i origin)
             if (!visible) continue;
             it.value.explored = true;
         }
-        if (it.value.actor && visible)
+        if (it.value.actor)
         {
             it.value.actor->render(buffer, bl, !visible);
         }
-        else if (it.value.ground && visible)
+        else if (it.value.ground)
         {
             it.value.ground->render(buffer, bl, !visible);
         }
@@ -306,7 +306,43 @@ std::vector<vec2i> Map::findRay(vec2i from, vec2i to)
     for (; n > 0; --n)
     {
         result.push_back(vec2i(x, y));
-        if (!isPassable(vec2i(x, y))) break;
+        auto it = tiles.find(vec2i(x, y));
+        if (it.found)
+        {
+            TerrainInfo& ti = g_game.reg.terrain_info[int(it.value.terrain)];
+            if (!ti.passable) break;
+            bool actor_passable = true;
+            if (it.value.ground)
+            {
+                switch (it.value.ground->type)
+                {
+                case ActorType::InteriorDoor:
+                {
+                    InteriorDoor* door = (InteriorDoor*) it.value.ground;
+                    actor_passable = door->open;
+                } break;
+                case ActorType::Airlock:
+                {
+                    Airlock* door = (Airlock*) it.value.ground;
+                    actor_passable = door->open;
+                } break;
+                default: break;
+                }
+            }
+            if (it.value.actor)
+            {
+                switch (it.value.actor->type)
+                {
+                case ActorType::Player:
+                    break;
+                default:
+                {
+                    actor_passable = false;
+                } break;
+                }
+            }
+            if (!actor_passable) break;
+        }
         if (error > 0)
         {
             x += x_inc;

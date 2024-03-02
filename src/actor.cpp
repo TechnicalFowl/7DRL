@@ -551,6 +551,42 @@ void Player::tryMove(const Map& map, vec2i dir)
     next_action = ActionData(Action::Move, this, 1.0f, dir);
 }
 
+Decoration::Decoration(vec2i pos, int l, int r, u32 lc, u32 rc, u32 b)
+    : Actor(pos, ActorType::Decoration)
+    , left(l), right(r)
+    , leftcolor(lc), rightcolor(rc)
+    , bg(b)
+{
+
+}
+
+void Decoration::render(TextBuffer& buffer, vec2i origin, bool dim)
+{
+    u32 col = dim ? scalar::convertToGrayscale(leftcolor, 0.5f) : leftcolor;
+    u32 rcol = dim ? scalar::convertToGrayscale(rightcolor, 0.5f) : rightcolor;
+    if (bg)
+    {
+        u32 bg_col = dim ? scalar::convertToGrayscale(bg, 0.5f) : bg;
+        buffer.setBg(pos - origin, bg_col, LayerPriority_Objects - 1);
+    }
+    if (left && right == 0xFFFF)
+    {
+        buffer.setTile(pos - origin, left, col, LayerPriority_Objects - 1);
+    }
+    else
+    {
+        vec2i tp = pos - origin;
+        if (left)
+        {
+            buffer.setText(vec2i(tp.x * 2, tp.y), left, col, LayerPriority_Objects - 1);
+        }
+        if (right)
+        {
+            buffer.setText(vec2i(tp.x * 2 + 1, tp.y), right, rcol, LayerPriority_Objects - 1);
+        }
+    }
+}
+
 InteriorDoor::InteriorDoor(vec2i pos)
     : Actor(pos, ActorType::InteriorDoor)
 {
@@ -608,6 +644,11 @@ Airlock* Airlock::findOpposite(Map& map)
         }
     }
     return nullptr;
+}
+
+PilotSeat::PilotSeat(vec2i p)
+    : Actor(p, ActorType::PilotSeat)
+{
 }
 
 #if 0

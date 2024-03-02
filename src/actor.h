@@ -179,6 +179,17 @@ struct Monster : Living
 };
 #endif
 
+struct Decoration : Actor
+{
+    int left, right;
+    u32 leftcolor, rightcolor;
+    u32 bg;
+
+    Decoration(vec2i pos, int l, int r, u32 lc, u32 rc, u32 b);
+
+    virtual void render(TextBuffer& buffer, vec2i origin, bool dim = false) override;
+};
+
 struct InteriorDoor : Actor
 {
     bool open = false;
@@ -200,4 +211,10 @@ struct Airlock : Actor
     virtual void render(TextBuffer& buffer, vec2i origin, bool dim = false) override;
 
     Airlock* findOpposite(Map& map);
+};
+
+struct PilotSeat : Actor
+{
+    PilotSeat(vec2i pos);
+
 };
