@@ -5,6 +5,7 @@
 
 #include "util/random.h"
 
+#include "actor.h"
 #include "map.h"
 
 #if 0
@@ -337,11 +338,63 @@ struct DenseRoomGenerator
 };
 #endif
 
+void fillRoom(Map& map, vec2i min, vec2i max, Terrain t)
+{
+    for (int y = min.y; y <= max.y; ++y)
+        for (int x = min.x; x <= max.x; ++x)
+            map.setTile(vec2i(x, y), t);
+}
+
+void fillRoom(Map& map, vec2i min, vec2i max, Terrain t, Terrain w)
+{
+    for (int y = min.y; y <= max.y; ++y)
+    {
+        for (int x = min.x; x <= max.x; ++x)
+        {
+            if (x == min.x || x == max.x || y == min.y || y == max.y)
+                map.setTile(vec2i(x, y), w);
+            else
+                map.setTile(vec2i(x, y), t);
+        }
+    }
+}
+
+void setDoor(Map& map, vec2i p)
+{
+    map.setTile(p, Terrain::ShipFloor);
+    InteriorDoor* door = new InteriorDoor(p);
+    map.spawn(door);
+}
+
 void generate(Map& map)
 {
-    if (map.name == "level_0")
+    if (map.name == "player_ship")
     {
+        map.clear();
 
+        fillRoom(map, vec2i(-4, -4), vec2i(4, 4), Terrain::ShipFloor, Terrain::ShipWall);
+        fillRoom(map, vec2i(-12, -4), vec2i(-4, 0), Terrain::ShipFloor, Terrain::ShipWall);
+        fillRoom(map, vec2i(-16, 0), vec2i(-4, 4), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(-4, 2));
+        setDoor(map, vec2i(-6, 0));
+        setDoor(map, vec2i(-10, 0));
+        fillRoom(map, vec2i(-16, 4), vec2i(-12, 8), Terrain::ShipFloor, Terrain::ShipWall);
+        fillRoom(map, vec2i(-20, -8), vec2i(-12, 0), Terrain::ShipFloor, Terrain::ShipWall);
+        fillRoom(map, vec2i(4, -4), vec2i(12, 0), Terrain::ShipFloor, Terrain::ShipWall);
+        fillRoom(map, vec2i(4, 0), vec2i(16, 4), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(4, 2));
+        setDoor(map, vec2i(6, 0));
+        setDoor(map, vec2i(10, 0));
+        fillRoom(map, vec2i(12, 4), vec2i(16, 8), Terrain::ShipFloor, Terrain::ShipWall);
+        fillRoom(map, vec2i(12, -8), vec2i(20, 0), Terrain::ShipFloor, Terrain::ShipWall);
+        fillRoom(map, vec2i(-4, 4), vec2i(4, 12), Terrain::ShipFloor, Terrain::ShipWall);
+        fillRoom(map, vec2i(-4, 12), vec2i(4, 20), Terrain::ShipFloor, Terrain::ShipWall);
+        fillRoom(map, vec2i(-8, 12), vec2i(-4, 20), Terrain::ShipFloor, Terrain::ShipWall);
+        fillRoom(map, vec2i(4, 12), vec2i(8, 20), Terrain::ShipFloor, Terrain::ShipWall);
+        fillRoom(map, vec2i(-4, 20), vec2i(4, 32), Terrain::ShipFloor, Terrain::ShipWall);
+
+        if (map.player)
+            map.spawn((Actor*) map.player);
     }
     else
     {

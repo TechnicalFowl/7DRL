@@ -179,11 +179,11 @@ struct Monster : Living
 };
 #endif
 
-struct Door : Actor
+struct InteriorDoor : Actor
 {
     bool open = false;
 
-    Door(vec2i pos);
+    InteriorDoor(vec2i pos);
 
     virtual void render(TextBuffer& buffer, vec2i origin, bool dim = false) override;
 };

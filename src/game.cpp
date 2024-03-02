@@ -110,19 +110,34 @@ void initGame(int w, int h)
     {
         Registry& reg = g_game.reg;
         reg.terrain_info[int(Terrain::Empty)] = TerrainInfo(Terrain::Empty, "Empty", TileEmpty, 0, 0xFF000000, true);
-        //reg.terrain_info[int(Terrain::StoneWall)] = TerrainInfo(Terrain::StoneWall, "Stone Wall", TileFull, 0xFFB0B0B0, 0, false);
-        //reg.terrain_info[int(Terrain::DirtFloor)] = TerrainInfo(Terrain::DirtFloor, "Dirt Floor", TileFull, 0xFF2F1b08, 0, true);
+        reg.terrain_info[int(Terrain::ShipWall)] = TerrainInfo(Terrain::ShipWall, "Wall", TileFull, 0xFFD0D0D0, 0, false);
+        reg.terrain_info[int(Terrain::ShipFloor)] = TerrainInfo(Terrain::ShipFloor, "Floor", TileFull, 0, 0xFF303030, true);
 
         reg.actor_info[int(ActorType::Player)] = ActorInfo(ActorType::Player, "Player", '@', 0xFFFFFFFF, LayerPriority_Actors + 10, false, 10);
         //reg.actor_info[int(ActorType::Goblin)] = ActorInfo(ActorType::Goblin, "Goblin", 'g', 0xFF00FF00, LayerPriority_Actors + 1, false, 5);
         reg.actor_info[int(ActorType::GroundItem)] = ActorInfo(ActorType::GroundItem, "Item", '?', 0xFFFF00FF, LayerPriority_Objects + 1, true, 999);
-        //reg.actor_info[int(ActorType::Door)] = ActorInfo(ActorType::Door, "Door", '=', 0xFFC0C0C0, LayerPriority_Objects, false, 50);
+        reg.actor_info[int(ActorType::InteriorDoor)] = ActorInfo(ActorType::InteriorDoor, "Interior Door", '#', 0xFFC0C0C0, LayerPriority_Objects, true, 50);
+        reg.actor_info[int(ActorType::Airlock)] = ActorInfo(ActorType::Airlock, "Airlock", '#', 0xFFC0C0C0, LayerPriority_Objects, true, 50);
+        reg.actor_info[int(ActorType::PilotSeat)] = ActorInfo(ActorType::PilotSeat, "Pilot Seat", 'P', 0xFFFFFFFF, LayerPriority_Objects, false, 50);
+        reg.actor_info[int(ActorType::Engine)] = ActorInfo(ActorType::Engine, "Main Engine", 'E', 0xFFFFFFFF, LayerPriority_Objects, false, 50);
+        reg.actor_info[int(ActorType::Reactor)] = ActorInfo(ActorType::Reactor, "Reactor", 'R', 0xFFFFFFFF, LayerPriority_Objects, false, 50);
+        reg.actor_info[int(ActorType::Antenna)] = ActorInfo(ActorType::Antenna, "Antenna", 'A', 0xFFFFFFFF, LayerPriority_Objects, false, 50);
+        reg.actor_info[int(ActorType::Scanner)] = ActorInfo(ActorType::Scanner, "Scanner", 'S', 0xFFFFFFFF, LayerPriority_Objects, false, 50);
+
+        reg.actor_info[int(ActorType::TorpedoLauncher)] = ActorInfo(ActorType::TorpedoLauncher, "Torpedo Launcher", '!', 0xFFFFFFFF, LayerPriority_Objects, false, 50);
+        reg.actor_info[int(ActorType::PDC)] = ActorInfo(ActorType::PDC, "Point Defence Cannon", 'D', 0xFFFFFFFF, LayerPriority_Objects, false, 50);
+        reg.actor_info[int(ActorType::Railgun)] = ActorInfo(ActorType::Railgun, "Railgun", '%', 0xFFFFFFFF, LayerPriority_Objects, false, 50);
 
         reg.item_type_info[int(ItemType::Generic)] = ItemTypeInfo(ItemType::Generic, "Generic", '?', 0xFFFFFFFF);
-        //reg.item_type_info[int(ItemType::Equipment)] = ItemTypeInfo(ItemType::Equipment, "Equipment", ')', 0xFFFFFFFF);
+        reg.item_type_info[int(ItemType::PhasarRifle)] = ItemTypeInfo(ItemType::PhasarRifle, "Phasar Rifle", ')', 0xFFFFFFFF);
+        reg.item_type_info[int(ItemType::RepairParts)] = ItemTypeInfo(ItemType::RepairParts, "Repair Parts", '&', 0xFFFFFFFF);
+        reg.item_type_info[int(ItemType::Torpedoes)] = ItemTypeInfo(ItemType::Torpedoes, "Torpedoes", ';', 0xFFFFFFFF);
+        reg.item_type_info[int(ItemType::WeldingTorch)] = ItemTypeInfo(ItemType::WeldingTorch, "Welding Torch", '*', 0xFFFFFFFF);
+        reg.item_type_info[int(ItemType::RailgunRounds)] = ItemTypeInfo(ItemType::RailgunRounds, "Railgun Rounds", ':', 0xFFFFFFFF);
+        reg.item_type_info[int(ItemType::PDCRounds)] = ItemTypeInfo(ItemType::PDCRounds, "PDC Rounds", '"', 0xFFFFFFFF);
     }
 
-    g_game.current_level = new Map("level_0");
+    g_game.current_level = new Map("player_ship");
     Map& map = *g_game.current_level;
 
     generate(map);
@@ -245,7 +260,6 @@ void updateGame()
                 }
             }
         }
-#endif
         if (input_mouse_button_pressed(GLFW_MOUSE_BUTTON_1))
         {
             if (map.player->is_aiming)
@@ -254,6 +268,11 @@ void updateGame()
                 do_turn = true;
                 map.player->next_action = ActionData(Action::Zap, map.player, 1.0f, target);
             }
+        }
+#endif
+        if (input_key_pressed(GLFW_KEY_F9))
+        {
+            generate(map);
         }
 
         if (g_game.animations.empty() && do_turn)

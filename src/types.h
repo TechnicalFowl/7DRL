@@ -9,20 +9,25 @@ enum class Action
     Wait,
     Move,
     Open,
+#if 0
     Attack,
     Zap,
+#endif
     Pickup,
     Drop,
 #if 0
     Equip,
     Unequip,
 #endif
+    Interact,
     UseOn,
 };
 
 enum class Terrain
 {
     Empty,
+    ShipFloor,
+    ShipWall,
 
     __COUNT,
     Invalid,
@@ -31,8 +36,18 @@ enum class Terrain
 enum class ItemType
 {
     Generic,
+#if 0
     Equipment,
     Weapon,
+#endif
+
+    PhasarRifle,
+
+    RepairParts,
+    Torpedoes,
+    WeldingTorch,
+    RailgunRounds,
+    PDCRounds,
 
     __COUNT,
     Invalid,
@@ -42,6 +57,17 @@ enum class ActorType
 {
     GroundItem,
     Player,
+
+    InteriorDoor,
+    Airlock,
+    PilotSeat,
+    Engine,
+    Reactor,
+    Antenna,
+    Scanner,
+    TorpedoLauncher,
+    PDC,
+    Railgun,
 
     __COUNT,
     Invalid,

@@ -232,16 +232,13 @@ bool ActionData::apply(Map& map, pcg32& rng)
             {
                 auto it = map.tiles.find(actor->pos + dirs[i]);
                 if (!it.found) continue;
-                if (!it.value.actor) continue;
-#if 0
-                if (it.value.actor->type == ActorType::Door)
+                if (it.value.ground && it.value.ground->type == ActorType::InteriorDoor)
                 {
-                    Door* door = (Door*)it.value.actor;
+                    InteriorDoor* door = (InteriorDoor*) it.value.ground;
                     door->open = !door->open;
                     if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
                     return true;
                 }
-#endif
             }
             if (actor == map.player) g_game.log.log("There is nothing to open.");
             return false;
@@ -251,17 +248,12 @@ bool ActionData::apply(Map& map, pcg32& rng)
             auto it = map.tiles.find(actor->pos + move);
             if (it.found)
             {
-                if (it.value.actor)
+                if (it.value.ground && it.value.ground->type == ActorType::InteriorDoor)
                 {
-#if 0
-                    if (it.value.actor->type == ActorType::Door)
-                    {
-                        Door* door = (Door*)it.value.actor;
-                        door->open = !door->open;
-                        if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
-                        return true;
-                    }
-#endif
+                    InteriorDoor* door = (InteriorDoor*) it.value.ground;
+                    door->open = !door->open;
+                    if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
+                    return true;
                 }
             }
             if (actor == map.player) g_game.log.log("There is nothing to open?");
@@ -270,6 +262,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
         vec2i target = actor->pos + move;
         return map.move(actor, actor->pos + move);
     } break;
+#if 0
     case Action::Attack:
     {
         auto it = map.tiles.find(actor->pos + move);
@@ -283,7 +276,6 @@ bool ActionData::apply(Map& map, pcg32& rng)
 
                 if (target->dead) break;
 
-#if 0
                 switch (target->type)
                 {
                 case ActorType::Player:
@@ -324,12 +316,12 @@ bool ActionData::apply(Map& map, pcg32& rng)
                 }
                 default: break;
                 }
-#endif
             }
         }
         if (actor == map.player) g_game.log.log("There is nothing to attack?");
         return false;
     } break;
+#endif
 #if 0
     case Action::Equip:
     {
@@ -357,6 +349,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
         pl->inventory.push_back(e);
     } break;
 #endif
+#if 0
     case Action::Zap:
     {
         auto path = map.findRay(actor->pos, move);
@@ -375,7 +368,6 @@ bool ActionData::apply(Map& map, pcg32& rng)
 
                     if (target->dead) break;
 
-#if 0
                     switch (target->type)
                     {
                     case ActorType::Player:
@@ -416,11 +408,15 @@ bool ActionData::apply(Map& map, pcg32& rng)
                     }
                     default: break;
                     }
-#endif
                 }
             }
         }
         if (actor == map.player) g_game.log.log("Your arrow doesn't hit anything.");
+    } break;
+#endif
+    case Action::Interact:
+    {
+
     } break;
     default:
     {
@@ -486,39 +482,41 @@ void Player::tryMove(const Map& map, vec2i dir)
             next_action = ActionData(Action::Wait, this, 0.0f);
             return;
         }
+        if (it.value.ground)
+        {
+            if (it.value.ground->type == ActorType::InteriorDoor)
+            {
+                InteriorDoor* door = (InteriorDoor*) it.value.ground;
+                if (!door->open)
+                {
+                    next_action = ActionData(Action::Open, this, 1.0f, dir);
+                    return;
+                }
+            }
+        }
         if (it.value.actor)
         {
-#if 0
-            if (it.value.actor->type == ActorType::Door)
-            {
-                next_action = ActionData(Action::Open, this, 1.0f, dir);
-                return;
-            }
-            else
-            {
-                OffenseStats stats = getOffense(this);
-                next_action = ActionData(Action::Attack, this, stats.speed, dir);
-                return;
-            }
-#endif
+            next_action = ActionData(Action::Interact, this, 1.0f, dir);
+            return;
         }
     }
     next_action = ActionData(Action::Move, this, 1.0f, dir);
 }
 
-#if 0
-Door::Door(vec2i pos)
-    : Actor(pos, ActorType::Door)
+InteriorDoor::InteriorDoor(vec2i pos)
+    : Actor(pos, ActorType::InteriorDoor)
 {
 
 }
 
-void Door::render(TextBuffer& buffer, vec2i origin, bool dim)
+void InteriorDoor::render(TextBuffer& buffer, vec2i origin, bool dim)
 {
     ActorInfo& ai = g_game.reg.actor_info[int(type)];
     u32 col = dim ? scalar::convertToGrayscale(ai.color, 0.5f) : ai.color;
     buffer.setTile(pos - origin, open ? '.' : '#', col, ai.priority);
 }
+
+#if 0
 
 Monster::Monster(vec2i pos, ActorType ty)
     : Living(pos, ty)

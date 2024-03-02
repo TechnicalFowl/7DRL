@@ -51,8 +51,11 @@ void Map::render(TextBuffer& buffer, vec2i origin)
             TerrainInfo& ti = g_game.reg.terrain_info[(int)it.value.terrain];
             u32 bgcol = !visible ? scalar::convertToGrayscale(ti.bg_color, 0.5f) : ti.bg_color;
             buffer.setBg(it.value.pos - bl, bgcol, LayerPriority_Background);
-            u32 col = !visible ? scalar::convertToGrayscale(ti.color, 0.5f) : ti.color;
-            buffer.setTile(it.value.pos - bl, ti.character, col, LayerPriority_Tiles);
+            if (ti.color)
+            {
+                u32 col = !visible ? scalar::convertToGrayscale(ti.color, 0.5f) : ti.color;
+                buffer.setTile(it.value.pos - bl, ti.character, col, LayerPriority_Tiles);
+            }
         }
     }
 }
