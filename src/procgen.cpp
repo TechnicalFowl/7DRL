@@ -379,19 +379,37 @@ void generate(Map& map)
         setDoor(map, vec2i(-6, 0));
         setDoor(map, vec2i(-10, 0));
         fillRoom(map, vec2i(-16, 4), vec2i(-12, 8), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(-14, 4));
         fillRoom(map, vec2i(-20, -8), vec2i(-12, 0), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(-14, 0));
         fillRoom(map, vec2i(4, -4), vec2i(12, 0), Terrain::ShipFloor, Terrain::ShipWall);
         fillRoom(map, vec2i(4, 0), vec2i(16, 4), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(4, 2));
         setDoor(map, vec2i(6, 0));
         setDoor(map, vec2i(10, 0));
         fillRoom(map, vec2i(12, 4), vec2i(16, 8), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(14, 4));
         fillRoom(map, vec2i(12, -8), vec2i(20, 0), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(14, 0));
         fillRoom(map, vec2i(-4, 4), vec2i(4, 12), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(-2, 4));
+        setDoor(map, vec2i(2, 4));
         fillRoom(map, vec2i(-4, 12), vec2i(4, 20), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(-2, 12));
+        setDoor(map, vec2i(2, 12));
         fillRoom(map, vec2i(-8, 12), vec2i(-4, 20), Terrain::ShipFloor, Terrain::ShipWall);
         fillRoom(map, vec2i(4, 12), vec2i(8, 20), Terrain::ShipFloor, Terrain::ShipWall);
         fillRoom(map, vec2i(-4, 20), vec2i(4, 32), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(-2, 20));
+        setDoor(map, vec2i(2, 20));
+        fillRoom(map, vec2i(-12, 24), vec2i(-4, 32), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(-4, 26));
+        fillRoom(map, vec2i(4, 24), vec2i(12, 32), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(4, 26));
+        fillRoom(map, vec2i(-8, 32), vec2i(0, 40), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(-2, 32));
+        fillRoom(map, vec2i(0, 32), vec2i(8, 40), Terrain::ShipFloor, Terrain::ShipWall);
+        setDoor(map, vec2i(2, 32));
 
         if (map.player)
             map.spawn((Actor*) map.player);
