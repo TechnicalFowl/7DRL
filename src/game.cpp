@@ -81,6 +81,24 @@ bool ProjectileAnimation::draw()
     return !points.empty();
 }
 
+struct TestModal : Modal
+{
+    TestModal(): Modal(vec2i(4, 10), vec2i(30, 10), "Test Modal") {}
+
+    void draw()
+    {
+
+        if (drawButton(g_game.term, vec2i(22, 12), "Confirm", 0xFFFFFFFF))
+        {
+            close = true;
+        }
+        if (drawButton(g_game.term, vec2i(34, 12), "Cancel", 0xFFFFFFFF))
+        {
+            close = true;
+        }
+    }
+};
+
 void initGame(int w, int h)
 {
     g_game.w = w;
@@ -188,7 +206,7 @@ void updateGame()
             g_game.console_input_displayed = false;
         }
     }
-    else
+    else if (!g_game.modal)
     {
         bool do_turn = map.player->next_action.action != Action::Wait;
         if (input_key_pressed(GLFW_KEY_UP))
@@ -251,6 +269,10 @@ void updateGame()
                 do_turn = true;
                 map.player->next_action = ActionData(Action::Zap, map.player, 1.0f, target);
             }
+        }
+        if (input_key_pressed(GLFW_KEY_V))
+        {
+            g_game.modal = new TestModal;
         }
 
         if (g_game.animations.empty() && do_turn)
@@ -438,6 +460,20 @@ void updateGame()
         if (drawButton(g_game.term, vec2i(116, 0), "Log", g_game.sidebar == SidebarUI::GameLog ? 0xFFFFFFFF : 0xFFB0B0B0))
         {
             g_game.sidebar = SidebarUI::GameLog;
+        }
+    }
+
+    if (g_game.modal)
+    {
+        if (g_game.modal->draw_border)
+            drawUIFrame(g_game.term, g_game.modal->pos, g_game.modal->pos + g_game.modal->size, g_game.modal->title.c_str());
+
+        g_game.modal->draw();
+
+        if (g_game.modal->close)
+        {
+            delete g_game.modal;
+            g_game.modal = nullptr;
         }
     }
 

@@ -74,16 +74,29 @@ struct ProjectileAnimation : Animation
 
 char getProjectileCharacter(Direction dir);
 
+struct Modal
+{
+    vec2i pos, size;
+    sstring title;
+    bool close = false;
+    bool draw_border = true;
+
+    Modal(vec2i pos, vec2i size, const sstring& title) : pos(pos), size(size), title(title) {}
+    virtual ~Modal() {}
+
+    virtual void draw() = 0;
+};
+
 struct Game
 {
-    int w, h;
+    int w=0, h=0;
 
     InfoLog log;
     Registry reg;
     pcg32 rng;
-    TextBuffer* term;
+    TextBuffer* term = nullptr;
 
-    Map* current_level;
+    Map* current_level = nullptr;
 
     GameState state = GameState::Ingame;
     SidebarUI sidebar = SidebarUI::Character;
@@ -91,6 +104,8 @@ struct Game
     sstring console_input;
     int console_cursor = 0;
     bool console_input_displayed = false;
+
+    Modal* modal = nullptr;
 
     std::vector<Animation*> animations;
 };
@@ -101,3 +116,5 @@ void updateGame();
 
 vec2i game_mouse_pos();
 vec2f screen_mouse_pos();
+
+bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color);
