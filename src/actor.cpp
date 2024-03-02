@@ -217,13 +217,32 @@ bool ActionData::apply(Map& map, pcg32& rng)
     case Action::Pickup:
     {
         debug_assert(actor->type == ActorType::Player);
+        Player* pl = (Player*)actor;
         auto it = map.tiles.find(actor->pos);
-        if (it.found && it.value.ground && it.value.ground->type == ActorType::GroundItem)
+        if (it.found)
         {
-            GroundItem* item = (GroundItem*)it.value.ground;
-            Player* pl = (Player*) actor;
-            pl->inventory.push_back(item->item);
-            item->dead = true;
+            if (it.value.ground && it.value.ground->type == ActorType::GroundItem)
+            {
+                GroundItem* item = (GroundItem*)it.value.ground;
+                if (pl->holding)
+                {
+                    std::swap(item->item, pl->holding);
+                    g_game.log.logf("You drop the %s and pickup the %s.", item->item->name.c_str(), pl->holding->name.c_str());
+                }
+                else
+                {
+                    pl->holding = item->item;
+                    item->dead = true;
+                    g_game.log.logf("You pickup the %s.", pl->holding->name.c_str());
+                }
+            }
+            else if (!it.value.ground && pl->holding)
+            {
+                GroundItem* item = new GroundItem(pl->pos, pl->holding);
+                map.spawn(item);
+                pl->holding = nullptr;
+                g_game.log.logf("You drop the %s.", item->item->name.c_str());
+            }
         }
     } break;
     case Action::Open:
@@ -252,6 +271,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
                             Airlock* opp = door->findOpposite(map);
                             if (opp)
                             {
+                                if (actor == map.player) g_game.log.logf("The airlock cycles.");
                                 opp->open = false;
                             }
                         }
@@ -286,6 +306,7 @@ bool ActionData::apply(Map& map, pcg32& rng)
                             Airlock* opp = door->findOpposite(map);
                             if (opp)
                             {
+                                if (actor == map.player) g_game.log.logf("The airlock cycles.");
                                 opp->open = false;
                             }
                         }
@@ -300,93 +321,6 @@ bool ActionData::apply(Map& map, pcg32& rng)
         vec2i target = actor->pos + move;
         return map.move(actor, actor->pos + move);
     } break;
-#if 0
-    case Action::Attack:
-    {
-        auto it = map.tiles.find(actor->pos + move);
-        if (it.found)
-        {
-            if (it.value.actor)
-            {
-                Actor* target = it.value.actor;
-                ActorInfo& ti = g_game.reg.actor_info[int(target->type)];
-                ActorInfo& ai = g_game.reg.actor_info[int(actor->type)];
-
-                if (target->dead) break;
-
-                switch (target->type)
-                {
-                case ActorType::Player:
-                case ActorType::Goblin:
-                {
-                    Living* l_actor = (Living*)actor;
-                    Living* l_target = (Living*)target;
-
-                    int damage = calculateDamage(l_actor, l_target, rng);
-                    if (damage > 0)
-                    {
-                        l_target->health -= damage;
-                        if (l_target->health <= 0)
-                        {
-                            if (actor == map.player)
-                            {
-                                g_game.log.logf("You kill the %s.", ti.name);
-                                target->dead = true;
-                            }
-                            if (target == map.player)
-                            {
-                                g_game.log.logf("The %s kills you.", ai.name);
-                                g_game.state = GameState::GameOver;
-                            }
-                        }
-                        else
-                        {
-                            if (actor == map.player) g_game.log.logf("You attack the %s dealing %d damage.", ti.name, damage);
-                            if (target == map.player) g_game.log.logf("The %s attacks you dealing %d damage.", ai.name, damage);
-                        }
-                    }
-                    else
-                    {
-                        if (actor == map.player) g_game.log.logf("You attack the %s but miss.", ti.name);
-                        if (target == map.player) g_game.log.logf("The %s attacks you but misses.", ai.name);
-                    }
-                    return true;
-                }
-                default: break;
-                }
-            }
-        }
-        if (actor == map.player) g_game.log.log("There is nothing to attack?");
-        return false;
-    } break;
-#endif
-#if 0
-    case Action::Equip:
-    {
-        debug_assert(actor->type == ActorType::Player);
-        Player* pl = (Player*) actor;
-        debug_assert(item && (item->type == ItemType::Equipment || item->type == ItemType::Weapon));
-        Equipment* e = (Equipment*) item;
-        auto it = std::find(pl->inventory.begin(), pl->inventory.end(), e);
-        debug_assert(it != pl->inventory.end());
-        pl->inventory.erase(it);
-        if (pl->equipment[int(e->slot)])
-        {
-            pl->inventory.push_back(pl->equipment[int(e->slot)]);
-        }
-        pl->equipment[int(e->slot)] = e;
-    } break;
-    case Action::Unequip:
-    {
-        debug_assert(actor->type == ActorType::Player);
-        Player* pl = (Player*) actor;
-        debug_assert(item && (item->type == ItemType::Equipment || item->type == ItemType::Weapon));
-        Equipment* e = (Equipment*) item;
-        debug_assert(pl->equipment[int(e->slot)] == e);
-        pl->equipment[int(e->slot)] = nullptr;
-        pl->inventory.push_back(e);
-    } break;
-#endif
 #if 0
     case Action::Zap:
     {
@@ -454,7 +388,18 @@ bool ActionData::apply(Map& map, pcg32& rng)
 #endif
     case Action::Interact:
     {
+        debug_assert(actor->type == ActorType::Player);
+        Player* pl = (Player*)actor;
 
+
+        g_game.log.log("There doesn't seem to be anything to do with this.");
+    } break;
+    case Action::UseOn:
+    {
+        debug_assert(actor->type == ActorType::Player);
+        Player* pl = (Player*)actor;
+
+        g_game.log.log("That doesn't seem to do anything.");
     } break;
     default:
     {

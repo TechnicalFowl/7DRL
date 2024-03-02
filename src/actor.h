@@ -159,7 +159,7 @@ struct Player : Living
     ActionData next_action;
     bool is_aiming = false;
 
-    std::vector<Item*> inventory;
+    Item* holding = nullptr;
 
     Player(vec2i pos);
 

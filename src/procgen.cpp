@@ -6,6 +6,7 @@
 #include "util/random.h"
 
 #include "actor.h"
+#include "game.h"
 #include "map.h"
 
 #if 0
@@ -373,6 +374,14 @@ void setAirlock(Map& map, vec2i p, Direction d)
     map.spawn(door);
 }
 
+void placeItem(Map& map, vec2i p, ItemType it)
+{
+    ItemTypeInfo& ii = g_game.reg.item_type_info[int(it)];
+    Item* item = new Item(ii.character, ii.color, it, ii.name);
+    GroundItem* ground_item = new GroundItem(p, item);
+    map.spawn(ground_item);
+}
+
 void generate(Map& map)
 {
     if (map.name == "player_ship")
@@ -380,6 +389,7 @@ void generate(Map& map)
         map.clear();
 
         fillRoom(map, vec2i(-4, -4), vec2i(4, 4), Terrain::ShipFloor, Terrain::ShipWall);
+        placeItem(map, vec2i(-1, -3), ItemType::WeldingTorch);
         fillRoom(map, vec2i(-12, -4), vec2i(-4, 0), Terrain::ShipFloor, Terrain::ShipWall);
         fillRoom(map, vec2i(-16, 0), vec2i(-4, 4), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-4, 2));

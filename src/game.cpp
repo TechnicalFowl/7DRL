@@ -413,7 +413,9 @@ void updateGame()
 
     }
     {
-        g_game.term->write(vec2i(102, g_game.h - 4), "Holding: Nothing", 0xFFFFFFFF, LayerPriority_UI);
+        sstring line_0;
+        line_0.appendf("Holding: %s", map.player->holding ? map.player->holding->name.c_str() : "nothing");
+        g_game.term->write(vec2i(102, g_game.h - 4), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         g_game.term->fillText(vec2i(100, g_game.h - 4), vec2i(100, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.term->fillText(vec2i(g_game.w * 2 - 1, g_game.h - 4), vec2i(g_game.w * 2 - 1, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
     }
