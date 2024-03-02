@@ -161,14 +161,14 @@ vec2f screen_mouse_pos()
 
 void drawUIFrame(TextBuffer* term, vec2i min, vec2i max, const char* title)
 {
-    term->fillBg(vec2i(min.x, min.y), vec2i(max.x, min.y), 0xFF404040, LayerPriority_UI - 2);
-    term->fillBg(vec2i(min.x, min.y), vec2i(min.x, max.y), 0xFF404040, LayerPriority_UI - 2);
-    term->fillBg(vec2i(min.x, max.y), vec2i(max.x, max.y), 0xFF404040, LayerPriority_UI - 2);
-    term->fillBg(vec2i(max.x, min.y), vec2i(max.x, max.y), 0xFF404040, LayerPriority_UI - 2);
-    term->fillBg(vec2i(min.x + 1, min.y + 1), vec2i(max.x - 1, max.y - 1), 0xFF000000, LayerPriority_UI - 2);
+    term->fillBg(vec2i(min.x, min.y), vec2i(max.x, min.y), 0xFF202020, LayerPriority_UI - 2);
+    term->fillBg(vec2i(min.x, min.y), vec2i(min.x, max.y), 0xFF202020, LayerPriority_UI - 2);
+    term->fillBg(vec2i(min.x, max.y), vec2i(max.x, max.y), 0xFF202020, LayerPriority_UI - 2);
+    term->fillBg(vec2i(max.x, min.y), vec2i(max.x, max.y), 0xFF202020, LayerPriority_UI - 2);
+    term->fillBg(vec2i(min.x + 1, min.y + 1), vec2i(max.x - 1, max.y - 1), 0xFF101010, LayerPriority_UI - 2);
     int title_len = (int) strlen(title);
-    term->fillText(vec2i(min.x * 2, max.y), vec2i(min.x * 2 + 6, max.y), '=', 0xFFA0A0A0, LayerPriority_UI - 1);
-    term->fillText(vec2i(min.x * 2 + 9 + title_len, max.y), vec2i(max.x*2 + 1, max.y), '=', 0xFFA0A0A0, LayerPriority_UI - 1);
+    term->fillText(vec2i(min.x * 2, max.y), vec2i(min.x * 2 + 6, max.y), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
+    term->fillText(vec2i(min.x * 2 + 9 + title_len, max.y), vec2i(max.x*2 + 1, max.y), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
     term->write(vec2i(min.x * 2 + 8, max.y), title, 0xFFA0A0A0, LayerPriority_UI - 1);
 }
 
@@ -273,6 +273,7 @@ void updateGame()
         {
             generate(map);
         }
+        // @TODO: ? opens help modal
 
         if (g_game.animations.empty() && do_turn)
         {
@@ -366,102 +367,55 @@ void updateGame()
     {
         bottom_bar.appendf("Turn: %d H: %d/%d", map.turn, map.player->health, map.player->max_health);
     }
-    g_game.term->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF000000, LayerPriority_UI - 2);
+    g_game.term->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF101010, LayerPriority_UI - 2);
     g_game.term->write(vec2i(2, 0), bottom_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
 
+    g_game.term->fillBg(vec2i(50, 0), vec2i(g_game.w - 1, g_game.h - 1), 0xFF101010, LayerPriority_UI - 2);
     {
-        g_game.term->fillBg(vec2i(50, g_game.h - 6), vec2i(g_game.w - 1, g_game.h - 1), 0xFF000000, LayerPriority_UI);
+        // Log
+        int y0 = 8;
+        g_game.term->setText(vec2i(100, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->fillText(vec2i(101, y0), vec2i(106, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->setText(vec2i(107, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->write(vec2i(109, y0), "Log", 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->setText(vec2i(113, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->fillText(vec2i(114, y0), vec2i(g_game.w * 2 - 2, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->setText(vec2i(g_game.w * 2 - 1, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->fillText(vec2i(100, 0), vec2i(100, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->fillText(vec2i(g_game.w * 2 - 1, 0), vec2i(g_game.w * 2 - 1, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
 
-    }
-
-    switch (g_game.sidebar)
-    {
-    case SidebarUI::Character:
-    {
-        drawUIFrame(g_game.term, vec2i(50, 1), vec2i(g_game.w - 1, g_game.h - 7), "Character");
-
-        int y = g_game.h - 8;
-#if 0
-        g_game.term->write(vec2i(102, y--), "Equipment -----------", 0xFFFFFFFF, LayerPriority_UI);
-        std::vector<Equipment*> unequip;
-        for (int i = 0; i < EquipmentSlotCount; ++i)
-        {
-            Equipment* e = map.player->equipment[i];
-            if (e)
-            {
-                debug_assert(e->slot == EquipmentSlot(i));
-                sstring slot_text;
-                slot_text.appendf("%s: %s", EquipmentSlotNames[i], e->name.c_str());
-                if (drawButton(g_game.term, vec2i(102, y--), slot_text.c_str(), 0xFFFFFFFF))
-                {
-                    unequip.push_back((Equipment*)e);
-                }
-            }
-        }
-        g_game.term->write(vec2i(102, y--), "Inventory -----------", 0xFFFFFFFF, LayerPriority_UI);
-        std::vector<Equipment*> equip;
-        for (Item* item : map.player->inventory)
-        {
-            if (y < 2) break;
-            sstring slot_text;
-            slot_text.appendf("%s", item->name.c_str());
-            if (item->type == ItemType::Equipment || item->type == ItemType::Weapon)
-            {
-                if (drawButton(g_game.term, vec2i(102, y--), slot_text.c_str(), 0xFFFFFFFF))
-                {
-                    equip.push_back((Equipment*) item);
-                }
-            }
-            else
-            {
-                g_game.term->write(vec2i(102, y--), slot_text.c_str(), 0xFFFFFFFF, LayerPriority_UI);
-            }
-        }
-
-        if (!unequip.empty())
-        {
-            Equipment* e = unequip.front();
-            debug_assert(map.player->equipment[int(e->slot)] == e);
-            map.player->next_action = ActionData(Action::Unequip, map.player, 0.1f, e);
-        }
-        else if (!equip.empty())
-        {
-            Equipment* e = equip.front();
-            map.player->next_action = ActionData(Action::Equip, map.player, 0.1f, e);
-        }
-#endif
-    } break;
-    case SidebarUI::GameLog:
-    {
-        drawUIFrame(g_game.term, vec2i(50, 1), vec2i(g_game.w - 1, g_game.h - 7), "Log");
-
-        int rows = g_game.h - 7;
+        int rows = 8;
 
         InfoLog& log = g_game.log;
-        int j = 2;
-        for (int i = (int) log.entries.size() - 1; i >= 0 && j < rows; --i)
+        int j = 0;
+        for (int i = (int)log.entries.size() - 1; i >= 0 && j < rows; --i)
         {
-            auto e = log.entries[i];
+            auto& e = log.entries[i];
             auto parts = smartSplit(e.msg, (g_game.w - 52) * 2);
-            for (int k = (int) parts.size() - 1; k >= 0 && j < rows; --k)
+            for (int k = (int)parts.size() - 1; k >= 0 && j < rows; --k)
             {
                 g_game.term->write(vec2i(102, j), parts[k].c_str(), e.color, LayerPriority_UI);
                 j++;
             }
         }
-
-    } break;
     }
     {
-        g_game.term->fillBg(vec2i(50, 0), vec2i(g_game.w - 1, 0), 0xFF000000, LayerPriority_UI);
-        if (drawButton(g_game.term, vec2i(104, 0), "Character", g_game.sidebar == SidebarUI::Character ? 0xFFFFFFFF : 0xFFB0B0B0))
-        {
-            g_game.sidebar = SidebarUI::Character;
-        }
-        if (drawButton(g_game.term, vec2i(116, 0), "Log", g_game.sidebar == SidebarUI::GameLog ? 0xFFFFFFFF : 0xFFB0B0B0))
-        {
-            g_game.sidebar = SidebarUI::GameLog;
-        }
+        int y0 = g_game.h - 5;
+        g_game.term->setText(vec2i(100, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->fillText(vec2i(101, y0), vec2i(106, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->setText(vec2i(107, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->write(vec2i(109, y0), "Ship", 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->setText(vec2i(114, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->fillText(vec2i(115, y0), vec2i(g_game.w * 2 - 2, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->setText(vec2i(g_game.w * 2 - 1, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->fillText(vec2i(100, 9), vec2i(100, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->fillText(vec2i(g_game.w * 2 - 1, 9), vec2i(g_game.w * 2 - 1, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+
+    }
+    {
+        g_game.term->write(vec2i(102, g_game.h - 4), "Holding: Nothing", 0xFFFFFFFF, LayerPriority_UI);
+        g_game.term->fillText(vec2i(100, g_game.h - 4), vec2i(100, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.term->fillText(vec2i(g_game.w * 2 - 1, g_game.h - 4), vec2i(g_game.w * 2 - 1, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
     }
 
     if (g_game.modal)

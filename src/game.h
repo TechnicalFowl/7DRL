@@ -18,13 +18,6 @@ enum class GameState
     GameOver,
 };
 
-enum class SidebarUI
-{
-    Character,
-    GameLog,
-    Examine,
-};
-
 struct InfoLog
 {
     struct Entry
@@ -99,7 +92,6 @@ struct Game
     Map* current_level = nullptr;
 
     GameState state = GameState::Ingame;
-    SidebarUI sidebar = SidebarUI::Character;
 
     sstring console_input;
     int console_cursor = 0;
