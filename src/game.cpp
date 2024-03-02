@@ -245,6 +245,16 @@ void updateGame()
             do_turn = true;
             map.player->next_action = ActionData(Action::Pickup, map.player, 1.0f);
         }
+        if (g_window.inputs.scroll.y != 0)
+        {
+            static u64 last_scroll = 0;
+            if (g_window.frame_count - last_scroll > 10)
+            {
+                do_turn = true;
+                map.player->next_action = ActionData(Action::Wait, map.player, 1.0f);
+                last_scroll = g_window.frame_count;
+            }
+        }
 #if 0
         if (input_key_pressed(GLFW_KEY_Z))
         {
