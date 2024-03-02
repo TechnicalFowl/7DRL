@@ -487,7 +487,7 @@ void render_buffer(TextBuffer* term)
                 rect2f texture = getTexture(ch.text[0] - 64);
                 vec2f t0(texture.lower.x, texture.upper.y);
                 vec2f t1(texture.upper.x, texture.lower.y);
-                vb_push_quad(g_window.vb, vec2f((float)x, (float)y), vec2f(x + 1.0f, y + 1.0f), makeColor(ch.color), t0, t1);
+                vb_push_quad(g_window.vb, vec2f((float)x, (float)y), vec2f(x + 1.0f, y + 1.0f), makeColor(ch.color[0]), t0, t1);
             }
             else if (ch.text[1] == 0xFFFF)
             {
@@ -495,7 +495,7 @@ void render_buffer(TextBuffer* term)
                 vec2f t0(texture.lower.x, texture.upper.y);
                 vec2f t1(texture.upper.x, texture.lower.y);
                 float x0 = (float)x + 0.25f;
-                vb_push_quad(g_window.vb, vec2f(x0, (float)y), vec2f(x0 + 0.5f, y + 1.0f), makeColor(ch.color), t0, t1);
+                vb_push_quad(g_window.vb, vec2f(x0, (float)y), vec2f(x0 + 0.5f, y + 1.0f), makeColor(ch.color[0]), t0, t1);
             }
             else
             {
@@ -507,7 +507,7 @@ void render_buffer(TextBuffer* term)
                         vec2f t0(texture.lower.x, texture.upper.y);
                         vec2f t1(texture.upper.x, texture.lower.y);
                         float x0 = j == 0 ? (float)x : (float)x + 0.5f;
-                        vb_push_quad(g_window.vb, vec2f(x0, (float)y), vec2f(x0 + 0.5f, y + 1.0f), makeColor(ch.color), t0, t1);
+                        vb_push_quad(g_window.vb, vec2f(x0, (float)y), vec2f(x0 + 0.5f, y + 1.0f), makeColor(ch.color[j]), t0, t1);
                     }
                 }
             }

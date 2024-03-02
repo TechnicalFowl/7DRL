@@ -3,6 +3,8 @@
 #include <deque>
 #include <vector>
 
+#include "stb_image.h"
+
 #include "util/random.h"
 
 #include "actor.h"
@@ -390,6 +392,13 @@ void decorate(Map& map, vec2i p, int l, int r, u32 lc, u32 rc, u32 b)
     map.spawn(dec);
 }
 
+void fillDecorate(Map& map, vec2i min, vec2i max, int l, int r, u32 lc, u32 rc, u32 b)
+{
+    for (int y = min.y; y <= max.y; ++y)
+        for (int x = min.x; x <= max.x; ++x)
+            decorate(map, vec2i(x, y), l, r, lc, rc, b);
+}
+
 void placePilotSeat(Map& map, vec2i p)
 {
     decorate(map, vec2i(p.x, p.y + 1), '=', '=', 0xFF00FF00, 0xFF00FF00, 0);
@@ -449,6 +458,9 @@ void generate(Map& map)
     {
         map.clear();
 
+        u32 primary_ship_color = 0xFF14CCFF;
+        u32 secondary_ship_color = 0xFFC0C0C0;
+
         // Engineering
         fillRoom(map, vec2i(-4, -4), vec2i(4, 4), Terrain::ShipFloor, Terrain::ShipWall);
         placeItem(map, vec2i(-3, 3), ItemType::WeldingTorch);
@@ -462,6 +474,9 @@ void generate(Map& map)
         setDoor(map, vec2i(-4, 2));
         setDoor(map, vec2i(-6, 0));
         setDoor(map, vec2i(-10, 0));
+        fillDecorate(map, vec2i(-10, 5), vec2i(-5, 5), HalfBottom, HalfBottom, primary_ship_color, secondary_ship_color, 0);
+        decorate(map, vec2i(-11, 5), FullChar, RightDiagTopInverse, primary_ship_color, secondary_ship_color, 0);
+        decorate(map, vec2i(-11, 6), LeftDiagBottom, 0, primary_ship_color, secondary_ship_color, 0);
         // Left Engine Forward Compartment
         fillRoom(map, vec2i(-16, 4), vec2i(-12, 8), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-14, 4));
@@ -476,6 +491,9 @@ void generate(Map& map)
         setDoor(map, vec2i(4, 2));
         setDoor(map, vec2i(6, 0));
         setDoor(map, vec2i(10, 0));
+        fillDecorate(map, vec2i(5, 5), vec2i(10, 5), HalfBottom, HalfBottom, primary_ship_color, secondary_ship_color, 0);
+        decorate(map, vec2i(11, 5), LeftDiagTopInverse, FullChar, primary_ship_color, secondary_ship_color, 0);
+        decorate(map, vec2i(11, 6), 0, RightDiagBottom, primary_ship_color, secondary_ship_color, 0);
         // Right Engine Forward Compartment
         fillRoom(map, vec2i(12, 4), vec2i(16, 8), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(14, 4));

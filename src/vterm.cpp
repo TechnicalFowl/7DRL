@@ -69,7 +69,7 @@ void TextBuffer::setText(vec2i p, char c, u32 color, int priority)
     {
         ch.text[sub_x] = c;
         if (sub_x == 0 && ch.text[1] == 0xFFFF) ch.text[1] = 0;
-        ch.color = color;
+        ch.color[sub_x] = color;
         ch.priority = priority;
     }
 }
@@ -81,7 +81,7 @@ void TextBuffer::setTile(vec2i p, int id, u32 color, int priority)
     if (ch.priority < priority)
     {
         ch.text[0] = id; ch.text[1] = 0xFFFF;
-        ch.color = color;
+        ch.color[0] = color;
         ch.priority = priority;
     }
 }

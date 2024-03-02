@@ -43,6 +43,8 @@ enum SpecialChars : char
     RightDiagTopInverse,
     RightDiagBottomInverse,
     FullChar,
+    HalfTop,
+    HalfBottom,
 
     MaxSpecialChars,
 };
@@ -59,7 +61,7 @@ struct TextBuffer
     struct Char
     {
         int text[2]{ TileEmpty, TileEmpty };
-        u32 color = 0;
+        u32 color[2]{ 0, 0 };
         u32 bg = 0;
         int priority = -1;
         int bg_priority = -1;
