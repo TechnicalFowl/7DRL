@@ -218,3 +218,8 @@ struct PilotSeat : Actor
     PilotSeat(vec2i pos);
 
 };
+
+struct MainEngine : Actor
+{
+    MainEngine(vec2i pos);
+};

@@ -562,11 +562,11 @@ Decoration::Decoration(vec2i pos, int l, int r, u32 lc, u32 rc, u32 b)
 
 void Decoration::render(TextBuffer& buffer, vec2i origin, bool dim)
 {
-    u32 col = dim ? scalar::convertToGrayscale(leftcolor, 0.5f) : leftcolor;
-    u32 rcol = dim ? scalar::convertToGrayscale(rightcolor, 0.5f) : rightcolor;
+    u32 col = leftcolor;
+    u32 rcol = rightcolor;
     if (bg)
     {
-        u32 bg_col = dim ? scalar::convertToGrayscale(bg, 0.5f) : bg;
+        u32 bg_col = bg;
         buffer.setBg(pos - origin, bg_col, LayerPriority_Objects - 1);
     }
     if (left && right == 0xFFFF)
@@ -648,6 +648,11 @@ Airlock* Airlock::findOpposite(Map& map)
 
 PilotSeat::PilotSeat(vec2i p)
     : Actor(p, ActorType::PilotSeat)
+{
+}
+
+MainEngine::MainEngine(vec2i p)
+    : Actor(p, ActorType::Engine)
 {
 }
 

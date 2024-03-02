@@ -384,6 +384,8 @@ void placeItem(Map& map, vec2i p, ItemType it)
 
 void decorate(Map& map, vec2i p, int l, int r, u32 lc, u32 rc, u32 b)
 {
+    if (map.getTile(p) != Terrain::Empty)
+        map.setTile(p, Terrain::ShipFloor);
     Decoration* dec = new Decoration(p, l, r, lc, rc, b);
     map.spawn(dec);
 }
@@ -396,53 +398,97 @@ void placePilotSeat(Map& map, vec2i p)
     map.spawn(pilot_seat);
 }
 
+void placeEngine(Map& map, vec2i p)
+{
+    decorate(map, vec2i(p.x - 1, p.y + 3), '/', Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x + 1, p.y + 3), Border_Horizontal, '\\', 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y + 2), Border_Vertical, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x, p.y + 2), Border_TopLeft, Border_TopRight, 0xFFFF5050, 0xFFFF4040, 0xFFFFFFFF);
+    decorate(map, vec2i(p.x + 1, p.y + 2), 0, Border_Vertical, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y + 1), Border_Vertical, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x, p.y + 1), Border_TeeRight, Border_TeeLeft, 0xFFFF4040, 0xFFFF5050, 0xFFFFFFFF);
+    decorate(map, vec2i(p.x + 1, p.y + 1), 0, Border_Vertical, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y), 0, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+    decorate(map, vec2i(p.x, p.y), Border_TeeRight, Border_TeeLeft, 0xFFFF5050, 0xFFFF4040, 0xFFFFFFFF);
+    decorate(map, vec2i(p.x + 1, p.y), 0, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+    decorate(map, vec2i(p.x - 1, p.y - 1), '/', 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x, p.y - 1), Border_TeeRight, Border_TeeLeft, 0xFFFF5050, 0xFFFF4040, 0);
+    decorate(map, vec2i(p.x + 1, p.y - 1), 0, '\\', 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 2, p.y - 2), 0, '/', 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x + 2, p.y - 2), '\\', 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+
+
+    MainEngine* eng = new MainEngine(vec2i(p.x, p.y + 3));
+    map.spawn(eng);
+}
+
 void generate(Map& map)
 {
     if (map.name == "player_ship")
     {
         map.clear();
 
+        // Engineering
         fillRoom(map, vec2i(-4, -4), vec2i(4, 4), Terrain::ShipFloor, Terrain::ShipWall);
         placeItem(map, vec2i(-1, -3), ItemType::WeldingTorch);
+        // Left Engine Storage
         fillRoom(map, vec2i(-12, -4), vec2i(-4, 0), Terrain::ShipFloor, Terrain::ShipWall);
+        // Left Engine Coridor
         fillRoom(map, vec2i(-16, 0), vec2i(-4, 4), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-4, 2));
         setDoor(map, vec2i(-6, 0));
         setDoor(map, vec2i(-10, 0));
+        // Left Engine Forward Compartment
         fillRoom(map, vec2i(-16, 4), vec2i(-12, 8), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-14, 4));
+        // Left Engine
         fillRoom(map, vec2i(-20, -8), vec2i(-12, 0), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-14, 0));
+        placeEngine(map, vec2i(-16, -8));
+        // Right Engine Storage
         fillRoom(map, vec2i(4, -4), vec2i(12, 0), Terrain::ShipFloor, Terrain::ShipWall);
+        // Right Engine Coridor
         fillRoom(map, vec2i(4, 0), vec2i(16, 4), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(4, 2));
         setDoor(map, vec2i(6, 0));
         setDoor(map, vec2i(10, 0));
+        // Right Engine Forward Compartment
         fillRoom(map, vec2i(12, 4), vec2i(16, 8), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(14, 4));
+        // Right Engine
         fillRoom(map, vec2i(12, -8), vec2i(20, 0), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(14, 0));
+        placeEngine(map, vec2i(16, -8));
+        // Cargo Bay
         fillRoom(map, vec2i(-4, 4), vec2i(4, 12), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-2, 4));
         setDoor(map, vec2i(2, 4));
+        // Multiuse room
         fillRoom(map, vec2i(-4, 12), vec2i(4, 20), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-2, 12));
         setDoor(map, vec2i(2, 12));
+        // Left Airlock
         fillRoom(map, vec2i(-8, 12), vec2i(-4, 20), Terrain::ShipFloor, Terrain::ShipWall);
         setAirlock(map, vec2i(-4, 14), Left);
         setAirlock(map, vec2i(-8, 14), Right);
+        // Right Airlock
         fillRoom(map, vec2i(4, 12), vec2i(8, 20), Terrain::ShipFloor, Terrain::ShipWall);
         setAirlock(map, vec2i(4, 14), Right);
         setAirlock(map, vec2i(8, 14), Left);
+        // Galley / crew storage
         fillRoom(map, vec2i(-4, 20), vec2i(4, 32), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-2, 20));
         setDoor(map, vec2i(2, 20));
+        // Left Weapons Room
         fillRoom(map, vec2i(-12, 24), vec2i(-4, 32), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-4, 26));
+        // Right Weapons Room
         fillRoom(map, vec2i(4, 24), vec2i(12, 32), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(4, 26));
+        // Operations deck
         fillRoom(map, vec2i(-8, 32), vec2i(0, 40), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-2, 32));
+        // Pilots deck
         fillRoom(map, vec2i(0, 32), vec2i(8, 40), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(2, 32));
         placePilotSeat(map, vec2i(4, 36));
