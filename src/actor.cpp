@@ -1,5 +1,7 @@
 #include "actor.h"
 
+#include <deque>
+
 #include "util/random.h"
 
 #include "game.h"
@@ -232,12 +234,30 @@ bool ActionData::apply(Map& map, pcg32& rng)
             {
                 auto it = map.tiles.find(actor->pos + dirs[i]);
                 if (!it.found) continue;
-                if (it.value.ground && it.value.ground->type == ActorType::InteriorDoor)
+                if (it.value.ground)
                 {
-                    InteriorDoor* door = (InteriorDoor*) it.value.ground;
-                    door->open = !door->open;
-                    if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
-                    return true;
+                    if (it.value.ground->type == ActorType::InteriorDoor)
+                    {
+                        InteriorDoor* door = (InteriorDoor*)it.value.ground;
+                        door->open = !door->open;
+                        if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
+                        return true;
+                    }
+                    else if(it.value.ground->type == ActorType::Airlock)
+                    {
+                        Airlock* door = (Airlock*) it.value.ground;
+                        door->open = !door->open;
+                        if (door->open)
+                        {
+                            Airlock* opp = door->findOpposite(map);
+                            if (opp)
+                            {
+                                opp->open = false;
+                            }
+                        }
+                        if (actor == map.player) g_game.log.logf("You %s the airlock.", door->open ? "open" : "close");
+                        return true;
+                    }
                 }
             }
             if (actor == map.player) g_game.log.log("There is nothing to open.");
@@ -248,12 +268,30 @@ bool ActionData::apply(Map& map, pcg32& rng)
             auto it = map.tiles.find(actor->pos + move);
             if (it.found)
             {
-                if (it.value.ground && it.value.ground->type == ActorType::InteriorDoor)
+                if (it.value.ground)
                 {
-                    InteriorDoor* door = (InteriorDoor*) it.value.ground;
-                    door->open = !door->open;
-                    if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
-                    return true;
+                    if (it.value.ground->type == ActorType::InteriorDoor)
+                    {
+                        InteriorDoor* door = (InteriorDoor*)it.value.ground;
+                        door->open = !door->open;
+                        if (actor == map.player) g_game.log.logf("You %s the door.", door->open ? "open" : "close");
+                        return true;
+                    }
+                    else if (it.value.ground->type == ActorType::Airlock)
+                    {
+                        Airlock* door = (Airlock*)it.value.ground;
+                        door->open = !door->open;
+                        if (door->open)
+                        {
+                            Airlock* opp = door->findOpposite(map);
+                            if (opp)
+                            {
+                                opp->open = false;
+                            }
+                        }
+                        if (actor == map.player) g_game.log.logf("You %s the airlock.", door->open ? "open" : "close");
+                        return true;
+                    }
                 }
             }
             if (actor == map.player) g_game.log.log("There is nothing to open?");
@@ -486,7 +524,16 @@ void Player::tryMove(const Map& map, vec2i dir)
         {
             if (it.value.ground->type == ActorType::InteriorDoor)
             {
-                InteriorDoor* door = (InteriorDoor*) it.value.ground;
+                InteriorDoor* door = (InteriorDoor*)it.value.ground;
+                if (!door->open)
+                {
+                    next_action = ActionData(Action::Open, this, 1.0f, dir);
+                    return;
+                }
+            }
+            else if (it.value.ground->type == ActorType::Airlock)
+            {
+                Airlock* door = (Airlock*) it.value.ground;
                 if (!door->open)
                 {
                     next_action = ActionData(Action::Open, this, 1.0f, dir);
@@ -514,6 +561,52 @@ void InteriorDoor::render(TextBuffer& buffer, vec2i origin, bool dim)
     ActorInfo& ai = g_game.reg.actor_info[int(type)];
     u32 col = dim ? scalar::convertToGrayscale(ai.color, 0.5f) : ai.color;
     buffer.setTile(pos - origin, open ? '.' : '#', col, ai.priority);
+}
+
+Airlock::Airlock(vec2i pos, Direction i)
+    : Actor(pos, ActorType::Airlock)
+    , interior(i)
+{
+
+}
+
+void Airlock::render(TextBuffer& buffer, vec2i origin, bool dim)
+{
+    ActorInfo& ai = g_game.reg.actor_info[int(type)];
+    u32 col = dim ? scalar::convertToGrayscale(ai.color, 0.5f) : ai.color;
+    buffer.setTile(pos - origin, open ? '.' : '#', col, ai.priority);
+}
+
+Airlock* Airlock::findOpposite(Map& map)
+{
+    std::deque<vec2i> open;
+    linear_map<vec2i, bool> seen;
+
+    open.push_back(pos + direction(interior));
+
+    while (!open.empty())
+    {
+        vec2i current = open.front();
+        open.pop_front();
+        for (vec2i d : cardinals)
+        {
+            vec2i next = current + d;
+            if (seen.find(next).found) continue;
+            auto it = map.tiles.find(next);
+            if (!it.found) continue;
+            if (!g_game.reg.terrain_info[(int)it.value.terrain].passable) continue;
+            if (it.value.ground && it.value.ground->type == ActorType::Airlock)
+            {
+                if (it.value.ground == this) continue;
+                return (Airlock*)it.value.ground;
+            }
+            if (!map.isPassable(next)) continue;
+
+            seen.insert(next, true);
+            open.push_back(next);
+        }
+    }
+    return nullptr;
 }
 
 #if 0

@@ -187,3 +187,15 @@ struct InteriorDoor : Actor
 
     virtual void render(TextBuffer& buffer, vec2i origin, bool dim = false) override;
 };
+
+struct Airlock : Actor
+{
+    Direction interior;
+    bool open = false;
+
+    Airlock(vec2i pos, Direction i);
+
+    virtual void render(TextBuffer& buffer, vec2i origin, bool dim = false) override;
+
+    Airlock* findOpposite(Map& map);
+};

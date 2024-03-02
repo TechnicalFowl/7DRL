@@ -366,6 +366,13 @@ void setDoor(Map& map, vec2i p)
     map.spawn(door);
 }
 
+void setAirlock(Map& map, vec2i p, Direction d)
+{
+    map.setTile(p, Terrain::ShipFloor);
+    Airlock* door = new Airlock(p, d);
+    map.spawn(door);
+}
+
 void generate(Map& map)
 {
     if (map.name == "player_ship")
@@ -398,7 +405,11 @@ void generate(Map& map)
         setDoor(map, vec2i(-2, 12));
         setDoor(map, vec2i(2, 12));
         fillRoom(map, vec2i(-8, 12), vec2i(-4, 20), Terrain::ShipFloor, Terrain::ShipWall);
+        setAirlock(map, vec2i(-4, 14), Left);
+        setAirlock(map, vec2i(-8, 14), Right);
         fillRoom(map, vec2i(4, 12), vec2i(8, 20), Terrain::ShipFloor, Terrain::ShipWall);
+        setAirlock(map, vec2i(4, 14), Right);
+        setAirlock(map, vec2i(8, 14), Left);
         fillRoom(map, vec2i(-4, 20), vec2i(4, 32), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(-2, 20));
         setDoor(map, vec2i(2, 20));
