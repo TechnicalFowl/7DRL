@@ -304,7 +304,7 @@ void updateGame()
             for (ActionData& act : actions)
             {
                 if (act.actor->dead) continue;
-                act.apply(map, g_game.rng);
+                act.apply(g_game.player_ship, g_game.rng);
                 if (act.actor->type == ActorType::Player)
                 {
                     ((Player*) act.actor)->is_aiming = false;

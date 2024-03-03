@@ -6,6 +6,7 @@
 
 #include "game.h"
 #include "map.h"
+#include "ship.h"
 
 #if 0
 const char* EquipmentSlotNames[EquipmentSlotCount]
@@ -198,8 +199,9 @@ ActionData::ActionData(Action a, Actor* act, float e, Item* i)
     item = i;
 }
 
-bool ActionData::apply(Map& map, pcg32& rng)
+bool ActionData::apply(Ship* ship, pcg32& rng)
 {
+    Map& map = *ship->map;
     actor->stored_energy -= energy;
     static vec2i dirs[] = { vec2i(0, 1), vec2i(0, -1), vec2i(1, 0), vec2i(-1, 0) };
     switch (action)
@@ -296,12 +298,22 @@ bool ActionData::apply(Map& map, pcg32& rng)
                     door->open = !door->open;
                     if (door->open)
                     {
-                        Airlock* opp = door->findOpposite(map);
-                        if (opp)
+                        std::vector<Actor*> doors = findDoors(ship, door->pos + direction(door->interior));
+                        bool cycled = false;
+                        for (Actor* d : doors)
                         {
-                            if (actor == map.player) g_game.log.logf("The airlock cycles.");
-                            opp->open = false;
+                            if (d == door) continue;
+                            if (d->type == ActorType::Airlock)
+                            {
+                                Airlock* ad = (Airlock*) d;
+                                if (ad->open)
+                                {
+                                    ad->open = false;
+                                    cycled = true;
+                                }
+                            }
                         }
+                        if (cycled && actor == map.player) g_game.log.logf("The airlock cycles.");
                     }
                     if (actor == map.player) g_game.log.logf("You %s the airlock.", door->open ? "open" : "close");
                     return true;
@@ -612,38 +624,6 @@ void Airlock::render(TextBuffer& buffer, vec2i origin, bool dim)
     ActorInfo& ai = g_game.reg.actor_info[int(type)];
     u32 col = dim ? scalar::convertToGrayscale(ai.color, 0.5f) : ai.color;
     buffer.setTile(pos - origin, open ? '.' : '#', col, ai.priority);
-}
-
-Airlock* Airlock::findOpposite(Map& map)
-{
-    std::deque<vec2i> open;
-    linear_map<vec2i, bool> seen;
-
-    open.push_back(pos + direction(interior));
-
-    while (!open.empty())
-    {
-        vec2i current = open.front();
-        open.pop_front();
-        for (vec2i d : cardinals)
-        {
-            vec2i next = current + d;
-            if (seen.find(next).found) continue;
-            auto it = map.tiles.find(next);
-            if (!it.found) continue;
-            if (!g_game.reg.terrain_info[(int)it.value.terrain].passable) continue;
-            if (it.value.ground && it.value.ground->type == ActorType::Airlock)
-            {
-                if (it.value.ground == this) continue;
-                return (Airlock*)it.value.ground;
-            }
-            if (!map.isPassable(next)) continue;
-
-            seen.insert(next, true);
-            open.push_back(next);
-        }
-    }
-    return nullptr;
 }
 
 PilotSeat::PilotSeat(vec2i p)

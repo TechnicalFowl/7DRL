@@ -4,6 +4,7 @@
 
 #include "util/vector_math.h"
 
+struct Actor;
 struct Map;
 
 enum class RoomType
@@ -34,3 +35,5 @@ struct Ship
 
     ShipRoom* getRoom(vec2i p);
 };
+
+std::vector<Actor*> findDoors(Ship* ship, vec2i p);

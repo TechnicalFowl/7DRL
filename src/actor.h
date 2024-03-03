@@ -8,6 +8,7 @@
 
 struct Actor;
 struct Map;
+struct Ship;
 struct pcg32;
 
 struct Item
@@ -115,7 +116,7 @@ struct ActionData
     ActionData(Action a, Actor* act, float e, vec2i p);
     ActionData(Action a, Actor* act, float e, Item* i);
 
-    bool apply(Map& map, pcg32& rng);
+    bool apply(Ship* ship, pcg32& rng);
 };
 
 struct Actor
@@ -209,8 +210,6 @@ struct Airlock : Actor
     Airlock(vec2i pos, Direction i);
 
     virtual void render(TextBuffer& buffer, vec2i origin, bool dim = false) override;
-
-    Airlock* findOpposite(Map& map);
 };
 
 struct PilotSeat : Actor
