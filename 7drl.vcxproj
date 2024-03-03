@@ -141,6 +141,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\map.cpp" />
     <ClCompile Include="src\procgen.cpp" />
+    <ClCompile Include="src\ship.cpp" />
     <ClCompile Include="src\util\direction.cpp" />
     <ClCompile Include="src\util\linear_map.cpp" />
     <ClCompile Include="src\util\random.cpp" />
@@ -156,6 +157,7 @@
     <ClInclude Include="src\global.h" />
     <ClInclude Include="src\map.h" />
     <ClInclude Include="src\procgen.h" />
+    <ClInclude Include="src\ship.h" />
     <ClInclude Include="src\types.h" />
     <ClInclude Include="src\util\direction.h" />
     <ClInclude Include="src\util\linear_map.h" />

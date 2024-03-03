@@ -2,6 +2,6 @@
 
 #include "util/string.h"
 
-struct Map;
+struct Ship;
 
-void generate(Map& map);
+Ship* generate(const sstring& name, const char* type);

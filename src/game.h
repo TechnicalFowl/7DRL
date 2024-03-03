@@ -9,6 +9,7 @@
 #include "vterm.h"
 
 struct Map;
+struct Ship;
 
 enum class GameState
 {
@@ -90,6 +91,7 @@ struct Game
     TextBuffer* term = nullptr;
 
     Map* current_level = nullptr;
+    Ship* player_ship = nullptr;
 
     GameState state = GameState::Ingame;
 

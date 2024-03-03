@@ -5,6 +5,7 @@
 #include "actor.h"
 #include "map.h"
 #include "procgen.h"
+#include "ship.h"
 #include "vterm.h"
 #include "window.h"
 
@@ -136,14 +137,8 @@ void initGame(int w, int h)
         reg.item_type_info[int(ItemType::PDCRounds)] = ItemTypeInfo(ItemType::PDCRounds, "PDC Rounds", '"', 0xFFFFFFFF);
     }
 
-    g_game.current_level = new Map("player_ship");
-    Map& map = *g_game.current_level;
-
-    generate(map);
-
-    Player* player = new Player(vec2i(0, 2));
-    map.player = player;
-    map.spawn(player);
+    g_game.player_ship = generate("player", "player_ship");
+    g_game.current_level = g_game.player_ship->map;
 }
 
 vec2i game_mouse_pos()
@@ -186,6 +181,14 @@ bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color)
 
 void updateGame()
 {
+    if (input_key_pressed(GLFW_KEY_F9))
+    {
+        delete g_game.player_ship;
+        delete g_game.current_level;
+        g_game.player_ship = generate("player", "player_ship");
+        g_game.current_level = g_game.player_ship->map;
+    }
+
     Map& map = *g_game.current_level;
     vec2i mouse_pos = game_mouse_pos();
 
@@ -284,10 +287,6 @@ void updateGame()
             }
         }
 #endif
-        if (input_key_pressed(GLFW_KEY_F9))
-        {
-            generate(map);
-        }
         // @TODO: ? opens help modal
 
         if (g_game.animations.empty() && do_turn)

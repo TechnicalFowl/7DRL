@@ -10,6 +10,7 @@
 #include "actor.h"
 #include "game.h"
 #include "map.h"
+#include "ship.h"
 
 #if 0
 typedef void (*room_builder)(Map& map, pcg32& rng, vec2i pos, vec2i size);
@@ -502,17 +503,6 @@ struct ShipGenerator
         bool used() { return placed_index != -1; }
     };
 
-    enum class RoomType
-    {
-        Engine,
-        Reactor,
-        PilotsDeck,
-        OperationsDeck,
-        StorageRoom,
-        Coridor,
-        Airlock,
-    };
-
     struct PlacedRoom
     {
         vec2i min, max;
@@ -646,10 +636,10 @@ struct ShipGenerator
     {
         std::vector<Room*> candidates = find_candidates(sz);
         if (candidates.empty()) return nullptr;
-        return candidates[scalar::floori(candidates.size() * rng.nextFloat())];
+        return candidates[(size_t) scalar::floori(candidates.size() * rng.nextFloat())];
     }
 
-    bool generate(Map& map, ShipParameters& params)
+    bool generate(Ship* ship, Map& map, ShipParameters& params)
     {
         pcg32 rng;
 
@@ -956,6 +946,8 @@ struct ShipGenerator
 
         for (PlacedRoom& r : placed_rooms)
         {
+            ShipRoom& sr = ship->rooms.emplace_back(r.min, r.max, r.type);
+
             linear_map<vec2i, bool> connected;
             for (int x = r.min.x + 1 + size / 2; x < r.max.x; x += size + 1)
             {
@@ -1038,11 +1030,12 @@ struct ShipGenerator
     }
 };
 
-void generate(Map& map)
+Ship* generate(const sstring& name, const char* type)
 {
-    if (map.name == "player_ship")
+    if (strings::equals(type, "player_ship"))
     {
-        map.clear();
+        Map* map = new Map(name);
+        Ship* ship = new Ship(map);
 
         ShipGenerator shape("ship_0.png", 3);
         ShipParameters params;
@@ -1052,94 +1045,19 @@ void generate(Map& map)
         bool success = false;
         for (int a = 0; a < 10; ++a)
         {
-            if (shape.generate(map, params))
+            if (shape.generate(ship, *map, params))
             {
                 success = true;
                 break;
             }
         }
         debug_assertf(success, "Failed to generate ship layout within 10 attempts");
-#if 0
-        // Engineering
-        fillRoom(map, vec2i(-4, -4), vec2i(4, 4), Terrain::ShipFloor, Terrain::ShipWall);
-        placeItem(map, vec2i(-3, 3), ItemType::WeldingTorch);
-        placeReactor(map, vec2i(0, -2));
-        // Left Engine Storage
-        fillRoom(map, vec2i(-12, -4), vec2i(-4, 0), Terrain::ShipFloor, Terrain::ShipWall);
-        placeItem(map, vec2i(-5, -2), ItemType::RepairParts);
-        placeItem(map, vec2i(-5, -3), ItemType::RepairParts);
-        // Left Engine Coridor
-        fillRoom(map, vec2i(-16, 0), vec2i(-4, 4), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(-4, 2));
-        setDoor(map, vec2i(-6, 0));
-        setDoor(map, vec2i(-10, 0));
-        fillDecorate(map, vec2i(-10, 5), vec2i(-5, 5), HalfBottom, HalfBottom, primary_ship_color, secondary_ship_color, 0);
-        decorate(map, vec2i(-11, 5), FullChar, RightDiagTopInverse, primary_ship_color, secondary_ship_color, 0);
-        decorate(map, vec2i(-11, 6), LeftDiagBottom, 0, primary_ship_color, secondary_ship_color, 0);
-        // Left Engine Forward Compartment
-        fillRoom(map, vec2i(-16, 4), vec2i(-12, 8), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(-14, 4));
-        // Left Engine
-        fillRoom(map, vec2i(-20, -8), vec2i(-12, 0), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(-14, 0));
-        placeEngine(map, vec2i(-16, -8));
-        // Right Engine Storage
-        fillRoom(map, vec2i(4, -4), vec2i(12, 0), Terrain::ShipFloor, Terrain::ShipWall);
-        // Right Engine Coridor
-        fillRoom(map, vec2i(4, 0), vec2i(16, 4), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(4, 2));
-        setDoor(map, vec2i(6, 0));
-        setDoor(map, vec2i(10, 0));
-        fillDecorate(map, vec2i(5, 5), vec2i(10, 5), HalfBottom, HalfBottom, primary_ship_color, secondary_ship_color, 0);
-        decorate(map, vec2i(11, 5), LeftDiagTopInverse, FullChar, primary_ship_color, secondary_ship_color, 0);
-        decorate(map, vec2i(11, 6), 0, RightDiagBottom, primary_ship_color, secondary_ship_color, 0);
-        // Right Engine Forward Compartment
-        fillRoom(map, vec2i(12, 4), vec2i(16, 8), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(14, 4));
-        // Right Engine
-        fillRoom(map, vec2i(12, -8), vec2i(20, 0), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(14, 0));
-        placeEngine(map, vec2i(16, -8));
-        // Cargo Bay
-        fillRoom(map, vec2i(-4, 4), vec2i(4, 12), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(-2, 4));
-        setDoor(map, vec2i(2, 4));
-        // Multiuse room
-        fillRoom(map, vec2i(-4, 12), vec2i(4, 20), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(-2, 12));
-        setDoor(map, vec2i(2, 12));
-        // Left Airlock
-        fillRoom(map, vec2i(-8, 12), vec2i(-4, 20), Terrain::ShipFloor, Terrain::ShipWall);
-        setAirlock(map, vec2i(-4, 14), Left);
-        setAirlock(map, vec2i(-8, 14), Right);
-        // Right Airlock
-        fillRoom(map, vec2i(4, 12), vec2i(8, 20), Terrain::ShipFloor, Terrain::ShipWall);
-        setAirlock(map, vec2i(4, 14), Right);
-        setAirlock(map, vec2i(8, 14), Left);
-        // Galley / crew storage
-        fillRoom(map, vec2i(-4, 20), vec2i(4, 32), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(-2, 20));
-        setDoor(map, vec2i(2, 20));
-        // Left Weapons Room
-        fillRoom(map, vec2i(-12, 24), vec2i(-4, 32), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(-4, 26));
-        // Right Weapons Room
-        fillRoom(map, vec2i(4, 24), vec2i(12, 32), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(4, 26));
-        // Operations deck
-        fillRoom(map, vec2i(-8, 32), vec2i(0, 40), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(-2, 32));
-        // Pilots deck
-        fillRoom(map, vec2i(0, 32), vec2i(8, 40), Terrain::ShipFloor, Terrain::ShipWall);
-        setDoor(map, vec2i(2, 32));
-        placePilotSeat(map, vec2i(4, 36));
-#endif
 
-        if (map.player)
-            map.spawn((Actor*) map.player);
+        Player* player = new Player(vec2i(0, 2));
+        map->player = player;
+        map->spawn(player);
+        return ship;
     }
-    else
-    {
-        debug_assert(false);
-    }
+    debug_assertf(false, "Unknown ship layout type");
+    return nullptr;
 }
