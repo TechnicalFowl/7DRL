@@ -6,6 +6,7 @@
 #include "map.h"
 #include "procgen.h"
 #include "ship.h"
+#include "universe.h"
 #include "vterm.h"
 #include "window.h"
 
@@ -136,9 +137,13 @@ void initGame(int w, int h)
         reg.item_type_info[int(ItemType::RailgunRounds)] = ItemTypeInfo(ItemType::RailgunRounds, "Railgun Rounds", ':', 0xFFFFFFFF);
         reg.item_type_info[int(ItemType::PDCRounds)] = ItemTypeInfo(ItemType::PDCRounds, "PDC Rounds", '"', 0xFFFFFFFF);
     }
-
+    g_game.universe = new Universe;
     g_game.player_ship = generate("player", "player_ship");
     g_game.current_level = g_game.player_ship->map;
+   
+    g_game.uplayer = new UPlayer(vec2i());
+    g_game.uplayer->ship = g_game.player_ship;
+    g_game.universe->spawn(g_game.uplayer);
 }
 
 vec2i game_mouse_pos()
@@ -187,6 +192,7 @@ void updateGame()
         delete g_game.current_level;
         g_game.player_ship = generate("player", "player_ship");
         g_game.current_level = g_game.player_ship->map;
+        g_game.uplayer->ship = g_game.player_ship;
     }
 
     Map& map = *g_game.current_level;

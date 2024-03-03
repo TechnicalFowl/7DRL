@@ -10,6 +10,8 @@
 
 struct Map;
 struct Ship;
+struct UPlayer;
+struct Universe;
 
 enum class GameState
 {
@@ -92,6 +94,8 @@ struct Game
 
     Map* current_level = nullptr;
     Ship* player_ship = nullptr;
+    Universe* universe = nullptr;
+    UPlayer* uplayer = nullptr;
 
     GameState state = GameState::Ingame;
 
