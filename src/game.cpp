@@ -425,6 +425,68 @@ void updateGame()
         g_game.term->fillText(vec2i(100, 9), vec2i(100, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.term->fillText(vec2i(g_game.w * 2 - 1, 9), vec2i(g_game.w * 2 - 1, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
 
+        std::vector<MainEngine*> engines;
+        Reactor* reactor = nullptr;
+        PilotSeat* pilot = nullptr;
+        std::vector<TorpedoLauncher*> torpedoes;
+        std::vector<PDC*> pdcs;
+        std::vector<Railgun*> railguns;
+        for (Actor* a : map.actors)
+        {
+            switch (a->type)
+            {
+            case ActorType::PilotSeat: pilot = (PilotSeat*)a; break;
+            case ActorType::Reactor: reactor = (Reactor*)a; break;
+            case ActorType::Engine: engines.push_back((MainEngine*)a); break;
+            case ActorType::TorpedoLauncher: torpedoes.push_back((TorpedoLauncher*)a); break;
+            case ActorType::PDC: pdcs.push_back((PDC*)a); break;
+            case ActorType::Railgun: railguns.push_back((Railgun*)a); break;
+            default: break;
+            }
+        }
+
+        if (pilot)
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Pilot: %s", pilot->active ? "active" : "inactive");
+            g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
+        if (reactor)
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Reactor: %.0f%%", reactor->power * 100);
+            g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
+        for (MainEngine* e : engines)
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Engine [%d %d]: %.0f%%", e->pos.x, e->pos.y, e->thrust * 100);
+            g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
+        for (TorpedoLauncher* e : torpedoes)
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Torpedo: [%s] %d", e->open ? "Open" : "Closed", e->torpedoes);
+            g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
+        for (PDC* e : pdcs)
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Point Defence: [%s] %d", e->active ? "Active" : "Disabled", e->rounds);
+            g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
+        for (Railgun* e : railguns)
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Railgun: [%s] %d", e->open ? "Open": "Closed", e->rounds);
+            g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
     }
     {
         sstring line_0;

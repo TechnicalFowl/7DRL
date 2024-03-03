@@ -214,31 +214,45 @@ struct Airlock : Actor
 
 struct PilotSeat : Actor
 {
-    PilotSeat(vec2i pos);
+    bool active = false;
 
+    PilotSeat(vec2i pos);
 };
 
 struct MainEngine : Actor
 {
+    float thrust = 0.0f;
+
     MainEngine(vec2i pos);
 };
 
 struct Reactor : Actor
 {
+    float power = 0.0f;
+
     Reactor(vec2i pos);
 };
 
 struct TorpedoLauncher : Actor
 {
+    bool open = false;
+    int torpedoes = 0;
+
     TorpedoLauncher(vec2i pos);
 };
 
 struct PDC : Actor
 {
+    bool active = false;
+    int rounds = 0;
+
     PDC(vec2i pos);
 };
 
 struct Railgun : Actor
 {
+    bool open = false;
+    int rounds = 0;
+
     Railgun(vec2i pos);
 };
