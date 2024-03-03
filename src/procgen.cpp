@@ -432,24 +432,18 @@ void placeEngine(Map& map, vec2i p)
 
 void placeSmallEngine(Map& map, vec2i p)
 {
-    decorate(map, vec2i(p.x - 1, p.y + 3), '/', Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
-    decorate(map, vec2i(p.x + 1, p.y + 3), Border_Horizontal, '\\', 0xFFFFFFFF, 0xFFFFFFFF, 0);
-    decorate(map, vec2i(p.x - 1, p.y + 2), Border_Vertical, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
-    decorate(map, vec2i(p.x, p.y + 2), Border_TopLeft, Border_TopRight, 0xFFFF5050, 0xFFFF4040, 0xFFFFFFFF);
-    decorate(map, vec2i(p.x + 1, p.y + 2), 0, Border_Vertical, 0xFFFFFFFF, 0xFFFFFFFF, 0);
-    decorate(map, vec2i(p.x - 1, p.y + 1), Border_Vertical, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
-    decorate(map, vec2i(p.x, p.y + 1), Border_TeeRight, Border_TeeLeft, 0xFFFF4040, 0xFFFF5050, 0xFFFFFFFF);
-    decorate(map, vec2i(p.x + 1, p.y + 1), 0, Border_Vertical, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y + 1), '/', Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x + 1, p.y + 1), Border_Horizontal, '\\', 0xFFFFFFFF, 0xFFFFFFFF, 0);
     decorate(map, vec2i(p.x - 1, p.y), 0, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
-    decorate(map, vec2i(p.x, p.y), Border_TeeRight, Border_TeeLeft, 0xFFFF5050, 0xFFFF4040, 0xFFFFFFFF);
+    decorate(map, vec2i(p.x, p.y), Border_TopLeft, Border_TopRight, 0xFFFF5050, 0xFFFF4040, 0xFFFFFFFF);
     decorate(map, vec2i(p.x + 1, p.y), 0, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
-    decorate(map, vec2i(p.x - 1, p.y - 1), '/', 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y - 1), Border_Vertical, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
     decorate(map, vec2i(p.x, p.y - 1), Border_TeeRight, Border_TeeLeft, 0xFFFF5050, 0xFFFF4040, 0);
-    decorate(map, vec2i(p.x + 1, p.y - 1), 0, '\\', 0xFFFFFFFF, 0xFFFFFFFF, 0);
-    decorate(map, vec2i(p.x - 2, p.y - 2), 0, '/', 0xFFFFFFFF, 0xFFFFFFFF, 0);
-    decorate(map, vec2i(p.x + 2, p.y - 2), '\\', 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x + 1, p.y - 1), 0, Border_Vertical, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y - 2), '/', 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x + 1, p.y - 2), 0, '\\', 0xFFFFFFFF, 0xFFFFFFFF, 0);
 
-    MainEngine* eng = new MainEngine(vec2i(p.x, p.y + 3));
+    MainEngine* eng = new MainEngine(vec2i(p.x, p.y + 1));
     map.spawn(eng);
 }
 
@@ -923,7 +917,10 @@ struct ShipGenerator
             case RoomType::Engine:
             {
                 fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
-                placeEngine(map, vec2i((r.min.x + r.max.x) / 2, r.min.y));
+                if (r.max.x - r.min.x > size * 2)
+                    placeEngine(map, vec2i((r.min.x + r.max.x) / 2, r.min.y));
+                else
+                    placeSmallEngine(map, vec2i((r.min.x + r.max.x) / 2, r.min.y));
             } break;
             case RoomType::Reactor:
             {
