@@ -339,20 +339,26 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
             {
                 switch (it.value.actor->type)
                 {
+                case ActorType::PilotSeat:
+                case ActorType::Reactor:
+                case ActorType::Engine:
                 case ActorType::TorpedoLauncher:
+                case ActorType::PDC:
+                case ActorType::Railgun:
                 {
-                    TorpedoLauncher* launcher = (TorpedoLauncher*)it.value.actor;
-                    switch (launcher->status)
+                    ShipObject* obj = (ShipObject*) it.value.actor;
+                    ActorInfo& ai = g_game.reg.actor_info[int(obj->type)];
+                    switch (obj->status)
                     {
                     case ShipObject::Status::Active:
                     {
-                        launcher->status = ShipObject::Status::Disabled;
-                        if (actor == map.player) g_game.log.log("You close the laucher tube.");
+                        obj->status = ShipObject::Status::Disabled;
+                        if (actor == map.player) g_game.log.logf("You deactivate the %s.", ai.name.c_str());
                     } break;
                     case ShipObject::Status::Disabled:
                     {
-                        launcher->status = ShipObject::Status::Active;
-                        if (actor == map.player) g_game.log.log("You open the laucher tube.");
+                        obj->status = ShipObject::Status::Active;
+                        if (actor == map.player) g_game.log.logf("You activate the %s.", ai.name.c_str());
                     } break;
                     case ShipObject::Status::Damaged:
                     {
@@ -362,18 +368,18 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                             {
                                 delete map.player->holding;
                                 map.player->holding = nullptr;
-                                launcher->status = ShipObject::Status::Disabled;
-                                g_game.log.log("You repair the laucher tube.");
+                                obj->status = ShipObject::Status::Disabled;
+                                g_game.log.logf("You repair the %s.", ai.name.c_str());
                             }
                             else
                             {
-                                g_game.log.log("The laucher tube is damaged.");
+                                g_game.log.logf("The %s is damaged.", ai.name.c_str());
                             }
                         }
                     } break;
                     case ShipObject::Status::Unpowered:
                     {
-                        if (actor == map.player) g_game.log.log("The laucher tube is unpowered.");
+                        if (actor == map.player) g_game.log.logf("The %s is unpowered.", ai.name.c_str());
                     } break;
                     }
                     return true;
