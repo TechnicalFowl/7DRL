@@ -5,7 +5,6 @@
 
 #include "vterm.h"
 
-constexpr int UniverseRegionSize = 32;
 struct Ship;
 
 enum class UActorType
@@ -21,6 +20,7 @@ struct UActor
     UActor(UActorType type, vec2i p) : type(type), pos(p) {}
 
     virtual void update() {};
+    virtual void render(TextBuffer& buffer, vec2i origin) = 0;
 };
 
 struct UShip : UActor
@@ -37,16 +37,19 @@ struct UPlayer : UShip
     UPlayer(vec2i p) : UShip(UActorType::Player, p) {}
 
     void update() override;
+
+    void render(TextBuffer& buffer, vec2i origin) override;
 };
 
 struct Universe
 {
     linear_map<vec2i, UActor*> actors;
+    linear_map<vec2i, bool> regions_generated;
 
     void move(vec2i p, UActor* a);
     void spawn(UActor* a);
 
-    void update();
+    void update(vec2i origin);
 
     void render(TextBuffer& buffer, vec2i origin);
 };
