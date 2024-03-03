@@ -73,3 +73,8 @@ void Universe::update()
         move(a->pos, a);
     }
 }
+
+void Universe::render(TextBuffer& buffer, vec2i origin)
+{
+
+}

@@ -90,12 +90,16 @@ struct Game
     InfoLog log;
     Registry reg;
     pcg32 rng;
-    TextBuffer* term = nullptr;
+    TextBuffer* mapterm = nullptr;
+    TextBuffer* uiterm = nullptr;
 
     Map* current_level = nullptr;
     Ship* player_ship = nullptr;
     Universe* universe = nullptr;
     UPlayer* uplayer = nullptr;
+
+    bool show_universe = false;
+    float transition = 0.0f;
 
     GameState state = GameState::Ingame;
 

@@ -85,6 +85,8 @@ struct Window
     Inputs inputs;
 
     u64 frame_count = 0;
+
+    float map_zoom = 1.0f;
 };
 extern Window g_window;
 
@@ -117,7 +119,7 @@ enum class InputTextResult
 
 InputTextResult input_handle_text(sstring& text, int& cursor);
 
-void render_buffer(TextBuffer* term);
+void render_buffer(TextBuffer* term, float zoom);
 
 Texture* texture_load(const char* name, vec2i grid_size=vec2i(0,0));
 

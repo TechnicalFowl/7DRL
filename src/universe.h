@@ -3,6 +3,8 @@
 #include "util/linear_map.h"
 #include "util/vector_math.h"
 
+#include "vterm.h"
+
 constexpr int UniverseRegionSize = 32;
 struct Ship;
 
@@ -45,4 +47,6 @@ struct Universe
     void spawn(UActor* a);
 
     void update();
+
+    void render(TextBuffer& buffer, vec2i origin);
 };

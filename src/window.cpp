@@ -465,14 +465,20 @@ void vb_draw(VertexBuffer* vb)
     }
 }
 
-void render_buffer(TextBuffer* term)
+void render_buffer(TextBuffer* term, float zoom)
 {
     vb_clear(g_window.vb);
         
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
-    mat4f camera_transform = ortho(0.0f, (float) term->w, 0.0f, (float) term->h);
+    float tw = (float) term->w;
+    float th = (float) term->h;
+    float zw = tw / zoom;
+    float zh = th / zoom;
+    float hwd = (tw - zw) / 2;
+    float hhd = (th - zh) / 2;
+    mat4f camera_transform = ortho(hwd+(1-zoom)*25, tw - hwd+(1-zoom)*25, hhd, th - hhd);
     mat4f i;
 
     glUseProgram(g_window.shader);

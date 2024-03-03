@@ -20,7 +20,8 @@ int main(int argc, const char** argv)
     {
         updateGame();
 
-        render_buffer(g_game.term);
+        render_buffer(g_game.mapterm, g_window.map_zoom);
+        render_buffer(g_game.uiterm, 1.0f);
         frame_end();
     }
 
