@@ -34,6 +34,7 @@ struct Ship
     Ship(Map* map) : map(map) {}
 
     ShipRoom* getRoom(vec2i p);
+    ShipRoom* getRoom(RoomType t);
 };
 
 std::vector<Actor*> findDoors(Ship* ship, vec2i p);

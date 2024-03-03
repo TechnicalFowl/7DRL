@@ -13,6 +13,14 @@ ShipRoom* Ship::getRoom(vec2i p)
     return nullptr;
 }
 
+ShipRoom* Ship::getRoom(RoomType t)
+{
+    for (auto& r : rooms)
+        if (r.type == t)
+            return &r;
+    return nullptr;
+}
+
 std::vector<Actor*> findDoors(Ship* ship, vec2i p)
 {
     std::vector<Actor*> doors;

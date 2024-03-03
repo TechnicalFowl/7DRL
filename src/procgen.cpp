@@ -1053,7 +1053,9 @@ Ship* generate(const sstring& name, const char* type)
         }
         debug_assertf(success, "Failed to generate ship layout within 10 attempts");
 
-        Player* player = new Player(vec2i(0, 2));
+        ShipRoom* pilot = ship->getRoom(RoomType::PilotsDeck);
+
+        Player* player = new Player(pilot->min + vec2i(2, 2));
         map->player = player;
         map->spawn(player);
         return ship;
