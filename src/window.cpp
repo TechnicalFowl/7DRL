@@ -476,9 +476,10 @@ void render_buffer(TextBuffer* term, float zoom)
     float th = (float) term->h;
     float zw = tw / zoom;
     float zh = th / zoom;
+    float pct = 25.0f / 80.0f;
     float hwd = (tw - zw) / 2;
     float hhd = (th - zh) / 2;
-    mat4f camera_transform = ortho(hwd+(1-zoom)*25, tw - hwd+(1-zoom)*25, hhd, th - hhd);
+    mat4f camera_transform = ortho(hwd, tw - hwd, hhd, th - hhd);
     mat4f i;
 
     glUseProgram(g_window.shader);

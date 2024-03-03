@@ -145,6 +145,7 @@ void initGame(int w, int h)
     g_game.uplayer = new UPlayer(vec2i());
     g_game.uplayer->ship = g_game.player_ship;
     g_game.universe->spawn(g_game.uplayer);
+    g_game.universe->update(g_game.uplayer->pos);
 }
 
 vec2i game_mouse_pos()
@@ -213,7 +214,7 @@ void updateGame()
             g_game.console_input_displayed = false;
         }
     }
-    else if (!g_game.modal)
+    else if (!g_game.modal && !g_game.show_universe && g_game.transition == 0)
     {
         bool do_turn = map.player->next_action.action != Action::Wait;
         if (input_key_pressed(GLFW_KEY_UP))
@@ -346,6 +347,31 @@ void updateGame()
                 }
             }
             map.turn++;
+            if (map.turn > g_game.last_universe_update + 10)
+            {
+                g_game.last_universe_update = map.turn;
+                g_game.universe->update(g_game.uplayer->pos);
+            }
+        }
+    }
+    else if (!g_game.modal && g_game.show_universe && g_game.transition == 0)
+    {
+        bool do_turn = false;
+
+        if (g_window.inputs.scroll.y != 0)
+        {
+            static u64 last_scroll = 0;
+            if (g_window.frame_count - last_scroll > 10)
+            {
+                do_turn = true;
+                last_scroll = g_window.frame_count;
+            }
+        }
+
+        if (g_game.uanimations.empty() && do_turn)
+        {
+            g_game.last_universe_update = map.turn;
+            g_game.universe->update(g_game.uplayer->pos);
         }
     }
 
@@ -539,13 +565,20 @@ void updateGame()
             g_game.universe->render(*g_game.mapterm, g_game.uplayer->pos);
         else
             map.render(*g_game.mapterm, map.player->pos);
-        g_game.transition -= 0.04f;
+        g_game.transition -= 0.02f;
         if (g_game.transition <= 0)
         {
             g_game.show_universe = !g_game.show_universe;
             g_game.transition = 0;
+            g_window.map_zoom = 1.0f;
         }
-        g_window.map_zoom = past_half ? 1 - g_game.transition * 2 : (g_game.transition - 0.5f) * 2;
+        else
+        {
+            if (g_game.show_universe)
+                g_window.map_zoom = past_half ? 1 - g_game.transition * 2 : 1 / ((g_game.transition - 0.5f) * 2);
+            else
+                g_window.map_zoom = past_half ? 1 / (1 - g_game.transition * 2) : (g_game.transition - 0.5f) * 2;
+        }
         if (g_window.map_zoom < 1e-6) g_window.map_zoom = 0.001f;
     }
     else if (g_game.show_universe)

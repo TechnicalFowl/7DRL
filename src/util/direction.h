@@ -33,5 +33,6 @@ vec2i rotateCW(vec2i p, Direction dir);
 vec2i rotateCCW(vec2i p, Direction dir);
 
 char getDirectionCharacter(Direction dir);
+Direction getDirection(float rad);
 Direction getDirection(vec2i dir);
 Direction getDirection(vec2i from, vec2i to);

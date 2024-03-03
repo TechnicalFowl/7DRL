@@ -143,6 +143,12 @@ char getDirectionCharacter(Direction dir)
     }
 }
 
+Direction getDirection(float rad)
+{
+    static Direction dirs[] = { Right, UpRight, Up, UpLeft, Left, DownLeft, Down, DownRight };
+    return dirs[int((rad + scalar::PIf / 8) / (scalar::PIf / 4)) % 8];
+}
+
 Direction getDirection(vec2i dir)
 {
     if (dir.x == 0)

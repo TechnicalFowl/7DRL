@@ -100,6 +100,7 @@ struct Game
 
     bool show_universe = false;
     float transition = 0.0f;
+    int last_universe_update = -1000;
 
     GameState state = GameState::Ingame;
 
@@ -110,6 +111,7 @@ struct Game
     Modal* modal = nullptr;
 
     std::vector<Animation*> animations;
+    std::vector<Animation*> uanimations;
 };
 extern Game g_game;
 
