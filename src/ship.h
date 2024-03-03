@@ -16,6 +16,9 @@ enum class RoomType
     StorageRoom,
     Coridor,
     Airlock,
+    TorpedoLauncher,
+    PDC,
+    Railgun,
 };
 
 struct ShipRoom

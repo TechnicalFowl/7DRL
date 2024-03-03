@@ -641,6 +641,21 @@ Reactor::Reactor(vec2i p)
 {
 }
 
+TorpedoLauncher::TorpedoLauncher(vec2i p)
+    : Actor(p, ActorType::TorpedoLauncher)
+{
+}
+
+PDC::PDC(vec2i p)
+    : Actor(p, ActorType::PDC)
+{
+}
+
+Railgun::Railgun(vec2i p)
+    : Actor(p, ActorType::Railgun)
+{
+}
+
 #if 0
 
 Monster::Monster(vec2i pos, ActorType ty)

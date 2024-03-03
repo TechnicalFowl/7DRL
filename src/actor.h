@@ -227,3 +227,18 @@ struct Reactor : Actor
 {
     Reactor(vec2i pos);
 };
+
+struct TorpedoLauncher : Actor
+{
+    TorpedoLauncher(vec2i pos);
+};
+
+struct PDC : Actor
+{
+    PDC(vec2i pos);
+};
+
+struct Railgun : Actor
+{
+    Railgun(vec2i pos);
+};

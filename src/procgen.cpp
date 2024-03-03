@@ -470,6 +470,111 @@ void placeReactor(Map& map, vec2i p)
     map.spawn(eng);
 }
 
+void placeTorpedoLauncher(Map& map, vec2i p, Direction dir)
+{
+    if (dir == Up || dir == Down)
+    {
+        decorate(map, p + direction(dir), Border_Vertical, 0xFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        decorate(map, p + direction(dir) * 2, FullChar, FullChar, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        if (dir == Up)
+        {
+            decorate(map, vec2i(p.x - 1, p.y + 3), 0, RightDiagBottom, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+            decorate(map, vec2i(p.x + 1, p.y + 3), LeftDiagBottom, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        }
+        else
+        {
+            decorate(map, vec2i(p.x - 1, p.y - 3), 0, RightDiagTop, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+            decorate(map, vec2i(p.x + 1, p.y - 3), LeftDiagTop, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        }
+    }
+    else
+    {
+        decorate(map, p + direction(dir), Border_Horizontal, Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        decorate(map, p + direction(dir) * 2, FullChar, FullChar, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        if (dir == Right)
+        {
+            decorate(map, vec2i(p.x + 3, p.y - 1), LeftDiagTop, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+            decorate(map, vec2i(p.x + 3, p.y + 1), LeftDiagBottom, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        }
+        else
+        {
+            decorate(map, vec2i(p.x - 3, p.y - 1), 0, RightDiagTop, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+            decorate(map, vec2i(p.x - 3, p.y + 1), 0, RightDiagBottom, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        }
+    }
+
+    TorpedoLauncher* w = new TorpedoLauncher(p);
+    map.spawn(w);
+}
+
+void placePDC(Map& map, vec2i p, Direction dir)
+{
+    switch (dir)
+    {
+    case Up:
+    {
+        decorate(map, vec2i(p.x - 1, p.y + 3), 0, RightDiagBottom, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        decorate(map, vec2i(p.x + 1, p.y + 3), LeftDiagBottom, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    } break;
+    case Down:
+    {
+        decorate(map, vec2i(p.x - 1, p.y - 3), 0, RightDiagTop, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        decorate(map, vec2i(p.x + 1, p.y - 3), LeftDiagTop, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    } break;
+    case Right:
+    {
+        decorate(map, vec2i(p.x + 3, p.y - 1), LeftDiagTop, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        decorate(map, vec2i(p.x + 3, p.y + 1), LeftDiagBottom, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    } break;
+    case Left:
+    {
+        decorate(map, vec2i(p.x - 3, p.y - 1), 0, RightDiagTop, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        decorate(map, vec2i(p.x - 3, p.y + 1), 0, RightDiagBottom, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    } break;
+    }
+    PDC* w = new PDC(p + direction(dir));
+    map.spawn(w);
+}
+
+void placeRailgun(Map& map, vec2i p, Direction dir)
+{
+    if (dir == Up || dir == Down)
+    {
+        decorate(map, p + direction(dir), Border_Vertical, 0xFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        for (int i = 0; i < 6; ++i)
+            decorate(map, p + direction(dir) * (i + 1), Border_Vertical, 0xFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        if (dir == Up)
+        {
+            decorate(map, vec2i(p.x - 1, p.y + 5), 0, RightDiagBottom, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+            decorate(map, vec2i(p.x + 1, p.y + 5), LeftDiagBottom, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        }
+        else
+        {
+            decorate(map, vec2i(p.x - 1, p.y - 5), 0, RightDiagTop, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+            decorate(map, vec2i(p.x + 1, p.y - 5), LeftDiagTop, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        }
+    }
+    else
+    {
+        decorate(map, p + direction(dir), Border_Horizontal, Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        for (int i = 0; i < 6; ++i)
+            decorate(map, p + direction(dir) * (i + 1), Border_Horizontal, Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        if (dir == Right)
+        {
+            decorate(map, vec2i(p.x + 5, p.y - 1), LeftDiagTop, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+            decorate(map, vec2i(p.x + 5, p.y + 1), LeftDiagBottom, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        }
+        else
+        {
+            decorate(map, vec2i(p.x - 5, p.y - 1), 0, RightDiagTop, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+            decorate(map, vec2i(p.x - 5, p.y + 1), 0, RightDiagBottom, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+        }
+    }
+
+    Railgun* w = new Railgun(p);
+    map.spawn(w);
+}
+
 struct ShipParameters
 {
     u32 primary_color = 0xFFFFFFFF;
@@ -479,6 +584,10 @@ struct ShipParameters
     float engine_merge_chance = 0.7f;
 
     float extra_door_chance = 0.2f;
+
+    int max_torpedos = 4;
+    int max_pdcs = 4;
+    int max_railguns = 2;
 };
 
 struct ShipGenerator
@@ -507,6 +616,7 @@ struct ShipGenerator
     {
         vec2i min, max;
         RoomType type;
+        Direction dir = Up;
 
         PlacedRoom(vec2i min, vec2i max, RoomType type)
             : min(min), max(max), type(type)
@@ -554,11 +664,15 @@ struct ShipGenerator
         return getRoom(next.x, next.y);
     }
 
-    Room* getRoom(Room* from, int dx, int dy)
+    Room* getRoom(Room* from, vec2i d)
     {
-        vec2i d(dx, dy);
         vec2i next = from->min + d * (size + 1) + vec2i(size / 2, size / 2);
         return getRoom(next.x, next.y);
+    }
+
+    Room* getRoom(Room* from, int dx, int dy)
+    {
+        return getRoom(from, vec2i(dx, dy));
     }
 
     bool check(float x, float y)
@@ -849,7 +963,86 @@ struct ShipGenerator
             consume(operations_deck, vec2i(2, 2), (int) placed_rooms.size() - 1);
         }
 
+        int rem_torpedoes = params.max_torpedos > 1 ? rng.nextInt(1, params.max_torpedos) : params.max_torpedos;
+        int rem_pdcs = params.max_pdcs > 1 ? rng.nextInt(1, params.max_pdcs) : params.max_pdcs;
+        int rem_railguns = params.max_railguns > 1 ? rng.nextInt(1, params.max_railguns) : params.max_railguns;
 
+        int total_weapons = rem_torpedoes + rem_pdcs + rem_railguns;
+
+        std::vector<Room*> candidates;
+        for (Room& r : rooms)
+            if (!r.used())
+                candidates.push_back(&r);
+
+        while (total_weapons > 0 && !candidates.empty())
+        {
+            size_t ridx = (size_t) scalar::floori(rng.nextFloat() * candidates.size());
+            Room& r = *candidates[ridx];
+            for (int i = 0; i < 4; ++i)
+            {
+                if (!r.adj[i])
+                {
+                    Room* arc = getRoom(&r, cardinals[i] * 2);
+                    if (arc) continue;
+                    RoomType type;
+                    if (r.adj[(i + 2) % 4] && !r.adj[(i + 2) % 4]->used())
+                    {
+                        float roll = rng.nextFloat();
+                        if (roll < rem_torpedoes / float(total_weapons))
+                        {
+                            type = RoomType::TorpedoLauncher;
+                            rem_torpedoes--;
+                            total_weapons--;
+                        }
+                        else if (roll < (rem_torpedoes + rem_pdcs) / float(total_weapons))
+                        {
+                            type = RoomType::PDC;
+                            rem_pdcs--;
+                            total_weapons--;
+                        }
+                        else
+                        {
+                            type = RoomType::Railgun;
+                            rem_railguns--;
+                            total_weapons--;
+                        }
+                    }
+                    else
+                    {
+                        if (rng.nextFloat() < rem_torpedoes / float(rem_torpedoes + rem_pdcs))
+                        {
+                            type = RoomType::TorpedoLauncher;
+                            rem_torpedoes--;
+                            total_weapons--;
+                        }
+                        else
+                        {
+                            type = RoomType::PDC;
+                            rem_pdcs--;
+                            total_weapons--;
+                        }
+                    }
+                    if (type == RoomType::Railgun)
+                    {
+                        debug_assert(r.adj[(i + 2) % 4]);
+                        Room& o = *r.adj[(i + 2) % 4];
+                        placed_rooms.emplace_back(min(r.min, o.min), max(r.max, o.max), type);
+                        r.placed_index = (int)placed_rooms.size() - 1;
+                        o.placed_index = (int)placed_rooms.size() - 1;
+                        candidates.erase(candidates.begin() + ridx);
+                        candidates.erase(std::find(candidates.begin(), candidates.end(), &o));
+                    }
+                    else
+                    {
+                        placed_rooms.emplace_back(r.min, r.max, type);
+                        r.placed_index = (int) placed_rooms.size() - 1;
+                        candidates.erase(candidates.begin() + ridx);
+                    }
+                    placed_rooms.back().dir = cardinal_dirs[i];
+                    break;
+                }
+            }
+        }
 
         vec2i size_progression[]{vec2i(3,3), vec2i(3,2), vec2i(2,3), vec2i(2,2)};
         for (vec2i sz : size_progression)
@@ -959,6 +1152,21 @@ struct ShipGenerator
                     if (rng.nextFloat() < 0.8f) placeItem(map, r.min + vec2i(1, size), item);
                     if (rng.nextFloat() < 0.8f) placeItem(map, r.min + vec2i(size, size), item);
                 }
+            } break;
+            case RoomType::TorpedoLauncher:
+            {
+                fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
+                placeTorpedoLauncher(map, (r.min + r.max) / 2, r.dir);
+            } break;
+            case RoomType::PDC:
+            {
+                fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
+                placePDC(map, (r.min + r.max) / 2, r.dir);
+            } break;
+            case RoomType::Railgun:
+            {
+                fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
+                placeRailgun(map, (r.min + r.max) / 2, r.dir);
             } break;
             default:
             {
