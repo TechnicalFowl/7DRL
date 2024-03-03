@@ -482,9 +482,18 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                 {
                     if (it.value.actor)
                     {
-                        if (it.value.ground->type == ActorType::TorpedoLauncher)
+                        switch (it.value.actor->type)
+                        {
+                        case ActorType::PilotSeat:
+                        case ActorType::Reactor:
+                        case ActorType::Engine:
+                        case ActorType::TorpedoLauncher:
+                        case ActorType::PDC:
+                        case ActorType::Railgun:
                         {
                             move = dirs[i];
+                        } break;
+                        default: break;
                         }
                     }
                 } break;
@@ -538,24 +547,37 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
             }
             if (it.value.actor)
             {
-                switch (it.value.actor->type)
+                switch (item)
                 {
-                case ActorType::TorpedoLauncher:
+                case ItemType::RepairParts:
                 {
-                    TorpedoLauncher* launcher = (TorpedoLauncher*)it.value.actor;
-                    if (launcher->status == ShipObject::Status::Damaged)
+                    switch (it.value.actor->type)
                     {
-                        delete pl->holding;
-                        pl->holding = nullptr;
-                        launcher->status = ShipObject::Status::Disabled;
-                        g_game.log.log("You repair the laucher tube.");
-                    }
-                    else
+                    case ActorType::PilotSeat:
+                    case ActorType::Reactor:
+                    case ActorType::Engine:
+                    case ActorType::TorpedoLauncher:
+                    case ActorType::PDC:
+                    case ActorType::Railgun:
                     {
-                        g_game.log.log("That doesn't need repairing.");
+                        ShipObject* obj = (ShipObject*)it.value.actor;
+                        if (obj->status == ShipObject::Status::Damaged)
+                        {
+                            delete pl->holding;
+                            pl->holding = nullptr;
+                            obj->status = ShipObject::Status::Disabled;
+                            ActorInfo& ai = g_game.reg.actor_info[int(obj->type)];
+                            g_game.log.logf("You repair the %s.", ai.name.c_str());
+                        }
+                        else
+                        {
+                            g_game.log.log("That doesn't need repairing.");
+                        }
+                        return true;
                     }
-                    return true;
-                }
+                    default: break;
+                    }
+                } break;
                 default: break;
                 }
             }
