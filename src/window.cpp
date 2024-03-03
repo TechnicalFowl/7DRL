@@ -27,7 +27,20 @@ static void glfw_error_callback(int error, const char* description)
 
 void render_glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    g_window.inputs.keys[key] = action != GLFW_RELEASE;
+    switch (action)
+    {
+    case GLFW_PRESS:
+        g_window.inputs.keys[key] = true;
+        break;
+    case GLFW_REPEAT:
+        g_window.inputs.last_keys[key] = false;
+        g_window.inputs.keys[key] = true;
+        break;
+    case GLFW_RELEASE:
+        g_window.inputs.keys[key] = false;
+        break;
+    default: break;
+    }
 }
 
 void render_glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)

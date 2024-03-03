@@ -430,6 +430,29 @@ void placeEngine(Map& map, vec2i p)
     map.spawn(eng);
 }
 
+void placeSmallEngine(Map& map, vec2i p)
+{
+    decorate(map, vec2i(p.x - 1, p.y + 3), '/', Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x + 1, p.y + 3), Border_Horizontal, '\\', 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y + 2), Border_Vertical, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x, p.y + 2), Border_TopLeft, Border_TopRight, 0xFFFF5050, 0xFFFF4040, 0xFFFFFFFF);
+    decorate(map, vec2i(p.x + 1, p.y + 2), 0, Border_Vertical, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y + 1), Border_Vertical, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x, p.y + 1), Border_TeeRight, Border_TeeLeft, 0xFFFF4040, 0xFFFF5050, 0xFFFFFFFF);
+    decorate(map, vec2i(p.x + 1, p.y + 1), 0, Border_Vertical, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 1, p.y), 0, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+    decorate(map, vec2i(p.x, p.y), Border_TeeRight, Border_TeeLeft, 0xFFFF5050, 0xFFFF4040, 0xFFFFFFFF);
+    decorate(map, vec2i(p.x + 1, p.y), 0, 0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+    decorate(map, vec2i(p.x - 1, p.y - 1), '/', 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x, p.y - 1), Border_TeeRight, Border_TeeLeft, 0xFFFF5050, 0xFFFF4040, 0);
+    decorate(map, vec2i(p.x + 1, p.y - 1), 0, '\\', 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x - 2, p.y - 2), 0, '/', 0xFFFFFFFF, 0xFFFFFFFF, 0);
+    decorate(map, vec2i(p.x + 2, p.y - 2), '\\', 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+
+    MainEngine* eng = new MainEngine(vec2i(p.x, p.y + 3));
+    map.spawn(eng);
+}
+
 void placeReactor(Map& map, vec2i p)
 {
     decorate(map, vec2i(p.x - 1, p.y + 2), LeftDiagTopInverse, Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
@@ -452,15 +475,594 @@ void placeReactor(Map& map, vec2i p)
     map.spawn(eng);
 }
 
+struct ShipParameters
+{
+    u32 primary_color = 0xFFFFFFFF;
+    u32 secondary_color = 0xFF000000;
+
+    float engines = 0.5f;
+    float engine_merge_chance = 0.7f;
+
+    float extra_door_chance = 0.2f;
+};
+
+struct ShipGenerator
+{
+    int w, h;
+    u32* outline;
+
+    int size;
+
+    struct Room
+    {
+        vec2i min, max;
+
+        Room* adj[4]{ 0,0,0,0 };
+
+        int placed_index = -1;
+
+        Room(vec2i min, vec2i max)
+            : min(min), max(max)
+        {}
+
+        bool used() { return placed_index != -1; }
+    };
+
+    enum class RoomType
+    {
+        Engine,
+        Reactor,
+        PilotsDeck,
+        OperationsDeck,
+        StorageRoom,
+        Coridor,
+        Airlock,
+    };
+
+    struct PlacedRoom
+    {
+        vec2i min, max;
+        RoomType type;
+
+        PlacedRoom(vec2i min, vec2i max, RoomType type)
+            : min(min), max(max), type(type)
+        {}
+    };
+
+    std::vector<Room> rooms;
+    std::vector<Room> decorate_rooms;
+    std::vector<PlacedRoom> placed_rooms;
+
+    ShipGenerator(const char* shape_name, int size)
+        : size(size)
+    {
+        int c;
+        outline = (u32*)stbi_load(shape_name, &w, &h, &c, 4);
+        for (int i = 0; i < w * h; i++)
+        {
+            if ((outline[i] & 0xFF000000) == 0)
+            {
+                outline[i] = 0;
+            }
+        }
+    }
+    ~ShipGenerator()
+    {
+        stbi_image_free(outline);
+    }
+
+    Room* getRoom(int x, int y)
+    {
+        for (Room& r : rooms)
+        {
+            if (x >= r.min.x && x <= r.max.x && y >= r.min.y && y <= r.max.y)
+            {
+                return &r;
+            }
+        }
+        return nullptr;
+    }
+
+    Room* getRoom(Room* from, Direction dir)
+    {
+        vec2i d = direction(dir);
+        vec2i next = from->min + d * (size + 1) + vec2i(size / 2, size / 2);
+        return getRoom(next.x, next.y);
+    }
+
+    Room* getRoom(Room* from, int dx, int dy)
+    {
+        vec2i d(dx, dy);
+        vec2i next = from->min + d * (size + 1) + vec2i(size / 2, size / 2);
+        return getRoom(next.x, next.y);
+    }
+
+    bool check(float x, float y)
+    {
+        if (x < 0 || x >= w || y < 0 || y >= h) return false;
+        int x0 = scalar::floori(x);
+        int y0 = scalar::floori(y);
+        if (x0 == x && y0 == y) return outline[y0 * w + x0] != 0;
+
+        int x1 = x0 + 1;
+        int y1 = y0 + 1;
+        float dx = x - x0;
+        float dy = y - y0;
+
+        u32 c = outline[y0 * w + x0] != 0;
+        c += outline[y0 * w + x1] != 0;
+        c += outline[y1 * w + x0] != 0;
+        c += outline[y1 * w + x1] != 0;
+
+        return c >= 3;
+    }
+
+    void consume(Room* r, vec2i sz, int idx)
+    {
+        Room* cl = r;
+        for (int x = 0; x < sz.x; ++x)
+        {
+            debug_assert(cl);
+            cl->placed_index = idx;
+            Room* cr = cl;
+            for (int y = 1; y < sz.y; ++y)
+            {
+                cr = cr->adj[0];
+                debug_assert(cr);
+                cr->placed_index = idx;
+            }
+            cl = cl->adj[1];
+        }
+    }
+
+    std::vector<Room*> find_candidates(vec2i sz)
+    {
+        std::vector<Room*> candidates;
+        for (Room& r : rooms)
+        {
+            if (r.used()) continue;
+            Room* cl = &r;
+            bool valid = true;
+            for (int x = 0; x < sz.x && valid; ++x)
+            {
+                if (!cl || cl->used())
+                {
+                    valid = false;
+                    break;
+                }
+                Room* cr = cl;
+                for (int y = 1; y < sz.y; ++y)
+                {
+                    cr = cr->adj[0];
+                    if (!cr || cr->used())
+                    {
+                        valid = false;
+                        break;
+                    }
+                }
+                cl = cl->adj[1];
+            }
+
+            if (valid) candidates.push_back(&r);
+        }
+        return candidates;
+    }
+
+    Room* find_random(pcg32& rng, vec2i sz)
+    {
+        std::vector<Room*> candidates = find_candidates(sz);
+        if (candidates.empty()) return nullptr;
+        return candidates[scalar::floori(candidates.size() * rng.nextFloat())];
+    }
+
+    bool generate(Map& map, ShipParameters& params)
+    {
+        pcg32 rng;
+
+        for (int y = 0; y + size + 1 < h; y += size + 1)
+        {
+            for (int x = 0; x + size + 1 < w; x += size + 1)
+            {
+
+                bool valid_room = true;
+                bool needs_decorating = false;
+                for (int y0 = y + 1; y0 <= y + size; ++y0)
+                {
+                    for (int x0 = x + 1; x0 <= x + size; ++x0)
+                    {
+                        if (outline[x0 + (h - y0 - 1) * w] == 0)
+                        {
+                            valid_room = false;
+                        }
+                        else
+                        {
+                            needs_decorating = true;
+                        }
+                    }
+                }
+
+                if (valid_room)
+                {
+                    rooms.emplace_back(vec2i(x, y), vec2i(x + size + 1, y + size + 1));
+                }
+                else if (needs_decorating)
+                {
+                    decorate_rooms.emplace_back(vec2i(x, y), vec2i(x + size + 1, y + size + 1));
+                }
+            }
+        }
+
+        std::deque<Room*> open;
+        linear_map<vec2i, bool> seen;
+
+        Room* center = getRoom(w / 2, h / 2);
+        debug_assert(center);
+        open.push_back(center);
+        seen.insert(center->min, true);
+
+        while (!open.empty())
+        {
+            Room* current = open.front();
+            open.pop_front();
+            for (int i = 0; i < 4; ++i)
+            {
+                vec2i d = cardinals[i];
+                vec2i next = current->min + d * (size + 1) + vec2i(size/2,size/2);
+                Room* nr = getRoom(next.x, next.y);
+                if (!nr) continue;
+                if (seen.find(nr->min).found) continue;
+                open.push_back(nr);
+                seen.insert(nr->min, true);
+            }
+        }
+
+        for (auto it = rooms.begin(); it != rooms.end();)
+        {
+            Room& r = *it;
+            if (seen.find(r.min).found)
+            {
+                //fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
+                ++it;
+            }
+            else
+            {
+                decorate_rooms.emplace_back(r);
+                it = rooms.erase(it);
+            }
+        }
+
+        // Rooms is frozen from ehre on!!!
+        for (Room& r : rooms)
+        {
+            for (int i = 0; i < 4; ++i)
+            {
+                vec2i d = cardinals[i];
+                vec2i next = r.min + d * (size + 1) + vec2i(size / 2, size / 2);
+                Room* nr = getRoom(next.x, next.y);
+                r.adj[i] = nr;
+            }
+        }
+
+        // Engines
+        std::vector<int> back_distance;
+        for (int x = 0; x < w; ++x)
+        {
+            back_distance.push_back(h);
+            for (int y = 0; y < h; ++y)
+            {
+                if (outline[x + (h - y - 1) * w])
+                {
+                    back_distance.back() = y;
+                    break;
+                }
+            }
+        }
+        std::vector<Room*> possible_engines;
+        for (int x = 2; x + size + 1 < w; x += size + 1)
+        {
+            for (int y = 2; y + size + 1 < h; y += size + 1)
+            {
+                Room* r = getRoom(x, y);
+                if (r)
+                {
+                    if (!r->adj[0]) break;
+                    bool valid = true;
+                    for (int x0 = r->min.x + 1; x0 < r->max.x; ++x0)
+                        if (back_distance[x0] < r->min.y - 2)
+                            valid = false;
+                    if (valid)
+                        possible_engines.push_back(r);
+                    break;
+                }
+            }
+        }
+        debug_assert(!possible_engines.empty());
+        int engine_count = scalar::ceili(possible_engines.size() * params.engines);
+        while (engine_count > 0)
+        {
+            int next = scalar::floori(rng.nextFloat() * possible_engines.size());
+            Room* r = possible_engines[next];
+            debug_assert(r->adj[0]);
+            if (engine_count > 1 && rng.nextFloat() < params.engine_merge_chance && r->adj[1] && std::find(possible_engines.begin(), possible_engines.end(), r->adj[1]) != possible_engines.end())
+            {
+                possible_engines.erase(std::find(possible_engines.begin(), possible_engines.end(), r));
+                possible_engines.erase(std::find(possible_engines.begin(), possible_engines.end(), r->adj[1]));
+                placed_rooms.emplace_back(r->min, r->adj[1]->adj[0]->max, RoomType::Engine);
+                consume(r, vec2i(2, 2), (int) placed_rooms.size() - 1);
+                engine_count -= 2;
+            }
+            else
+            {
+                possible_engines.erase(std::find(possible_engines.begin(), possible_engines.end(), r));
+                placed_rooms.emplace_back(r->min, r->adj[0]->max, RoomType::Engine);
+                consume(r, vec2i(1, 2), (int) placed_rooms.size() - 1);
+                engine_count--;
+            }
+        }
+
+        {
+            Room* reactor = find_random(rng, vec2i(3, 3));
+            debug_assert(reactor);
+            placed_rooms.emplace_back(reactor->min, reactor->max + vec2i((size + 1) * 2, (size + 1) * 2), RoomType::Reactor);
+            consume(reactor, vec2i(3, 3), (int) placed_rooms.size() - 1);
+        }
+
+        // Place 1 or 2 airlocks
+        {
+            std::vector<Room*> candidates = find_candidates(vec2i(1, 2));
+            for (auto it = candidates.begin(); it != candidates.end();)
+            {
+                Room* r = *it;
+                if (!r->adj[1] && !r->adj[0]->adj[1])
+                {
+                    ++it;
+                }
+                else if (!r->adj[3] && !r->adj[0]->adj[3])
+                {
+                    ++it;
+                }
+                else
+                {
+                    it = candidates.erase(it);
+                }
+            }
+            if (candidates.empty())
+            {
+                // No candidates
+                for (Room& r : rooms)
+                {
+                    if (r.used() || (r.adj[1] && r.adj[3])) continue;
+                    placed_rooms.emplace_back(r.min, r.max, RoomType::Airlock);
+                    consume(&r, vec2i(1, 1), (int) placed_rooms.size() - 1);
+                }
+            }
+            else
+            {
+                int count = candidates.size() == 1 ? 1 : 1 + (rng.nextFloat() < 0.5f ? 1 : 0);
+                for (int i = 0; i < count; ++i)
+                {
+                    auto it = candidates.begin() + (size_t) scalar::floori(rng.nextFloat() * candidates.size());
+                    Room* r = *it;
+                    if (r->used()) continue;
+                    placed_rooms.emplace_back(r->min, r->adj[0]->max, RoomType::Airlock);
+                    consume(r, vec2i(1, 2), (int)placed_rooms.size() - 1);
+                    candidates.erase(it);
+                }
+            }
+        }
+
+        {
+            Room* pilot_deck = find_random(rng, vec2i(2, 2));
+            debug_assert(pilot_deck);
+            placed_rooms.emplace_back(pilot_deck->min, pilot_deck->max + vec2i(size + 1, size + 1), RoomType::PilotsDeck);
+            consume(pilot_deck, vec2i(2, 2), (int) placed_rooms.size() - 1);
+        }
+
+        {
+            Room* operations_deck = find_random(rng, vec2i(2, 2));
+            debug_assert(operations_deck);
+            placed_rooms.emplace_back(operations_deck->min, operations_deck->max + vec2i(size + 1, size + 1), RoomType::OperationsDeck);
+            consume(operations_deck, vec2i(2, 2), (int) placed_rooms.size() - 1);
+        }
+
+        vec2i size_progression[]{vec2i(3,3), vec2i(3,2), vec2i(2,3), vec2i(2,2)};
+        for (vec2i sz : size_progression)
+        {
+            Room* n = find_random(rng, sz);
+            while (n)
+            {
+                placed_rooms.emplace_back(n->min, n->max + vec2i((size + 1) * (sz.x - 1), (size+1) * (sz.y - 1)), RoomType::StorageRoom);
+                consume(n, sz, (int) placed_rooms.size() - 1);
+                n = find_random(rng, sz);
+            }
+        }
+
+        for (Room& r : rooms)
+        {
+            if (r.used()) continue;
+
+            int cw = 1;
+            Room* h = &r;
+            while (h->adj[1])
+            {
+                h = h->adj[1];
+                if (h->used()) break;
+                ++cw;
+            }
+            int ch = 1;
+            Room* v = &r;
+            while (v->adj[0])
+            {
+                v = v->adj[0];
+                if (v->used()) break;
+                ++ch;
+            }
+            if (cw > 1 && cw > ch)
+            {
+                placed_rooms.emplace_back(r.min, r.max + vec2i((size + 1) * (cw - 1), 0), RoomType::Coridor);
+                consume(&r, vec2i(cw, 1), (int) placed_rooms.size() - 1);
+            }
+            else if(ch > 1)
+            {
+                placed_rooms.emplace_back(r.min, r.max + vec2i(0, (size + 1) * (ch - 1)), RoomType::Coridor);
+                consume(&r, vec2i(1, ch), (int) placed_rooms.size() - 1);
+            }
+        }
+
+        for (Room& r : rooms)
+        {
+            if (r.used()) continue;
+            placed_rooms.emplace_back(r.min, r.max, RoomType::StorageRoom);
+            r.placed_index = (int) placed_rooms.size() - 1;
+        }
+
+        for (PlacedRoom& r : placed_rooms)
+        {
+            switch (r.type)
+            {
+            case RoomType::Engine:
+            {
+                fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
+                placeEngine(map, vec2i((r.min.x + r.max.x) / 2, r.min.y));
+            } break;
+            case RoomType::Reactor:
+            {
+                fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
+                placeReactor(map, r.min + vec2i((size + 1) * 3 / 2, (size + 1) * 3 / 2));
+            } break;
+            case RoomType::PilotsDeck:
+            {
+                fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
+                placePilotSeat(map, r.min + vec2i(size + 1, size));
+            } break;
+            case RoomType::OperationsDeck:
+            {
+                fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
+                decorate(map, r.min + vec2i(2, 2), 'O', 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+            } break;
+            case RoomType::Airlock:
+            {
+                fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
+                Room* l = getRoom(r.min.x + size + 2, r.min.y +1);
+                if (!l)
+                    setAirlock(map, vec2i(r.min.x + size + 1, r.min.y + size / 2 + 1), Left);
+                l = getRoom(r.min.x -1, r.min.y +1);
+                if (!l)
+                    setAirlock(map, vec2i(r.min.x, r.min.y + size / 2 + 1), Right);
+            } break;
+            default:
+            {
+                fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
+            } break;
+            }
+        }
+
+        for (PlacedRoom& r : placed_rooms)
+        {
+            linear_map<vec2i, bool> connected;
+            for (int x = r.min.x + 1 + size / 2; x < r.max.x; x += size + 1)
+            {
+                Room* other_room = getRoom(x, r.min.y - 1);
+                if (other_room)
+                {
+                    PlacedRoom& other = placed_rooms[other_room->placed_index];
+                    if (r.type == RoomType::Coridor && other.type == RoomType::Coridor)
+                    {
+                        for (int x0 = x - size / 2; x0 <= x + size / 2; ++x0)
+                        {
+                            map.setTile(vec2i(x0, r.min.y), Terrain::ShipFloor);
+                        }
+                    }
+                    else if (!connected.find(other.min).found || rng.nextFloat() < params.extra_door_chance)
+                    {
+                        connected.insert(other.min, true);
+                        if (r.type == RoomType::Airlock)
+                        {
+                            setAirlock(map, vec2i(x, r.min.y), Up);
+                        }
+                        else if (other.type == RoomType::Airlock)
+                        {
+                            setAirlock(map, vec2i(x, r.min.y), Down);
+                        }
+                        else
+                        {
+                            setDoor(map, vec2i(x, r.min.y));
+                        }
+                    }
+                }
+            }
+            for (int y = r.min.y + 1 + size / 2; y < r.max.y; y += size + 1)
+            {
+                Room* other_room = getRoom(r.min.x - 1, y);
+                if (other_room)
+                {
+                    PlacedRoom& other = placed_rooms[other_room->placed_index];
+                    if (r.type == RoomType::Coridor && other.type == RoomType::Coridor)
+                    {
+                        for (int y0 = y - size / 2; y0 <= y + size / 2; ++y0)
+                        {
+                            map.setTile(vec2i(r.min.x, y0), Terrain::ShipFloor);
+                        }
+                    }
+                    else if (!connected.find(other.min).found || rng.nextFloat() < params.extra_door_chance)
+                    {
+                        connected.insert(other.min, true);
+                        if (r.type == RoomType::Airlock)
+                        {
+                            setAirlock(map, vec2i(r.min.x, y), Up);
+                        }
+                        else if (other.type == RoomType::Airlock)
+                        {
+                            setAirlock(map, vec2i(r.min.x, y), Down);
+                        }
+                        else
+                        {
+                            setDoor(map, vec2i(r.min.x, y));
+                        }
+                    }
+                }
+            }
+        }
+
+        for (Room& r : decorate_rooms)
+        {
+            for (int x = r.min.x; x <= r.max.x; ++x)
+            {
+                for (int y = r.min.y; y <= r.max.y; ++y)
+                {
+                    if (outline[x + (h - y - 1) * w] && map.getTile(vec2i(x, y)) == Terrain::Empty)
+                    {
+                        map.setTile(vec2i(x, y), Terrain::ShipFloor);
+                    }
+                }
+            }
+        }
+        return true;
+    }
+};
+
 void generate(Map& map)
 {
     if (map.name == "player_ship")
     {
         map.clear();
 
-        u32 primary_ship_color = 0xFF14CCFF;
-        u32 secondary_ship_color = 0xFFC0C0C0;
+        ShipGenerator shape("ship_0.png", 3);
+        ShipParameters params;
+        params.primary_color = 0xFF14CCFF;
+        params.secondary_color = 0xFFC0C0C0;
 
+        bool success = false;
+        for (int a = 0; a < 10; ++a)
+        {
+            if (shape.generate(map, params))
+            {
+                success = true;
+                break;
+            }
+        }
+        debug_assertf(success, "Failed to generate ship layout within 10 attempts");
+#if 0
         // Engineering
         fillRoom(map, vec2i(-4, -4), vec2i(4, 4), Terrain::ShipFloor, Terrain::ShipWall);
         placeItem(map, vec2i(-3, 3), ItemType::WeldingTorch);
@@ -534,6 +1136,7 @@ void generate(Map& map)
         fillRoom(map, vec2i(0, 32), vec2i(8, 40), Terrain::ShipFloor, Terrain::ShipWall);
         setDoor(map, vec2i(2, 32));
         placePilotSeat(map, vec2i(4, 36));
+#endif
 
         if (map.player)
             map.spawn((Actor*) map.player);
