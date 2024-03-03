@@ -849,6 +849,8 @@ struct ShipGenerator
             consume(operations_deck, vec2i(2, 2), (int) placed_rooms.size() - 1);
         }
 
+
+
         vec2i size_progression[]{vec2i(3,3), vec2i(3,2), vec2i(2,3), vec2i(2,2)};
         for (vec2i sz : size_progression)
         {
@@ -936,6 +938,27 @@ struct ShipGenerator
                 l = getRoom(r.min.x -1, r.min.y +1);
                 if (!l)
                     setAirlock(map, vec2i(r.min.x, r.min.y + size / 2 + 1), Right);
+            } break;
+            case RoomType::StorageRoom:
+            {
+                fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
+                vec2i sz = (r.max - r.min) / (size + 1);
+                if (sz.x == 1 && sz.y == 1)
+                {
+                    static ItemType storage_items[]
+                    {
+                        ItemType::RepairParts,
+                        ItemType::Torpedoes,
+                        ItemType::RailgunRounds,
+                        ItemType::PDCRounds,
+                    };
+                    ItemType item = storage_items[rng.nextInt(0, 3)];
+                    
+                    if (rng.nextFloat() < 0.8f) placeItem(map, r.min + vec2i(1, 1), item);
+                    if (rng.nextFloat() < 0.8f) placeItem(map, r.min + vec2i(size, 1), item);
+                    if (rng.nextFloat() < 0.8f) placeItem(map, r.min + vec2i(1, size), item);
+                    if (rng.nextFloat() < 0.8f) placeItem(map, r.min + vec2i(size, size), item);
+                }
             } break;
             default:
             {
