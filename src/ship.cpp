@@ -30,6 +30,30 @@ std::vector<ShipRoom*> Ship::getRooms(RoomType t)
     return result;
 }
 
+void Ship::update()
+{
+    std::vector<MainEngine*> engines;
+    Reactor* reactor = nullptr;
+    PilotSeat* pilot = nullptr;
+    std::vector<TorpedoLauncher*> torpedoes;
+    std::vector<PDC*> pdcs;
+    std::vector<Railgun*> railguns;
+    for (Actor* a : map->actors)
+    {
+        switch (a->type)
+        {
+        case ActorType::PilotSeat: pilot = (PilotSeat*)a; break;
+        case ActorType::Reactor: reactor = (Reactor*)a; break;
+        case ActorType::Engine: engines.push_back((MainEngine*)a); break;
+        case ActorType::TorpedoLauncher: torpedoes.push_back((TorpedoLauncher*)a); break;
+        case ActorType::PDC: pdcs.push_back((PDC*)a); break;
+        case ActorType::Railgun: railguns.push_back((Railgun*)a); break;
+        default: break;
+        }
+    }
+
+}
+
 std::vector<Actor*> findDoors(Ship* ship, vec2i p)
 {
     std::vector<Actor*> doors;

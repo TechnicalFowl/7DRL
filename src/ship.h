@@ -40,6 +40,8 @@ struct Ship
     ShipRoom* getRoom(RoomType t);
 
     std::vector<ShipRoom*> getRooms(RoomType t);
+
+    void update();
 };
 
 std::vector<Actor*> findDoors(Ship* ship, vec2i p);

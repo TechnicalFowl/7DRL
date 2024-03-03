@@ -271,6 +271,14 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                         break;
                     }
                 }
+                if (it.value.actor)
+                {
+                    if (it.value.actor->type == ActorType::TorpedoLauncher)
+                    {
+                        move = dirs[i];
+                        break;
+                    }
+                }
             }
             if (move.zero())
             {
@@ -325,6 +333,52 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                     }
                     if (actor == map.player) g_game.log.logf("You %s the airlock.", door->open ? "open" : "close");
                     return true;
+                }
+            }
+            if (it.value.actor)
+            {
+                switch (it.value.actor->type)
+                {
+                case ActorType::TorpedoLauncher:
+                {
+                    TorpedoLauncher* launcher = (TorpedoLauncher*)it.value.actor;
+                    switch (launcher->status)
+                    {
+                    case ShipObject::Status::Active:
+                    {
+                        launcher->status = ShipObject::Status::Disabled;
+                        if (actor == map.player) g_game.log.log("You close the laucher tube.");
+                    } break;
+                    case ShipObject::Status::Disabled:
+                    {
+                        launcher->status = ShipObject::Status::Active;
+                        if (actor == map.player) g_game.log.log("You open the laucher tube.");
+                    } break;
+                    case ShipObject::Status::Damaged:
+                    {
+                        if (actor == map.player)
+                        {
+                            if (map.player->holding && map.player->holding->type == ItemType::RepairParts)
+                            {
+                                delete map.player->holding;
+                                map.player->holding = nullptr;
+                                launcher->status = ShipObject::Status::Disabled;
+                                g_game.log.log("You repair the laucher tube.");
+                            }
+                            else
+                            {
+                                g_game.log.log("The laucher tube is damaged.");
+                            }
+                        }
+                    } break;
+                    case ShipObject::Status::Unpowered:
+                    {
+                        if (actor == map.player) g_game.log.log("The laucher tube is unpowered.");
+                    } break;
+                    }
+                    return true;
+                }
+                default: break;
                 }
             }
         }
@@ -424,6 +478,16 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                         }
                     }
                 } break;
+                case ItemType::RepairParts:
+                {
+                    if (it.value.actor)
+                    {
+                        if (it.value.ground->type == ActorType::TorpedoLauncher)
+                        {
+                            move = dirs[i];
+                        }
+                    }
+                } break;
                 default: break;
                 }
             }
@@ -470,6 +534,29 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                     default: break;
                     }
                     return true;
+                }
+            }
+            if (it.value.actor)
+            {
+                switch (it.value.actor->type)
+                {
+                case ActorType::TorpedoLauncher:
+                {
+                    TorpedoLauncher* launcher = (TorpedoLauncher*)it.value.actor;
+                    if (launcher->status == ShipObject::Status::Damaged)
+                    {
+                        delete pl->holding;
+                        pl->holding = nullptr;
+                        launcher->status = ShipObject::Status::Disabled;
+                        g_game.log.log("You repair the laucher tube.");
+                    }
+                    else
+                    {
+                        g_game.log.log("That doesn't need repairing.");
+                    }
+                    return true;
+                }
+                default: break;
                 }
             }
         }
