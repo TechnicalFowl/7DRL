@@ -8,6 +8,14 @@
 #include "map.h"
 #include "ship.h"
 
+const char* ShipObjectStatus[4]
+{
+    "Active",
+    "Disabled",
+    "Damaged",
+    "Unpowered",
+};
+
 #if 0
 const char* EquipmentSlotNames[EquipmentSlotCount]
 {
@@ -627,32 +635,32 @@ void Airlock::render(TextBuffer& buffer, vec2i origin, bool dim)
 }
 
 PilotSeat::PilotSeat(vec2i p)
-    : Actor(p, ActorType::PilotSeat)
+    : ShipObject(p, ActorType::PilotSeat)
 {
 }
 
 MainEngine::MainEngine(vec2i p)
-    : Actor(p, ActorType::Engine)
+    : ShipObject(p, ActorType::Engine)
 {
 }
 
 Reactor::Reactor(vec2i p)
-    : Actor(p, ActorType::Reactor)
+    : ShipObject(p, ActorType::Reactor)
 {
 }
 
 TorpedoLauncher::TorpedoLauncher(vec2i p)
-    : Actor(p, ActorType::TorpedoLauncher)
+    : ShipObject(p, ActorType::TorpedoLauncher)
 {
 }
 
 PDC::PDC(vec2i p)
-    : Actor(p, ActorType::PDC)
+    : ShipObject(p, ActorType::PDC)
 {
 }
 
 Railgun::Railgun(vec2i p)
-    : Actor(p, ActorType::Railgun)
+    : ShipObject(p, ActorType::Railgun)
 {
 }
 

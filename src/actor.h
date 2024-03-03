@@ -191,6 +191,24 @@ struct Decoration : Actor
     virtual void render(TextBuffer& buffer, vec2i origin, bool dim = false) override;
 };
 
+struct ShipObject : Actor
+{
+    enum class Status
+    {
+        Active,
+        Disabled,
+        Damaged,
+        Unpowered,
+    };
+
+    Status status = Status::Active;
+
+    ShipObject(vec2i p, ActorType t) : Actor(p, t) {}
+
+};
+
+extern const char* ShipObjectStatus[4];
+
 struct InteriorDoor : Actor
 {
     bool open = false;
@@ -212,46 +230,41 @@ struct Airlock : Actor
     virtual void render(TextBuffer& buffer, vec2i origin, bool dim = false) override;
 };
 
-struct PilotSeat : Actor
+struct PilotSeat : ShipObject
 {
-    bool active = false;
-
     PilotSeat(vec2i pos);
 };
 
-struct MainEngine : Actor
+struct MainEngine : ShipObject
 {
     float thrust = 0.0f;
 
     MainEngine(vec2i pos);
 };
 
-struct Reactor : Actor
+struct Reactor : ShipObject
 {
     float power = 0.0f;
 
     Reactor(vec2i pos);
 };
 
-struct TorpedoLauncher : Actor
+struct TorpedoLauncher : ShipObject
 {
-    bool open = false;
     int torpedoes = 0;
 
     TorpedoLauncher(vec2i pos);
 };
 
-struct PDC : Actor
+struct PDC : ShipObject
 {
-    bool active = false;
     int rounds = 0;
 
     PDC(vec2i pos);
 };
 
-struct Railgun : Actor
+struct Railgun : ShipObject
 {
-    bool open = false;
     int rounds = 0;
 
     Railgun(vec2i pos);

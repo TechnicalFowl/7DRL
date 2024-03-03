@@ -449,42 +449,42 @@ void updateGame()
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Pilot: %s", pilot->active ? "active" : "inactive");
+            line_0.appendf("Pilot [%s]", ShipObjectStatus[int(pilot->status)]);
             g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         if (reactor)
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Reactor: %.0f%%", reactor->power * 100);
+            line_0.appendf("Reactor [%s] %.0f%%", ShipObjectStatus[int(reactor->status)], reactor->power * 100);
             g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (MainEngine* e : engines)
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Engine [%d %d]: %.0f%%", e->pos.x, e->pos.y, e->thrust * 100);
+            line_0.appendf("Engine [%s] %.0f%%", ShipObjectStatus[int(e->status)], e->thrust * 100);
             g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (TorpedoLauncher* e : torpedoes)
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Torpedo: [%s] %d", e->open ? "Open" : "Closed", e->torpedoes);
+            line_0.appendf("Torpedo: [%s] %d", ShipObjectStatus[int(e->status)], e->torpedoes);
             g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (PDC* e : pdcs)
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Point Defence: [%s] %d", e->active ? "Active" : "Disabled", e->rounds);
+            line_0.appendf("Point Defence: [%s] %d", ShipObjectStatus[int(e->status)], e->rounds);
             g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (Railgun* e : railguns)
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Railgun: [%s] %d", e->open ? "Open": "Closed", e->rounds);
+            line_0.appendf("Railgun: [%s] %d", ShipObjectStatus[int(e->status)], e->rounds);
             g_game.term->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
     }
