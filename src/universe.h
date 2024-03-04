@@ -12,6 +12,7 @@ enum class UActorType
 {
     Player,
     Asteroid,
+    CargoShip,
 };
 
 struct UActor
@@ -19,9 +20,11 @@ struct UActor
     UActorType type;
     vec2i pos;
 
+    bool dead = false;
+
     UActor(UActorType type, vec2i p) : type(type), pos(p) {}
 
-    virtual void update() {};
+    virtual void update(pcg32& rng) {};
     virtual void render(TextBuffer& buffer, vec2i origin) = 0;
 };
 
@@ -43,12 +46,22 @@ struct UShip : UActor
     UShip(UActorType t, vec2i p) : UActor(t, p) {}
 };
 
+struct UCargoShip : UShip
+{
+
+    UCargoShip(vec2i p) : UShip(UActorType::CargoShip, p) {}
+
+    void update(pcg32& rng) override;
+
+    void render(TextBuffer& buffer, vec2i origin) override;
+};
+
 struct UPlayer : UShip
 {
 
     UPlayer(vec2i p) : UShip(UActorType::Player, p) {}
 
-    void update() override;
+    void update(pcg32& rng) override;
 
     void render(TextBuffer& buffer, vec2i origin) override;
 };
@@ -59,6 +72,9 @@ struct Universe
     linear_map<vec2i, bool> regions_generated;
 
     pcg32 rng;
+    int universe_ticks = 0;
+
+    bool hasActor(vec2i p) { return actors.find(p).found; }
 
     void move(UActor* a, vec2i d);
     void spawn(UActor* a);

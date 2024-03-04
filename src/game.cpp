@@ -437,7 +437,7 @@ void updateGame()
     }
     else
     {
-        bottom_bar.appendf("Turn: %d V: %s T: %.2f Z: %.2f", map.turn, g_game.show_universe ? "Universe" : "Ship", g_game.transition, g_window.map_zoom);
+        bottom_bar.appendf("Turn: %d/%d V: %s", map.turn, g_game.universe->universe_ticks, g_game.show_universe ? "Universe" : "Ship");
     }
     g_game.uiterm->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF101010, LayerPriority_UI - 2);
     g_game.uiterm->write(vec2i(2, 0), bottom_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);

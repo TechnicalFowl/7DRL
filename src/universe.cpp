@@ -4,7 +4,36 @@
 
 #include "game.h"
 
-void UPlayer::update()
+void UCargoShip::update(pcg32& rng)
+{
+    if (vel.length() < 2)
+    {
+        vel += vec2i(rng.nextInt(-1, 2), rng.nextInt(-1, 2));
+    }
+    float speed = vel.length();
+    if (speed > 0)
+    {
+        for (int i = 1; i <= 3; ++i)
+        {
+            if (g_game.universe->hasActor(pos + vel * i))
+            {
+                vel = vec2i((int)round(vel.x / speed), (int)round(vel.y / speed));
+                break;
+            }
+        }
+    }
+}
+
+void UCargoShip::render(TextBuffer& buffer, vec2i origin)
+{
+    buffer.setTile(pos - origin, 'C', 0xFFFFFFFF, LayerPriority_Actors);
+    if (!vel.zero())
+    {
+        buffer.setOverlay((pos + vel) - origin, 0x800000FF, LayerPriority_Overlay);
+    }
+}
+
+void UPlayer::update(pcg32& rng)
 {
 }
 
@@ -13,7 +42,7 @@ void UPlayer::render(TextBuffer& buffer, vec2i origin)
     buffer.setTile(pos - origin, '@', 0xFFFFFFFF, LayerPriority_Actors);
     if (!vel.zero())
     {
-        buffer.setOverlay((pos + vel) - origin, 0x8000FF00, LayerPriority_Actors);
+        buffer.setOverlay((pos + vel) - origin, 0x8000FF00, LayerPriority_Overlay);
     }
 }
 
@@ -57,6 +86,7 @@ vec2i getOffset(int& i, int& x, int& y)
 
 void Universe::move(UActor* a, vec2i d)
 {
+    debug_assert(a->type == UActorType::Player || a->type == UActorType::CargoShip);
     bool target_occupied = actors.find(a->pos + d).found;
 
     float x0 = a->pos.x + 0.5f;
@@ -96,51 +126,53 @@ void Universe::move(UActor* a, vec2i d)
         auto it = actors.find(vec2i(x, y));
         if (it.found)
         {
-            if (a->type == UActorType::Player)
+            UShip* pl = (UShip*)a;
+            if (pl->vel.length() > 6)
             {
-                UPlayer* pl = (UPlayer*)a;
-                if (pl->vel.length() > 6)
+                if (a == g_game.uplayer)
                 {
                     g_game.log.log("You crash your ship at such a speed that there is only dust left from the impact.");
                     g_game.log.log("");
                     g_game.log.log("Game over.");
                     g_game.state = GameState::GameOver;
-                    return;
-                }
-                else if (it.value->type == UActorType::Asteroid)
-                {
-                    if (pl->vel.length() > 2)
-                    {
-                        g_game.log.log("Impact alert!");
-                        // TODO: damage ship from asteroid hit
-                    }
-                    else if (!warned_this_step)
-                    {
-                        g_game.log.log("Collision avoidance activated!");
-                        warned_this_step = true;
-                    }
-                    pl->vel = vec2i(0, 0);
-                    break;
-                }
-                else if (!target_occupied)
-                {
-                    if (!warned_this_step)
-                    {
-                        g_game.log.log("Collision avoidance activated!");
-                        warned_this_step = true;
-                    }
                 }
                 else
+                    a->dead = true;
+                return;
+            }
+            else if (it.value->type == UActorType::Asteroid)
+            {
+                if (pl->vel.length() > 2)
                 {
-                    if (!warned_this_step)
-                    {
-                        g_game.log.log("Collision avoidance activated!");
-                        warned_this_step = true;
-                    }
-                    pl->vel = vec2i(0, 0);
-                    break;
+                    if (a == g_game.uplayer) g_game.log.log("Impact alert!");
+                    // TODO: damage ship from asteroid hit
+                }
+                else if (!warned_this_step)
+                {
+                    if (a == g_game.uplayer) g_game.log.log("Collision avoidance activated!");
+                    warned_this_step = true;
+                }
+                pl->vel = vec2i(0, 0);
+                break;
+            }
+            else if (!target_occupied)
+            {
+                if (!warned_this_step)
+                {
+                    if (a == g_game.uplayer) g_game.log.log("Collision avoidance activated!");
+                    warned_this_step = true;
                 }
             }
+            else
+            {
+                if (!warned_this_step)
+                {
+                    if (a == g_game.uplayer) g_game.log.log("Collision avoidance activated!");
+                    warned_this_step = true;
+                }
+                pl->vel = vec2i(0, 0);
+                break;
+                }
         }
         lx = x;
         ly = y;
@@ -188,6 +220,7 @@ void Universe::spawn(UActor* a)
 
 void Universe::update(vec2i origin)
 {
+    universe_ticks++;
     std::vector<vec2i> refresh_regions;
     for (auto it : regions_generated)
     {
@@ -218,6 +251,14 @@ void Universe::update(vec2i origin)
                             a->radius = 1.0f + rng.nextFloat() * 2.0f + rng.nextFloat() * rng.nextFloat() * 8.0f;
                             spawn(a);
                         }
+                        else
+                        {
+                            if (rng.nextFloat() < 0.01f)
+                            {
+                                UCargoShip* s = new UCargoShip(vec2i((rx << 5) + (x0 << 4) + 2, (ry << 5) + (y0 << 3)));
+                                spawn(s);
+                            }
+                        }
                     }
                 }
 
@@ -226,25 +267,40 @@ void Universe::update(vec2i origin)
         }
     }
 
-    std::vector<UActor*> moved;
-    std::vector<UActor*> too_far;
+    std::vector<UShip*> moved;
+    std::vector<UActor*> to_remove;
     for (auto it : actors)
     {
         UActor* a = it.value;
         if (a->pos != it.key) continue; // Proxy actor
         if ((a->pos - origin).length() > 160.0f)
         {
-            too_far.push_back(a);
+            to_remove.push_back(a);
             continue;
         }
-        a->update();
+        a->update(rng);
 
-        if (a->type == UActorType::Player)
+        if (a->dead)
         {
-            moved.push_back(a);
+            to_remove.push_back(a);
+        }
+        else if (a->type == UActorType::Player || a->type == UActorType::CargoShip)
+        {
+            moved.push_back((UShip*) a);
         }
     }
-    for (UActor* a : too_far)
+    for (UShip* a : moved)
+    {
+        if (!a->vel.zero())
+        {
+            move(a, a->vel);
+            if (a->dead)
+            {
+                to_remove.push_back(a);
+            }
+        }
+    }
+    for (UActor* a : to_remove)
     {
         actors.erase(a->pos);
         if (a->type == UActorType::Asteroid)
@@ -264,24 +320,6 @@ void Universe::update(vec2i origin)
             }
         }
         delete a;
-    }
-    int i = 0;
-    for (UActor* a : moved)
-    {
-        switch (a->type)
-        {
-        case UActorType::Player:
-        {
-            UPlayer* pl = (UPlayer*) a;
-            if (!pl->vel.zero())
-            {
-                move(a, pl->vel);
-            }
-        } break;
-        default:
-            debug_assert(false);
-            break;
-        }
     }
 }
 
