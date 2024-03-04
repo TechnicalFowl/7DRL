@@ -357,6 +357,30 @@ void updateGame()
     else if (!g_game.modal && g_game.show_universe && g_game.transition == 0)
     {
         bool do_turn = false;
+        if (input_key_pressed(GLFW_KEY_UP))
+        {
+            do_turn = true;
+            g_game.uplayer->vel += vec2i(0, 1);
+        }
+        if (input_key_pressed(GLFW_KEY_DOWN))
+        {
+            do_turn = true;
+            g_game.uplayer->vel += vec2i(0, -1);
+        }
+        if (input_key_pressed(GLFW_KEY_RIGHT))
+        {
+            do_turn = true;
+            g_game.uplayer->vel += vec2i(1, 0);
+        }
+        if (input_key_pressed(GLFW_KEY_LEFT))
+        {
+            do_turn = true;
+            g_game.uplayer->vel += vec2i(-1, 0);
+        }
+        if (input_key_pressed(GLFW_KEY_O))
+        {
+            g_game.transition = 1.0f;
+        }
 
         if (g_window.inputs.scroll.y != 0)
         {
@@ -551,11 +575,6 @@ void updateGame()
             it = g_game.animations.erase(it);
         else
             ++it;
-    }
-
-    if (g_game.transition == 0 && input_key_pressed(GLFW_KEY_TAB))
-    {
-        g_game.transition = 1.0f;
     }
 
     if (g_game.transition > 0)

@@ -64,7 +64,29 @@ void Universe::move(vec2i pos, UActor* a)
     {
         p = pos + getOffset(i, x, y);
     }
-    actors.insert(a->pos, a);
+    actors.insert(p, a);
+    a->pos = p;
+    if (p != pos && a->type == UActorType::Player)
+    {
+        auto hit = actors.find(pos);
+        debug_assert(hit.found);
+        if (hit.value->type == UActorType::Asteroid && ((UPlayer*) a)->vel.length() > 2)
+        {
+            g_game.log.log("Impact alert!");
+            // TODO: damage ship from asteroid hit
+        }
+        else if (((UPlayer*)a)->vel.length() > 6)
+        {
+            g_game.log.log("You crash your ship at such a speed that there is only dust left from the impact.");
+            g_game.log.log("");
+            g_game.log.log("Game over.");
+            g_game.state = GameState::GameOver;
+        }
+        else
+        {
+            g_game.log.log("Collision avoidance activated!");
+        }
+    }
 }
 
 void Universe::spawn(UActor* a)
@@ -185,7 +207,9 @@ void Universe::render(TextBuffer& buffer, vec2i origin)
     vec2i bl = origin - vec2i(25, 22);
     for (auto it : actors)
     {
-        if (it.value->pos != it.key) continue; // Proxy actor
-        it.value->render(buffer, bl);
+        if (it.value->pos != it.key)
+            buffer.setBg(it.key - bl, 0xFF303030, LayerPriority_Background);
+        else
+            it.value->render(buffer, bl);
     }
 }

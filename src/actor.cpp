@@ -340,6 +340,39 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                 switch (it.value.actor->type)
                 {
                 case ActorType::PilotSeat:
+                {
+                    ShipObject* obj = (ShipObject*)it.value.actor;
+                    ActorInfo& ai = g_game.reg.actor_info[int(obj->type)];
+                    switch (obj->status)
+                    {
+                    case ShipObject::Status::Active:
+                    {
+                        g_game.transition = 1.0f;
+                    } break;
+                    case ShipObject::Status::Damaged:
+                    {
+                        if (actor == map.player)
+                        {
+                            if (map.player->holding && map.player->holding->type == ItemType::RepairParts)
+                            {
+                                delete map.player->holding;
+                                map.player->holding = nullptr;
+                                obj->status = ShipObject::Status::Active;
+                                g_game.log.logf("You repair the %s.", ai.name.c_str());
+                            }
+                            else
+                            {
+                                g_game.log.logf("The %s is damaged.", ai.name.c_str());
+                            }
+                        }
+                    } break;
+                    case ShipObject::Status::Unpowered:
+                    {
+                        if (actor == map.player) g_game.log.logf("The %s is unpowered.", ai.name.c_str());
+                    } break;
+                    }
+                    return true;
+                } break;
                 case ActorType::Reactor:
                 case ActorType::Engine:
                 case ActorType::TorpedoLauncher:
