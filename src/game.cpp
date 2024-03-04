@@ -205,6 +205,7 @@ void updateGame()
     }
 
     Map& map = *g_game.current_level;
+    bool do_map_turn = false;
 
     if (g_game.console_input_displayed)
     {
@@ -222,35 +223,35 @@ void updateGame()
     }
     else if (!g_game.modal && !g_game.show_universe && g_game.transition == 0)
     {
-        bool do_turn = map.player->next_action.action != Action::Wait;
+        do_map_turn = map.player->next_action.action != Action::Wait;
         if (input_key_pressed(GLFW_KEY_UP))
         {
-            do_turn = true;
+            do_map_turn = true;
             map.player->tryMove(map, vec2i(0, 1));
         }
         if (input_key_pressed(GLFW_KEY_DOWN))
         {
-            do_turn = true;
+            do_map_turn = true;
             map.player->tryMove(map, vec2i(0, -1));
         }
         if (input_key_pressed(GLFW_KEY_RIGHT))
         {
-            do_turn = true;
+            do_map_turn = true;
             map.player->tryMove(map, vec2i(1, 0));
         }
         if (input_key_pressed(GLFW_KEY_LEFT))
         {
-            do_turn = true;
+            do_map_turn = true;
             map.player->tryMove(map, vec2i(-1, 0));
         }
         if (input_key_pressed(GLFW_KEY_O))
         {
-            do_turn = true;
+            do_map_turn = true;
             map.player->next_action = ActionData(Action::Open, map.player, 1.0f);
         }
         if (input_key_pressed(GLFW_KEY_U))
         {
-            do_turn = true;
+            do_map_turn = true;
             map.player->next_action = ActionData(Action::UseOn, map.player, 1.0f);
         }
         if (input_key_pressed(GLFW_KEY_3) && (input_key_down(GLFW_KEY_LEFT_SHIFT) || input_key_down(GLFW_KEY_RIGHT_SHIFT)))
@@ -259,7 +260,7 @@ void updateGame()
         }
         if (input_key_pressed(GLFW_KEY_COMMA))
         {
-            do_turn = true;
+            do_map_turn = true;
             map.player->next_action = ActionData(Action::Pickup, map.player, 1.0f);
         }
         if (g_window.inputs.scroll.y != 0)
@@ -267,7 +268,7 @@ void updateGame()
             static u64 last_scroll = 0;
             if (g_window.frame_count - last_scroll > 10)
             {
-                do_turn = true;
+                do_map_turn = true;
                 map.player->next_action = ActionData(Action::Wait, map.player, 1.0f);
                 last_scroll = g_window.frame_count;
             }
@@ -303,62 +304,8 @@ void updateGame()
 #endif
         // @TODO: ? opens help modal
 
-        if (g_game.animations.empty() && do_turn)
-        {
-            float dt = map.player->next_action.energy;
-
-            std::vector<ActionData> actions;
-            for (Actor* a : map.actors)
-            {
-                // @Todo: Allow polling multiple actions per turn if the actor has enough stored energy?
-                ActionData act = a->update(map, g_game.rng, dt);
-                if (act.action != Action::Wait) actions.emplace_back(act);
-            }
-
-            for (ActionData& act : actions)
-            {
-                if (act.actor->dead) continue;
-                act.apply(g_game.player_ship, g_game.rng);
-                if (act.actor->type == ActorType::Player)
-                {
-                    ((Player*)act.actor)->is_aiming = false;
-                }
-            }
-            for (auto it = map.actors.begin(); it != map.actors.end();)
-            {
-                if ((*it)->dead)
-                {
-                    ActorInfo& ai = g_game.reg.actor_info[int((*it)->type)];
-                    auto tile_it = map.tiles.find((*it)->pos);
-                    if (tile_it.found)
-                    {
-                        TerrainInfo& ti = g_game.reg.terrain_info[(int)tile_it.value.terrain];
-                        if (ai.is_ground)
-                        {
-                            debug_assert(tile_it.value.ground == *it);
-                            tile_it.value.ground = nullptr;
-                        }
-                        else
-                        {
-                            debug_assert(tile_it.value.actor == *it);
-                            tile_it.value.actor = nullptr;
-                        }
-                    }
-                    delete* it;
-                    it = map.actors.erase(it);
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-            map.turn++;
-            if (map.turn > g_game.last_universe_update + 10)
-            {
-                g_game.last_universe_update = map.turn;
-                g_game.universe->update(g_game.uplayer->pos);
-            }
-        }
+        if (!g_game.animations.empty())
+            do_map_turn = false;
     }
     else if (!g_game.modal && g_game.show_universe && g_game.transition == 0)
     {
@@ -452,9 +399,68 @@ void updateGame()
 
         if (g_game.uanimations.empty() && do_turn)
         {
+            do_map_turn = true;
             g_game.last_universe_update = map.turn;
             g_game.universe->update(g_game.uplayer->pos);
         }
+    }
+
+    if (do_map_turn)
+    {
+        float dt = map.player->next_action.energy;
+
+        std::vector<ActionData> actions;
+        for (Actor* a : map.actors)
+        {
+            // @Todo: Allow polling multiple actions per turn if the actor has enough stored energy?
+            ActionData act = a->update(map, g_game.rng, dt);
+            if (act.action != Action::Wait) actions.emplace_back(act);
+        }
+
+        for (ActionData& act : actions)
+        {
+            if (act.actor->dead) continue;
+            act.apply(g_game.player_ship, g_game.rng);
+            if (act.actor->type == ActorType::Player)
+            {
+                ((Player*)act.actor)->is_aiming = false;
+            }
+        }
+        for (auto it = map.actors.begin(); it != map.actors.end();)
+        {
+            if ((*it)->dead)
+            {
+                ActorInfo& ai = g_game.reg.actor_info[int((*it)->type)];
+                auto tile_it = map.tiles.find((*it)->pos);
+                if (tile_it.found)
+                {
+                    TerrainInfo& ti = g_game.reg.terrain_info[(int)tile_it.value.terrain];
+                    if (ai.is_ground)
+                    {
+                        debug_assert(tile_it.value.ground == *it);
+                        tile_it.value.ground = nullptr;
+                    }
+                    else
+                    {
+                        debug_assert(tile_it.value.actor == *it);
+                        tile_it.value.actor = nullptr;
+                    }
+                }
+                delete* it;
+                it = map.actors.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+        map.turn++;
+        if (map.turn > g_game.last_universe_update + 10)
+        {
+            g_game.last_universe_update = map.turn;
+            g_game.universe->update(g_game.uplayer->pos);
+        }
+        g_game.player_ship->update();
     }
 
     g_game.uiterm->clear();
@@ -556,62 +562,44 @@ void updateGame()
         g_game.uiterm->fillText(vec2i(100, 9), vec2i(100, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, 9), vec2i(g_game.w * 2 - 1, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
 
-        std::vector<MainEngine*> engines;
-        Reactor* reactor = nullptr;
-        PilotSeat* pilot = nullptr;
-        std::vector<TorpedoLauncher*> torpedoes;
-        std::vector<PDC*> pdcs;
-        std::vector<Railgun*> railguns;
-        for (Actor* a : map.actors)
-        {
-            switch (a->type)
-            {
-            case ActorType::PilotSeat: pilot = (PilotSeat*)a; break;
-            case ActorType::Reactor: reactor = (Reactor*)a; break;
-            case ActorType::Engine: engines.push_back((MainEngine*)a); break;
-            case ActorType::TorpedoLauncher: torpedoes.push_back((TorpedoLauncher*)a); break;
-            case ActorType::PDC: pdcs.push_back((PDC*)a); break;
-            case ActorType::Railgun: railguns.push_back((Railgun*)a); break;
-            default: break;
-            }
-        }
+        Ship* ps = g_game.player_ship;
 
-        if (pilot)
+        if (ps->pilot)
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Pilot [%s]", ShipObjectStatus[int(pilot->status)]);
+            line_0.appendf("Pilot [%s]", ShipObjectStatus[int(ps->pilot->status)]);
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
-        if (reactor)
+        if (ps->reactor)
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Reactor [%s] %.0f%%", ShipObjectStatus[int(reactor->status)], reactor->power * 100);
+            line_0.appendf("Reactor [%s] %.0f%%", ShipObjectStatus[int(ps->reactor->status)], ps->reactor->power * 100);
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
-        for (MainEngine* e : engines)
+        for (MainEngine* e : ps->engines)
         {
             --y0;
             sstring line_0;
             line_0.appendf("Engine [%s] %.0f%%", ShipObjectStatus[int(e->status)], e->thrust * 100);
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
-        for (TorpedoLauncher* e : torpedoes)
+        for (TorpedoLauncher* e : ps->torpedoes)
         {
             --y0;
             sstring line_0;
             line_0.appendf("Torpedo: [%s] %d", ShipObjectStatus[int(e->status)], e->torpedoes);
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
-        for (PDC* e : pdcs)
+        for (PDC* e : ps->pdcs)
         {
             --y0;
             sstring line_0;
             line_0.appendf("Point Defence: [%s] %d", ShipObjectStatus[int(e->status)], e->rounds);
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
-        for (Railgun* e : railguns)
+        for (Railgun* e : ps->railguns)
         {
             --y0;
             sstring line_0;

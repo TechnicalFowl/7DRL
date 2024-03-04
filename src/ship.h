@@ -7,6 +7,13 @@
 struct Actor;
 struct Map;
 
+struct MainEngine;
+struct Reactor;
+struct PilotSeat;
+struct TorpedoLauncher;
+struct PDC;
+struct Railgun;
+
 enum class RoomType
 {
     Engine,
@@ -33,6 +40,13 @@ struct Ship
 {
     Map* map;
     std::vector<ShipRoom> rooms;
+
+    std::vector<MainEngine*> engines;
+    Reactor* reactor = nullptr;
+    PilotSeat* pilot = nullptr;
+    std::vector<TorpedoLauncher*> torpedoes;
+    std::vector<PDC*> pdcs;
+    std::vector<Railgun*> railguns;
 
     Ship(Map* map) : map(map) {}
 

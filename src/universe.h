@@ -71,8 +71,8 @@ struct UPlayer : UShip
 
 struct UTorpedo : UShip
 {
-    u32 target;
-    u32 source;
+    u32 target = 0;
+    u32 source = 0;
 
     UTorpedo(vec2i p) : UShip(UActorType::Torpedo, p) {}
 

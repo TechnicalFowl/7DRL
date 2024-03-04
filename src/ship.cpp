@@ -32,12 +32,10 @@ std::vector<ShipRoom*> Ship::getRooms(RoomType t)
 
 void Ship::update()
 {
-    std::vector<MainEngine*> engines;
-    Reactor* reactor = nullptr;
-    PilotSeat* pilot = nullptr;
-    std::vector<TorpedoLauncher*> torpedoes;
-    std::vector<PDC*> pdcs;
-    std::vector<Railgun*> railguns;
+    engines.clear();
+    pdcs.clear();
+    torpedoes.clear();
+    railguns.clear();
     for (Actor* a : map->actors)
     {
         switch (a->type)
