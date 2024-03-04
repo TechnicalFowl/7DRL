@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "vector_math.h"
 
 enum Direction : u8
@@ -36,3 +38,5 @@ char getDirectionCharacter(Direction dir);
 Direction getDirection(float rad);
 Direction getDirection(vec2i dir);
 Direction getDirection(vec2i from, vec2i to);
+
+std::vector<vec2i> findRay(vec2i from, vec2i to);

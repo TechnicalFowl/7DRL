@@ -9,6 +9,94 @@ bool isShipType(UActorType t)
     return t == UActorType::CargoShip || t == UActorType::Player || t == UActorType::Torpedo;
 }
 
+bool UShip::fireTorpedo(vec2i target)
+{
+    auto t = g_game.universe->actors.find(target);
+    if (t.found)
+    {
+        vec2i spawn_pos = pos;
+        if (vel.zero())
+            spawn_pos += vec2i(1, 0);
+        else
+            spawn_pos -= vel;
+
+        UTorpedo* torp = new UTorpedo(spawn_pos);
+        torp->source = id;
+        torp->target = t.value->id;
+        g_game.universe->spawn(torp);
+        if (this == g_game.uplayer) g_game.log.log("Torpedo launched.");
+        return true;
+    }
+    return false;
+}
+
+bool UShip::fireRailgun(vec2i target)
+{
+    pcg32& rng = g_game.universe->rng;
+    float firing_variance = scalar::PIf / 20;
+    bool hit_anything = false;
+    std::vector<vec2i> steps = findRay(pos, pos + (target - pos) * (100 / (target - pos).length()));
+    for (vec2i s: steps)
+    {
+        auto it = g_game.universe->actors.find(s);
+        if (it.found)
+        {
+            float distance = (pos - s).length();
+            float hit_chance = 1 / (firing_variance * distance);
+            bool solid_target = false;
+            switch (it.value->type)
+            {
+            case UActorType::Player:
+            {
+                if (rng.nextFloat() < hit_chance)
+                {
+                    g_game.log.log("Railgun impact.");
+                    solid_target = true;
+                }
+                else
+                {
+                    g_game.log.logf("Railgun near miss (%.0f%%).", hit_chance * 100);
+                }
+                hit_anything = true;
+            } break;
+            case UActorType::Asteroid:
+            {
+                solid_target = true;
+            } break;
+            case UActorType::CargoShip:
+            {
+                if (rng.nextFloat() < hit_chance)
+                {
+                    if (this == g_game.uplayer) g_game.log.logf("Target hit (%.0f%%).", hit_chance * 100);
+                    solid_target = true;
+                }
+                else
+                {
+                    if (this == g_game.uplayer) g_game.log.logf("Target missed (%.0f%%).", hit_chance * 100);
+                }
+                hit_anything = true;
+            } break;
+            case UActorType::Torpedo:
+            {
+                if (rng.nextFloat() < hit_chance * 0.25f)
+                {
+                    if (this == g_game.uplayer) g_game.log.logf("Torpedo shot down (%.0f%%).", hit_chance * 25);
+                }
+                else
+                {
+                    if (this == g_game.uplayer) g_game.log.logf("Torpedo missed (%.0f%%).", hit_chance * 25);
+                }
+                hit_anything = true;
+            } break;
+            }
+            if (solid_target) break;
+        }
+    }
+    if (!hit_anything && this == g_game.uplayer)
+        g_game.log.log("Target missed.");
+    return true;
+}
+
 void UCargoShip::update(pcg32& rng)
 {
     if (vel.length() < 2)
@@ -146,49 +234,19 @@ void Universe::move(UActor* a, vec2i d)
 {
     debug_assert(isShipType(a->type));
     bool target_occupied = actors.find(a->pos + d).found;
-
-    float x0 = a->pos.x + 0.5f;
-    float y0 = a->pos.y + 0.5f;
-    float x1 = a->pos.x + d.x + 0.5f;
-    float y1 = a->pos.y + d.y + 0.5f;
-
-    float dx = abs(x1 - x0);
-    float dy = abs(y1 - y0);
-
-    int x = a->pos.x;
-    int y = a->pos.y;
-    int lx = x;
-    int ly = y;
-
-    int n = scalar::floori(dx + dy);
-    int x_inc = (x1 > x0) ? 1 : -1;
-    int y_inc = (y1 > y0) ? 1 : -1;
-
-    float error = dx - dy;
-    dx *= 2;
-    dy *= 2;
+    std::vector<vec2i> steps = findRay(a->pos, a->pos + d);
     bool warned_this_step = false;
-    for (; n > 0; --n)
+    vec2i last = a->pos;
+    for (vec2i p: steps)
     {
-        if (error > 0)
-        {
-            x += x_inc;
-            error -= dy;
-        }
-        else
-        {
-            y += y_inc;
-            error += dx;
-        }
-
-        auto it = actors.find(vec2i(x, y));
+        auto it = actors.find(p);
         if (it.found)
         {
             UShip* pl = (UShip*) a;
             if (it.value->type == UActorType::Torpedo)
             {
                 UTorpedo* t = (UTorpedo*) it.value;
-                if (t->source != a->id || (x == a->pos.x + d.x && y == a->pos.y + d.y))
+                if (t->source != a->id || (p.x == a->pos.x + d.x && p.y == a->pos.y + d.y))
                 {
                     if (a == g_game.uplayer) g_game.log.log("Torpedo detonating on hull!");
                     else
@@ -208,7 +266,7 @@ void Universe::move(UActor* a, vec2i d)
             else if (a->type == UActorType::Torpedo)
             {
                 UTorpedo* at = (UTorpedo*) a;
-                if (at->source != it.value->id || (x == a->pos.x + d.x && y == a->pos.y + d.y))
+                if (at->source != it.value->id || (p.x == a->pos.x + d.x && p.y == a->pos.y + d.y))
                 {
                     if (it.value == g_game.uplayer) g_game.log.log("Torpedo detonating on hull!");
                     else
@@ -272,13 +330,12 @@ void Universe::move(UActor* a, vec2i d)
                 break;
             }
         }
-        lx = x;
-        ly = y;
+        last = p;
     }
-    if (a->pos != vec2i(lx, ly))
+    if (a->pos != last)
     {
         actors.erase(a->pos);
-        a->pos = vec2i(lx, ly);
+        a->pos = last;
         actors.insert(a->pos, a);
     }
 }

@@ -336,25 +336,27 @@ void updateGame()
         }
         if (input_key_pressed(GLFW_KEY_Z))
         {
+            g_game.uplayer->is_aiming = false;
+            if (g_game.uplayer->is_aiming_railgun)
+            {
+                vec2i target = universe_mouse_pos();
+                if (g_game.uplayer->fireRailgun(target))
+                    do_turn = true;
+                g_game.uplayer->is_aiming_railgun = false;
+            }
+            else
+            {
+                g_game.uplayer->is_aiming_railgun = true;
+            }
+        }
+        if (input_key_pressed(GLFW_KEY_F))
+        {
+            g_game.uplayer->is_aiming_railgun = false;
             if (g_game.uplayer->is_aiming)
             {
                 vec2i target = universe_mouse_pos();
-                auto t = g_game.universe->actors.find(target);
-                if (t.found)
-                {
+                if (g_game.uplayer->fireTorpedo(target))
                     do_turn = true;
-                    vec2i spawn_pos = g_game.uplayer->pos;
-                    if (g_game.uplayer->vel.zero())
-                        spawn_pos += vec2i(1, 0);
-                    else
-                        spawn_pos -= g_game.uplayer->vel;
-
-                    UTorpedo* torp = new UTorpedo(spawn_pos);
-                    torp->source = g_game.uplayer->id;
-                    torp->target = t.value->id;
-                    g_game.universe->spawn(torp);
-                    g_game.log.log("Torpedo launched.");
-                }
                 g_game.uplayer->is_aiming = false;
             }
             else
@@ -367,23 +369,16 @@ void updateGame()
             if (g_game.uplayer->is_aiming)
             {
                 vec2i target = universe_mouse_pos();
-                auto t = g_game.universe->actors.find(target);
-                if (t.found)
-                {
+                if (g_game.uplayer->fireTorpedo(target))
                     do_turn = true;
-                    vec2i spawn_pos = g_game.uplayer->pos;
-                    if (g_game.uplayer->vel.zero())
-                        spawn_pos += vec2i(1, 0);
-                    else
-                        spawn_pos -= g_game.uplayer->vel;
-
-                    UTorpedo* torp = new UTorpedo(spawn_pos);
-                    torp->source = g_game.uplayer->id;
-                    torp->target = t.value->id;
-                    g_game.universe->spawn(torp);
-                    g_game.log.log("Torpedo launched.");
-                }
                 g_game.uplayer->is_aiming = false;
+            }
+            else if (g_game.uplayer->is_aiming_railgun)
+            {
+                vec2i target = universe_mouse_pos();
+                if (g_game.uplayer->fireRailgun(target))
+                    do_turn = true;
+                g_game.uplayer->is_aiming_railgun = false;
             }
         }
 
@@ -486,11 +481,22 @@ void updateGame()
         }
     }
 #endif
-    if (g_game.show_universe && g_game.uplayer->is_aiming)
+    if (g_game.show_universe)
     {
-        vec2i mouse_pos = game_mouse_pos();
-        vec2i bl = map.player->pos - vec2i(25, 22);
-        g_game.mapterm->setOverlay(mouse_pos - bl, 0x8000FF00, LayerPriority_Overlay);
+        if (g_game.uplayer->is_aiming)
+        {
+            vec2i mouse_pos = universe_mouse_pos();
+            vec2i bl = g_game.uplayer->pos - vec2i(25, 22);
+            g_game.mapterm->setOverlay(mouse_pos - bl, 0x8000FF00, LayerPriority_Overlay);
+        }
+        else if (g_game.uplayer->is_aiming_railgun)
+        {
+            vec2i mouse_pos = universe_mouse_pos();
+            vec2i bl = g_game.uplayer->pos - vec2i(25, 22);
+            std::vector<vec2i> steps = findRay(g_game.uplayer->pos, mouse_pos);
+            for (vec2i s: steps)
+                g_game.mapterm->setOverlay(s - bl, 0x8080FF00, LayerPriority_Overlay);
+        }
     }
 
     sstring top_bar;

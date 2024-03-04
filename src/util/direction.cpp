@@ -178,3 +178,42 @@ Direction getDirection(vec2i from, vec2i to)
 {
     return getDirection(to - from);
 }
+
+std::vector<vec2i> findRay(vec2i from, vec2i to)
+{
+    float x0 = from.x + 0.5f;
+    float y0 = from.y + 0.5f;
+    float x1 = to.x + 0.5f;
+    float y1 = to.y + 0.5f;
+
+    float dx = abs(x1 - x0);
+    float dy = abs(y1 - y0);
+
+    int x = scalar::floori(x0);
+    int y = scalar::floori(y0);
+
+    int n = scalar::floori(dx + dy);
+    int x_inc = (x1 > x0) ? 1 : -1;
+    int y_inc = (y1 > y0) ? 1 : -1;
+
+    float error = dx - dy;
+    dx *= 2;
+    dy *= 2;
+
+    std::vector<vec2i> result;
+    for (; n > 0; --n)
+    {
+        if (error > 0)
+        {
+            x += x_inc;
+            error -= dy;
+        }
+        else
+        {
+            y += y_inc;
+            error += dx;
+        }
+        result.push_back(vec2i(x, y));
+    }
+    return result;
+}

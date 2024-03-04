@@ -46,6 +46,9 @@ struct UShip : UActor
     Ship* ship = nullptr;
 
     UShip(UActorType t, vec2i p) : UActor(t, p) {}
+
+    bool fireTorpedo(vec2i target);
+    bool fireRailgun(vec2i target);
 };
 
 struct UCargoShip : UShip
@@ -61,6 +64,7 @@ struct UCargoShip : UShip
 struct UPlayer : UShip
 {
     bool is_aiming = false;
+    bool is_aiming_railgun = false;
 
     UPlayer(vec2i p) : UShip(UActorType::Player, p) {}
 
