@@ -13,10 +13,12 @@ enum class UActorType
     Player,
     Asteroid,
     CargoShip,
+    Torpedo,
 };
 
 struct UActor
 {
+    u32 id;
     UActorType type;
     vec2i pos;
 
@@ -58,6 +60,7 @@ struct UCargoShip : UShip
 
 struct UPlayer : UShip
 {
+    bool is_aiming = false;
 
     UPlayer(vec2i p) : UShip(UActorType::Player, p) {}
 
@@ -66,13 +69,27 @@ struct UPlayer : UShip
     void render(TextBuffer& buffer, vec2i origin) override;
 };
 
+struct UTorpedo : UShip
+{
+    u32 target;
+    u32 source;
+
+    UTorpedo(vec2i p) : UShip(UActorType::Torpedo, p) {}
+
+    void update(pcg32& rng) override;
+
+    void render(TextBuffer& buffer, vec2i origin) override;
+};
+
 struct Universe
 {
+    linear_map<u32, UActor*> actor_ids;
     linear_map<vec2i, UActor*> actors;
     linear_map<vec2i, bool> regions_generated;
 
     pcg32 rng;
     int universe_ticks = 0;
+    u32 next_actor = 1;
 
     bool hasActor(vec2i p) { return actors.find(p).found; }
 

@@ -4,6 +4,11 @@
 
 #include "game.h"
 
+bool isShipType(UActorType t)
+{
+    return t == UActorType::CargoShip || t == UActorType::Player || t == UActorType::Torpedo;
+}
+
 void UCargoShip::update(pcg32& rng)
 {
     if (vel.length() < 2)
@@ -35,6 +40,18 @@ void UCargoShip::render(TextBuffer& buffer, vec2i origin)
 
 void UPlayer::update(pcg32& rng)
 {
+    float speed = vel.length();
+    if (speed > 0)
+    {
+        for (int i = 1; i <= 2; ++i)
+        {
+            if (g_game.universe->hasActor(pos + vel * i))
+            {
+                g_game.log.log("Proximity alert");
+                break;
+            }
+        }
+    }
 }
 
 void UPlayer::render(TextBuffer& buffer, vec2i origin)
@@ -43,6 +60,47 @@ void UPlayer::render(TextBuffer& buffer, vec2i origin)
     if (!vel.zero())
     {
         buffer.setOverlay((pos + vel) - origin, 0x8000FF00, LayerPriority_Overlay);
+    }
+}
+
+void UTorpedo::update(pcg32& rng)
+{
+    auto it = g_game.universe->actor_ids.find(target);
+    if (!it.found)
+    {
+        if (source == g_game.uplayer->id)
+            g_game.log.log("Torpedo has self-destructed as it's target was lost.");
+        dead = true;
+        return;
+    }
+    debug_assert(isShipType(it.value->type));
+    UShip* target = (UShip*) it.value;
+    float speed = vel.length();
+    vec2i dist = (target->pos + target->vel) - pos;
+
+    int slowdown_x = (abs(vel.x) * (abs(vel.x) + 1)) / 2;
+    if ((vel.x < 0) != (dist.x < 0))
+        vel.x += (dist.x < 0) ? -1 : 1;
+    else if (dist.y != 0 && abs(dist.x) <= slowdown_x)
+        vel.x += (vel.x < 0) ? 1 : -1;
+    else if (abs(dist.x) > slowdown_x)
+        vel.x += (vel.x < 0) ? -1 : 1;
+
+    int slowdown_y = (abs(vel.y) * (abs(vel.y) + 1)) / 2;
+    if ((vel.y < 0) != (dist.y < 0))
+        vel.y += (dist.y < 0) ? -1 : 1;
+    else if (dist.x != 0 && abs(dist.y) <= slowdown_y)
+        vel.y += (vel.y < 0) ? 1 : -1;
+    else if (abs(dist.y) > slowdown_y + abs(vel.y))
+        vel.y += (vel.y < 0) ? -1 : 1;
+}
+
+void UTorpedo::render(TextBuffer& buffer, vec2i origin)
+{
+    buffer.setTile(pos - origin, '!', 0xFFFFFFFF, LayerPriority_Actors);
+    if (!vel.zero())
+    {
+        buffer.setOverlay((pos + vel) - origin, 0x80FFFF00, LayerPriority_Overlay);
     }
 }
 
@@ -86,7 +144,7 @@ vec2i getOffset(int& i, int& x, int& y)
 
 void Universe::move(UActor* a, vec2i d)
 {
-    debug_assert(a->type == UActorType::Player || a->type == UActorType::CargoShip);
+    debug_assert(isShipType(a->type));
     bool target_occupied = actors.find(a->pos + d).found;
 
     float x0 = a->pos.x + 0.5f;
@@ -126,8 +184,48 @@ void Universe::move(UActor* a, vec2i d)
         auto it = actors.find(vec2i(x, y));
         if (it.found)
         {
-            UShip* pl = (UShip*)a;
-            if (pl->vel.length() > 6)
+            UShip* pl = (UShip*) a;
+            if (it.value->type == UActorType::Torpedo)
+            {
+                UTorpedo* t = (UTorpedo*) it.value;
+                if (t->source != a->id || (x == a->pos.x + d.x && y == a->pos.y + d.y))
+                {
+                    if (a == g_game.uplayer) g_game.log.log("Torpedo detonating on hull!");
+                    else
+                    {
+                        if (t->source == g_game.uplayer->id)
+                        {
+                            if (t->target == a->id)
+                                g_game.log.log("Target ship destroyed");
+                            else
+                                g_game.log.log("Unknown ship destroyed");
+                        }
+                        a->dead = true;
+                    }
+                    t->dead = true;
+                }
+            }
+            else if (a->type == UActorType::Torpedo)
+            {
+                UTorpedo* at = (UTorpedo*) a;
+                if (at->source != it.value->id || (x == a->pos.x + d.x && y == a->pos.y + d.y))
+                {
+                    if (it.value == g_game.uplayer) g_game.log.log("Torpedo detonating on hull!");
+                    else
+                    {
+                        if (at->source == g_game.uplayer->id)
+                        {
+                            if (at->target == it.value->id)
+                                g_game.log.log("Target ship destroyed");
+                            else
+                                g_game.log.log("Unknown ship destroyed");
+                        }
+                        it.value->dead = true;
+                    }
+                    at->dead = true;
+                }
+            }
+            else if (pl->vel.length() > 6)
             {
                 if (a == g_game.uplayer)
                 {
@@ -172,7 +270,7 @@ void Universe::move(UActor* a, vec2i d)
                 }
                 pl->vel = vec2i(0, 0);
                 break;
-                }
+            }
         }
         lx = x;
         ly = y;
@@ -216,6 +314,8 @@ void Universe::spawn(UActor* a)
                 actors.insert(p, (UActor*)ast);
         }
     }
+    a->id = next_actor++;
+    actor_ids.insert(a->id, a);
 }
 
 void Universe::update(vec2i origin)
@@ -284,7 +384,7 @@ void Universe::update(vec2i origin)
         {
             to_remove.push_back(a);
         }
-        else if (a->type == UActorType::Player || a->type == UActorType::CargoShip)
+        else if (isShipType(a->type))
         {
             moved.push_back((UShip*) a);
         }
@@ -303,6 +403,7 @@ void Universe::update(vec2i origin)
     for (UActor* a : to_remove)
     {
         actors.erase(a->pos);
+        actor_ids.erase(a->id);
         if (a->type == UActorType::Asteroid)
         {
             // Remove proxies
@@ -328,9 +429,9 @@ void Universe::render(TextBuffer& buffer, vec2i origin)
     vec2i bl = origin - vec2i(25, 22);
     for (auto it : actors)
     {
-        if (it.value->pos != it.key)
-            buffer.setBg(it.key - bl, 0xFF303030, LayerPriority_Background);
-        else
+        if (it.value->pos == it.key)
             it.value->render(buffer, bl);
+        // else
+        //    buffer.setBg(it.key - bl, 0xFF303030, LayerPriority_Background);
     }
 }

@@ -155,6 +155,13 @@ vec2i game_mouse_pos()
     return vec2i(scalar::floori(mouse_posf.x), scalar::floori(g_game.mapterm->h - mouse_posf.y)) + bl;
 }
 
+vec2i universe_mouse_pos()
+{
+    vec2i bl = g_game.uplayer->pos - vec2i(25, 22);
+    vec2f mouse_posf = g_window.inputs.mouse_pos / 16;
+    return vec2i(scalar::floori(mouse_posf.x), scalar::floori(g_game.mapterm->h - mouse_posf.y)) + bl;
+}
+
 vec2f screen_mouse_pos()
 {
     vec2f mouse_posf = g_window.inputs.mouse_pos / 16;
@@ -198,7 +205,6 @@ void updateGame()
     }
 
     Map& map = *g_game.current_level;
-    vec2i mouse_pos = game_mouse_pos();
 
     if (g_game.console_input_displayed)
     {
@@ -381,6 +387,58 @@ void updateGame()
         {
             g_game.transition = 1.0f;
         }
+        if (input_key_pressed(GLFW_KEY_Z))
+        {
+            if (g_game.uplayer->is_aiming)
+            {
+                vec2i target = universe_mouse_pos();
+                auto t = g_game.universe->actors.find(target);
+                if (t.found)
+                {
+                    do_turn = true;
+                    vec2i spawn_pos = g_game.uplayer->pos;
+                    if (g_game.uplayer->vel.zero())
+                        spawn_pos += vec2i(1, 0);
+                    else
+                        spawn_pos -= g_game.uplayer->vel;
+
+                    UTorpedo* torp = new UTorpedo(spawn_pos);
+                    torp->source = g_game.uplayer->id;
+                    torp->target = t.value->id;
+                    g_game.universe->spawn(torp);
+                    g_game.log.log("Torpedo launched.");
+                }
+                g_game.uplayer->is_aiming = false;
+            }
+            else
+            {
+                g_game.uplayer->is_aiming = true;
+            }
+        }
+        if (input_mouse_button_pressed(GLFW_MOUSE_BUTTON_1))
+        {
+            if (g_game.uplayer->is_aiming)
+            {
+                vec2i target = universe_mouse_pos();
+                auto t = g_game.universe->actors.find(target);
+                if (t.found)
+                {
+                    do_turn = true;
+                    vec2i spawn_pos = g_game.uplayer->pos;
+                    if (g_game.uplayer->vel.zero())
+                        spawn_pos += vec2i(1, 0);
+                    else
+                        spawn_pos -= g_game.uplayer->vel;
+
+                    UTorpedo* torp = new UTorpedo(spawn_pos);
+                    torp->source = g_game.uplayer->id;
+                    torp->target = t.value->id;
+                    g_game.universe->spawn(torp);
+                    g_game.log.log("Torpedo launched.");
+                }
+                g_game.uplayer->is_aiming = false;
+            }
+        }
 
         if (g_window.inputs.scroll.y != 0)
         {
@@ -410,9 +468,8 @@ void updateGame()
     {
         g_game.term->setBg(p - bl, 0xFFFF00FF, LayerPriority_Debug);
     }
-#endif
 
-    if (map.player->is_aiming)
+    if (!g_game.show_universe && map.player->is_aiming)
     {
         vec2i bl = map.player->pos - vec2i(25, 22);
         auto path = map.findRay(map.player->pos, mouse_pos);
@@ -422,9 +479,25 @@ void updateGame()
             g_game.mapterm->setOverlay(p - bl, 0x8000FF00, LayerPriority_Overlay);
         }
     }
+#endif
+    if (g_game.show_universe && g_game.uplayer->is_aiming)
+    {
+        vec2i mouse_pos = game_mouse_pos();
+        vec2i bl = map.player->pos - vec2i(25, 22);
+        g_game.mapterm->setOverlay(mouse_pos - bl, 0x8000FF00, LayerPriority_Overlay);
+    }
 
     sstring top_bar;
-    top_bar.appendf("Mx: %d %d Px: %d %d", mouse_pos.x, mouse_pos.y, map.player->pos.x, map.player->pos.y);
+    if (g_game.show_universe)
+    {
+        vec2i mouse_pos = game_mouse_pos();
+        top_bar.appendf("Mx: %d %d Px: %d %d", mouse_pos.x, mouse_pos.y, map.player->pos.x, map.player->pos.y);
+    }
+    else
+    {
+        vec2i mouse_pos = universe_mouse_pos();
+        top_bar.appendf("Mx: %d %d Px: %d %d", mouse_pos.x, mouse_pos.y, g_game.uplayer->pos.x, g_game.uplayer->pos.y);
+    }
     g_game.uiterm->fillBg(vec2i(0, g_game.h - 1), vec2i(49, g_game.h - 1), 0xFF101010, LayerPriority_UI - 1);
     g_game.uiterm->write(vec2i(2, g_game.h - 1), top_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
 
