@@ -10,8 +10,11 @@ void UPlayer::update()
 
 void UPlayer::render(TextBuffer& buffer, vec2i origin)
 {
-
     buffer.setTile(pos - origin, '@', 0xFFFFFFFF, LayerPriority_Actors);
+    if (!vel.zero())
+    {
+        buffer.setOverlay((pos + vel) - origin, 0x8000FF00, LayerPriority_Actors);
+    }
 }
 
 void UAsteroid::render(TextBuffer& buffer, vec2i origin)
