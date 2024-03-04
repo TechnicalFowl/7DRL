@@ -70,6 +70,23 @@ struct ProjectileAnimation : Animation
 
 char getProjectileCharacter(Direction dir);
 
+struct RailgunAnimation : Animation
+{
+    vec2i from, to;
+    u32 color;
+    int character;
+
+    vec2i last;
+
+    std::vector<vec2i> points;
+    std::vector<vec2i> hits;
+    std::vector<vec2i> misses;
+
+    RailgunAnimation(u32 color, int c);
+
+    bool draw() override;
+};
+
 struct Modal
 {
     vec2i pos, size;

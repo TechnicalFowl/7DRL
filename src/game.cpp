@@ -83,6 +83,40 @@ bool ProjectileAnimation::draw()
     return !points.empty();
 }
 
+RailgunAnimation::RailgunAnimation(u32 color, int c)
+    : color(color), character(c)
+{
+}
+
+bool RailgunAnimation::draw()
+{
+    vec2i bl = g_game.uplayer->pos - vec2i(25, 22);
+    if (!hits.empty() && hits[0] == last)
+    {
+        g_game.mapterm->setTile(hits[0] - bl, 'X', 0xFFFF0000, LayerPriority_Particles + 1);
+        hits.erase(hits.begin());
+    }
+    else if (!misses.empty() && misses[0] == last)
+    {
+        g_game.mapterm->setTile(misses[0] - bl, 'X', 0xFFFFFFFF, LayerPriority_Particles + 1);
+        misses.erase(misses.begin());
+    }
+
+    if (points.empty())
+        return false;
+
+    vec2i p = points[0] - bl;
+    if (p.x < -2 || p.y < -2 || p.x >= g_game.w + 2 || p.y >= g_game.h + 2)
+    {
+        points.clear();
+        return false;
+    }
+    g_game.mapterm->setTile(p, character, color, LayerPriority_Particles);
+    last = points[0];
+    points.erase(points.begin());
+    return !points.empty() || !misses.empty() || !hits.empty();
+}
+
 struct TestModal : Modal
 {
     TestModal(): Modal(vec2i(4, 10), vec2i(30, 10), "Test Modal") {}
@@ -307,7 +341,7 @@ void updateGame()
         if (!g_game.animations.empty())
             do_map_turn = false;
     }
-    else if (!g_game.modal && g_game.show_universe && g_game.transition == 0)
+    else if (!g_game.modal && g_game.show_universe && g_game.transition == 0 && g_game.uanimations.empty())
     {
         bool do_turn = false;
         if (input_key_pressed(GLFW_KEY_UP))
@@ -392,7 +426,7 @@ void updateGame()
             }
         }
 
-        if (g_game.uanimations.empty() && do_turn)
+        if (do_turn)
         {
             do_map_turn = true;
             g_game.last_universe_update = map.turn;
@@ -634,14 +668,30 @@ void updateGame()
             g_game.modal = nullptr;
         }
     }
-
-    for (auto it = g_game.animations.begin(); it != g_game.animations.end();)
+    if (g_game.transition == 0)
     {
-        Animation* a = *it;
-        if (!a->draw())
-            it = g_game.animations.erase(it);
+        if (g_game.show_universe)
+        {
+            for (auto it = g_game.uanimations.begin(); it != g_game.uanimations.end();)
+            {
+                Animation* a = *it;
+                if (!a->draw())
+                    it = g_game.uanimations.erase(it);
+                else
+                    ++it;
+            }
+        }
         else
-            ++it;
+        {
+            for (auto it = g_game.animations.begin(); it != g_game.animations.end();)
+            {
+                Animation* a = *it;
+                if (!a->draw())
+                    it = g_game.animations.erase(it);
+                else
+                    ++it;
+            }
+        }
     }
 
     if (g_game.transition > 0)

@@ -36,8 +36,10 @@ bool UShip::fireRailgun(vec2i target)
     float firing_variance = scalar::PIf / 20;
     bool hit_anything = false;
     std::vector<vec2i> steps = findRay(pos, pos + (target - pos) * (100 / (target - pos).length()));
+    RailgunAnimation* anim = new RailgunAnimation(0xFFFFFFFF, getProjectileCharacter(getDirection(pos, target)));
     for (vec2i s: steps)
     {
+        anim->points.push_back(s);
         auto it = g_game.universe->actors.find(s);
         if (it.found)
         {
@@ -52,15 +54,18 @@ bool UShip::fireRailgun(vec2i target)
                 {
                     g_game.log.log("Railgun impact.");
                     solid_target = true;
+                    anim->hits.push_back(s);
                 }
                 else
                 {
                     g_game.log.logf("Railgun near miss (%.0f%%).", hit_chance * 100);
+                    anim->misses.push_back(s);
                 }
                 hit_anything = true;
             } break;
             case UActorType::Asteroid:
             {
+                anim->misses.push_back(s);
                 solid_target = true;
             } break;
             case UActorType::CargoShip:
@@ -69,10 +74,12 @@ bool UShip::fireRailgun(vec2i target)
                 {
                     if (this == g_game.uplayer) g_game.log.logf("Target hit (%.0f%%).", hit_chance * 100);
                     solid_target = true;
+                    anim->hits.push_back(s);
                 }
                 else
                 {
                     if (this == g_game.uplayer) g_game.log.logf("Target missed (%.0f%%).", hit_chance * 100);
+                    anim->misses.push_back(s);
                 }
                 hit_anything = true;
             } break;
@@ -81,19 +88,23 @@ bool UShip::fireRailgun(vec2i target)
                 if (rng.nextFloat() < hit_chance * 0.25f)
                 {
                     if (this == g_game.uplayer) g_game.log.logf("Torpedo shot down (%.0f%%).", hit_chance * 25);
+                    anim->hits.push_back(s);
                 }
                 else
                 {
                     if (this == g_game.uplayer) g_game.log.logf("Torpedo missed (%.0f%%).", hit_chance * 25);
+                    anim->misses.push_back(s);
                 }
                 hit_anything = true;
             } break;
             }
             if (solid_target) break;
         }
+
     }
     if (!hit_anything && this == g_game.uplayer)
         g_game.log.log("Target missed.");
+    g_game.uanimations.push_back(anim);
     return true;
 }
 
