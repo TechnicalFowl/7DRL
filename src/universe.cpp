@@ -6,8 +6,6 @@
 
 void UPlayer::update()
 {
-
-    pos += vel;
 }
 
 void UPlayer::render(TextBuffer& buffer, vec2i origin)
@@ -54,44 +52,116 @@ vec2i getOffset(int& i, int& x, int& y)
     }
 }
 
-void Universe::move(vec2i pos, UActor* a)
+void Universe::move(UActor* a, vec2i d)
 {
-    vec2i p = pos;
-    int i = 0;
-    int x = 0;
-    int y = 0;
-    while (actors.find(p).found)
+    bool target_occupied = actors.find(a->pos + d).found;
+
+    float x0 = a->pos.x + 0.5f;
+    float y0 = a->pos.y + 0.5f;
+    float x1 = a->pos.x + d.x + 0.5f;
+    float y1 = a->pos.y + d.y + 0.5f;
+
+    float dx = abs(x1 - x0);
+    float dy = abs(y1 - y0);
+
+    int x = a->pos.x;
+    int y = a->pos.y;
+    int lx = x;
+    int ly = y;
+
+    int n = scalar::floori(dx + dy);
+    int x_inc = (x1 > x0) ? 1 : -1;
+    int y_inc = (y1 > y0) ? 1 : -1;
+
+    float error = dx - dy;
+    dx *= 2;
+    dy *= 2;
+    bool warned_this_step = false;
+    for (; n > 0; --n)
     {
-        p = pos + getOffset(i, x, y);
-    }
-    actors.insert(p, a);
-    a->pos = p;
-    if (p != pos && a->type == UActorType::Player)
-    {
-        auto hit = actors.find(pos);
-        debug_assert(hit.found);
-        if (hit.value->type == UActorType::Asteroid && ((UPlayer*) a)->vel.length() > 2)
+        if (error > 0)
         {
-            g_game.log.log("Impact alert!");
-            // TODO: damage ship from asteroid hit
-        }
-        else if (((UPlayer*)a)->vel.length() > 6)
-        {
-            g_game.log.log("You crash your ship at such a speed that there is only dust left from the impact.");
-            g_game.log.log("");
-            g_game.log.log("Game over.");
-            g_game.state = GameState::GameOver;
+            x += x_inc;
+            error -= dy;
         }
         else
         {
-            g_game.log.log("Collision avoidance activated!");
+            y += y_inc;
+            error += dx;
         }
+
+        auto it = actors.find(vec2i(x, y));
+        if (it.found)
+        {
+            if (a->type == UActorType::Player)
+            {
+                UPlayer* pl = (UPlayer*)a;
+                if (pl->vel.length() > 6)
+                {
+                    g_game.log.log("You crash your ship at such a speed that there is only dust left from the impact.");
+                    g_game.log.log("");
+                    g_game.log.log("Game over.");
+                    g_game.state = GameState::GameOver;
+                    return;
+                }
+                else if (it.value->type == UActorType::Asteroid)
+                {
+                    if (pl->vel.length() > 2)
+                    {
+                        g_game.log.log("Impact alert!");
+                        // TODO: damage ship from asteroid hit
+                    }
+                    else if (!warned_this_step)
+                    {
+                        g_game.log.log("Collision avoidance activated!");
+                        warned_this_step = true;
+                    }
+                    pl->vel = vec2i(0, 0);
+                    break;
+                }
+                else if (!target_occupied)
+                {
+                    if (!warned_this_step)
+                    {
+                        g_game.log.log("Collision avoidance activated!");
+                        warned_this_step = true;
+                    }
+                }
+                else
+                {
+                    if (!warned_this_step)
+                    {
+                        g_game.log.log("Collision avoidance activated!");
+                        warned_this_step = true;
+                    }
+                    pl->vel = vec2i(0, 0);
+                    break;
+                }
+            }
+        }
+        lx = x;
+        ly = y;
+    }
+    if (a->pos != vec2i(lx, ly))
+    {
+        actors.erase(a->pos);
+        a->pos = vec2i(lx, ly);
+        actors.insert(a->pos, a);
     }
 }
 
 void Universe::spawn(UActor* a)
 {
-    move(a->pos, a);
+    vec2i p = a->pos;
+    int i = 0;
+    int x = 0;
+    int y = 0;
+    while (actors.find(p).found)
+    {
+        p = a->pos + getOffset(i, x, y);
+    }
+    actors.insert(p, a);
+    a->pos = p;
 
     if (a->type == UActorType::Asteroid)
     {
@@ -155,7 +225,6 @@ void Universe::update(vec2i origin)
 
     std::vector<UActor*> moved;
     std::vector<UActor*> too_far;
-    std::vector<vec2i> moved_last_pos;
     for (auto it : actors)
     {
         UActor* a = it.value;
@@ -167,10 +236,9 @@ void Universe::update(vec2i origin)
         }
         a->update();
 
-        if (a->pos != it.key)
+        if (a->type == UActorType::Player)
         {
             moved.push_back(a);
-            moved_last_pos.push_back(it.key);
         }
     }
     for (UActor* a : too_far)
@@ -197,8 +265,20 @@ void Universe::update(vec2i origin)
     int i = 0;
     for (UActor* a : moved)
     {
-        actors.erase(moved_last_pos[i++]);
-        move(a->pos, a);
+        switch (a->type)
+        {
+        case UActorType::Player:
+        {
+            UPlayer* pl = (UPlayer*) a;
+            if (!pl->vel.zero())
+            {
+                move(a, pl->vel);
+            }
+        } break;
+        default:
+            debug_assert(false);
+            break;
+        }
     }
 }
 

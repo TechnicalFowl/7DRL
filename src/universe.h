@@ -60,7 +60,7 @@ struct Universe
 
     pcg32 rng;
 
-    void move(vec2i p, UActor* a);
+    void move(UActor* a, vec2i d);
     void spawn(UActor* a);
 
     void update(vec2i origin);
