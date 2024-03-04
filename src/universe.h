@@ -27,7 +27,6 @@ struct UActor
 
 struct UAsteroid : UActor
 {
-
     float sfreq = 0.5f;
     float radius = 2.0f;
 

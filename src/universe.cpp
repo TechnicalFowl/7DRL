@@ -70,6 +70,25 @@ void Universe::move(vec2i pos, UActor* a)
 void Universe::spawn(UActor* a)
 {
     move(a->pos, a);
+
+    if (a->type == UActorType::Asteroid)
+    {
+        UAsteroid* ast = (UAsteroid*)a;
+        float step = scalar::PIf / (4 * ast->radius);
+        for (float a = 0; a + step / 2 < scalar::PIf * 2; a += step)
+        {
+            float r = (ast->radius + cos(a * 1.2 + ast->sfreq) * ast->radius);
+            vec2i p = ast->pos + vec2i((int)round(cos(a) * r), (int)round(sin(a) * r));
+            for (int r0 = 0; r0 < r; ++r0)
+            {
+                vec2i p0 = ast->pos + vec2i((int)round(cos(a) * r0), (int)round(sin(a) * r0));
+                if (actors.find(p0).found) continue;
+                actors.insert(p0, (UActor*) ast);
+            }
+            if (!actors.find(p).found)
+                actors.insert(p, (UActor*)ast);
+        }
+    }
 }
 
 void Universe::update(vec2i origin)
@@ -97,7 +116,7 @@ void Universe::update(vec2i origin)
                 {
                     for (int x0 = 0; x0 < 4; ++x0)
                     {
-                        if (rng.nextFloat() < 0.1f)
+                        if (rng.nextFloat() < 0.05f)
                         {
                             UAsteroid* a = new UAsteroid(vec2i((rx << 5) + (x0 << 3), (ry << 5) + (y0 << 3)));
                             a->sfreq = rng.nextFloat() * 10;
@@ -118,6 +137,7 @@ void Universe::update(vec2i origin)
     for (auto it : actors)
     {
         UActor* a = it.value;
+        if (a->pos != it.key) continue; // Proxy actor
         if ((a->pos - origin).length() > 160.0f)
         {
             too_far.push_back(a);
@@ -134,6 +154,22 @@ void Universe::update(vec2i origin)
     for (UActor* a : too_far)
     {
         actors.erase(a->pos);
+        if (a->type == UActorType::Asteroid)
+        {
+            // Remove proxies
+            UAsteroid* ast = (UAsteroid*)a;
+            float r2 = ast->radius;
+            for (int y = -r2; y <= r2; ++y)
+            {
+                for (int x = -r2; x <= r2; ++x)
+                {
+                    vec2i p = a->pos + vec2i(x, y);
+                    auto it = actors.find(p);
+                    if (it.found && it.value == a)
+                        actors.erase(p);
+                }
+            }
+        }
         delete a;
     }
     int i = 0;
@@ -149,6 +185,7 @@ void Universe::render(TextBuffer& buffer, vec2i origin)
     vec2i bl = origin - vec2i(25, 22);
     for (auto it : actors)
     {
+        if (it.value->pos != it.key) continue; // Proxy actor
         it.value->render(buffer, bl);
     }
 }
