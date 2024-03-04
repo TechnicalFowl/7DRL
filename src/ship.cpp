@@ -50,6 +50,16 @@ void Ship::update()
         }
     }
 
+    for (TorpedoLauncher* t : torpedoes)
+    {
+        if (t->status != ShipObject::Status::Active) continue;
+        if (t->charge_time > 0) t->charge_time--;
+    }
+    for (Railgun* t : railguns)
+    {
+        if (t->status != ShipObject::Status::Active) continue;
+        if (t->charge_time > 0) t->charge_time--;
+    }
 }
 
 std::vector<Actor*> findDoors(Ship* ship, vec2i p)

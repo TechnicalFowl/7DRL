@@ -2,7 +2,9 @@
 
 #include <vector>
 
+#include "actor.h"
 #include "game.h"
+#include "ship.h"
 
 bool isShipType(UActorType t)
 {
@@ -14,6 +16,27 @@ bool UShip::fireTorpedo(vec2i target)
     auto t = g_game.universe->actors.find(target);
     if (t.found)
     {
+        bool found_weapon = false;
+        for (TorpedoLauncher* r : ship->torpedoes)
+        {
+            if (r->status != ShipObject::Status::Active) continue;
+            if (r->charge_time == 0 && r->torpedoes > 0)
+            {
+                found_weapon = true;
+                r->torpedoes--;
+                r->charge_time = 4;
+                break;
+            }
+        }
+        if (!found_weapon)
+        {
+            if (this == g_game.uplayer)
+            {
+                g_game.log.log("No Torpedo Launchers available.");
+            }
+            return false;
+        }
+
         vec2i spawn_pos = pos;
         if (vel.zero())
             spawn_pos += vec2i(1, 0);
@@ -32,6 +55,27 @@ bool UShip::fireTorpedo(vec2i target)
 
 bool UShip::fireRailgun(vec2i target)
 {
+    bool found_weapon = false;
+    for (Railgun* r : ship->railguns)
+    {
+        if (r->status != ShipObject::Status::Active) continue;
+        if (r->charge_time == 0 && r->rounds > 0)
+        {
+            found_weapon = true;
+            r->rounds--;
+            r->charge_time = 4;
+            break;
+        }
+    }
+    if (!found_weapon)
+    {
+        if (this == g_game.uplayer)
+        {
+            g_game.log.log("No railguns available.");
+        }
+        return false;
+    }
+
     pcg32& rng = g_game.universe->rng;
     float firing_variance = scalar::PIf / 20;
     bool hit_anything = false;

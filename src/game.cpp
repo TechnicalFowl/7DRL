@@ -615,35 +615,55 @@ void updateGame()
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Reactor [%s] %.0f%%", ShipObjectStatus[int(ps->reactor->status)], ps->reactor->power * 100);
+            line_0.appendf("Reactor [%s]", ShipObjectStatus[int(ps->reactor->status)]);
+            if (ps->reactor->status == ShipObject::Status::Active)
+                line_0.appendf(" %.0f%%", ps->reactor->power * 100);
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (MainEngine* e : ps->engines)
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Engine [%s] %.0f%%", ShipObjectStatus[int(e->status)], e->thrust * 100);
+            line_0.appendf("Engine [%s]", ShipObjectStatus[int(e->status)]);
+            if (ps->reactor->status == ShipObject::Status::Active)
+                line_0.appendf(" %.0f%%", e->thrust * 100);
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (TorpedoLauncher* e : ps->torpedoes)
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Torpedo: [%s] %d", ShipObjectStatus[int(e->status)], e->torpedoes);
+            line_0.appendf("Torpedo: [%s]", ShipObjectStatus[int(e->status)]);
+            if (ps->reactor->status == ShipObject::Status::Active)
+            {
+                line_0.appendf(" A: %d", e->torpedoes);
+                if (e->charge_time > 0)
+                    line_0.appendf(" Ready-in: %d", e->charge_time);
+            }
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (PDC* e : ps->pdcs)
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Point Defence: [%s] %d", ShipObjectStatus[int(e->status)], e->rounds);
+            line_0.appendf("Point Defence: [%s]", ShipObjectStatus[int(e->status)]);
+            if (ps->reactor->status == ShipObject::Status::Active)
+            {
+                line_0.appendf(" A: %d", e->rounds);
+            }
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (Railgun* e : ps->railguns)
         {
             --y0;
             sstring line_0;
-            line_0.appendf("Railgun: [%s] %d", ShipObjectStatus[int(e->status)], e->rounds);
+            line_0.appendf("Railgun: [%s]", ShipObjectStatus[int(e->status)]);
+            if (ps->reactor->status == ShipObject::Status::Active)
+            {
+                line_0.appendf(" A: %d", e->rounds);
+                if (e->charge_time > 0)
+                    line_0.appendf(" Ready-in: %d", e->charge_time);
+            }
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
     }

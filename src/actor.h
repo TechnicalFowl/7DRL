@@ -251,21 +251,23 @@ struct Reactor : ShipObject
 
 struct TorpedoLauncher : ShipObject
 {
-    int torpedoes = 0;
+    int torpedoes = 5;
+    int charge_time = 0;
 
     TorpedoLauncher(vec2i pos);
 };
 
 struct PDC : ShipObject
 {
-    int rounds = 0;
+    int rounds = 1000;
 
     PDC(vec2i pos);
 };
 
 struct Railgun : ShipObject
 {
-    int rounds = 0;
+    int rounds = 25;
+    int charge_time = 0;
 
     Railgun(vec2i pos);
 };
