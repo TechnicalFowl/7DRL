@@ -1263,12 +1263,24 @@ struct ShipGenerator
 
 Ship* generate(const sstring& name, const char* type)
 {
+    pcg32 rng;
+    static const char* ship_shapes[]
+    {
+        "ship_0.png",
+        "ship_1.png",
+        "ship_2.png",
+        "ship_3.png",
+        "ship_4.png",
+        "ship_5.png",
+        "ship_6.png",
+    };
+
     if (strings::equals(type, "player_ship"))
     {
         Map* map = new Map(name);
         Ship* ship = new Ship(map);
 
-        ShipGenerator shape("ship_0.png", 3);
+        ShipGenerator shape(ship_shapes[rng.nextInt(0, 7)], 3);
         ShipParameters params;
         params.primary_color = 0xFF14CCFF;
         params.secondary_color = 0xFFC0C0C0;
@@ -1296,7 +1308,7 @@ Ship* generate(const sstring& name, const char* type)
         Map* map = new Map(name);
         Ship* ship = new Ship(map);
 
-        ShipGenerator shape("ship_0.png", 3);
+        ShipGenerator shape(ship_shapes[rng.nextInt(0, 7)], 3);
         ShipParameters params;
         params.primary_color = 0xFF14CCFF;
         params.secondary_color = 0xFFC0C0C0;
