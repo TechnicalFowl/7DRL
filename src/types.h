@@ -27,6 +27,7 @@ enum class Terrain
     Empty,
     ShipFloor,
     ShipWall,
+    DamagedShipFloor,
     DamagedShipWall,
 
     __COUNT,

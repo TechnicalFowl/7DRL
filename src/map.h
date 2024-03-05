@@ -15,7 +15,7 @@ struct Tile
     Terrain terrain = Terrain::Empty;
     Actor* ground = nullptr;
     Actor* actor = nullptr;
-    bool explored = true;
+    bool explored = false;
 
     Tile(vec2i pos) : pos(pos) {}
     Tile(vec2i pos, Terrain trr) : pos(pos), terrain(trr) {}
@@ -29,6 +29,7 @@ struct Map
     vec2i min, max;
 
     Player* player = nullptr;
+    bool see_all = true;
 
     int turn = 0;
 

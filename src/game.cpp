@@ -176,8 +176,9 @@ void initGame(int w, int h)
         Registry& reg = g_game.reg;
         reg.terrain_info[int(Terrain::Empty)] = TerrainInfo(Terrain::Empty, "Empty", TileEmpty, 0, 0xFF000000, true);
         reg.terrain_info[int(Terrain::ShipWall)] = TerrainInfo(Terrain::ShipWall, "Wall", TileFull, 0xFFD0D0D0, 0, false);
-        reg.terrain_info[int(Terrain::ShipFloor)] = TerrainInfo(Terrain::ShipFloor, "Floor", TileFull, 0, 0xFF303030, true);
-        reg.terrain_info[int(Terrain::DamagedShipWall)] = TerrainInfo(Terrain::DamagedShipWall, "Damaged Wall", TileFull, 0, 0xFFB08080, false);
+        reg.terrain_info[int(Terrain::ShipFloor)] = TerrainInfo(Terrain::ShipFloor, "Floor", TileFull, 0, 0xFF606060, true);
+        reg.terrain_info[int(Terrain::DamagedShipFloor)] = TerrainInfo(Terrain::DamagedShipFloor, "Damaged Floor", TileFull, 0, 0xFF303030, true);
+        reg.terrain_info[int(Terrain::DamagedShipWall)] = TerrainInfo(Terrain::DamagedShipWall, "Damaged Wall", TileFull, 0, 0xFF908080, false);
 
         reg.actor_info[int(ActorType::Player)] = ActorInfo(ActorType::Player, "Player", '@', 0xFFFFFFFF, LayerPriority_Actors + 10, false, 10);
         reg.actor_info[int(ActorType::GroundItem)] = ActorInfo(ActorType::GroundItem, "Item", '?', 0xFFFF00FF, LayerPriority_Objects + 1, true, 999);
@@ -209,6 +210,8 @@ void initGame(int w, int h)
     g_game.uplayer->ship = g_game.player_ship;
     g_game.universe->spawn(g_game.uplayer);
     g_game.universe->update(g_game.uplayer->pos);
+
+    g_game.player_ship->update();
 }
 
 vec2i game_mouse_pos()
@@ -338,8 +341,7 @@ void updateGame()
         }
         if (input_key_pressed(GLFW_KEY_X))
         {
-            ExplosionAnimation* ex = new ExplosionAnimation(game_mouse_pos(), g_game.rng.nextInt(4, 8));
-            g_game.animations.push_back(ex);
+            g_game.player_ship->explosionAt(game_mouse_pos(), g_game.rng.nextFloat() * 8 + 4);
         }
 
 

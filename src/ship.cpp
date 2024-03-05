@@ -1,6 +1,7 @@
 #include "ship.h"
 
 #include "actor.h"
+#include "game.h"
 #include "map.h"
 
 ShipRoom* Ship::getRoom(vec2i p)
@@ -50,6 +51,18 @@ void Ship::update()
         }
     }
 
+    if (reactor && reactor->status == ShipObject::Status::Active)
+    {
+        map->see_all = true;
+    }
+    else
+    {
+        map->see_all = false;
+        if (pilot)
+            if (pilot->status != ShipObject::Status::Damaged)
+                pilot->status = ShipObject::Status::Unpowered;
+    }
+
     for (TorpedoLauncher* t : torpedoes)
     {
         if (t->status != ShipObject::Status::Active) continue;
@@ -65,8 +78,56 @@ void Ship::update()
 void Ship::explosion(vec2i d, float power)
 {
     vec2i center = (map->max + map->min) / 2;
-    std::vector<vec2i> ray = findRay(center + d * scalar::floori((map->max - center).length()), center);
+    std::vector<vec2i> ray = map->findRay(center + d * scalar::floori((map->max - center).length()), center);
     vec2i p = ray.back();
+    explosionAt(p, power);
+}
+
+void Ship::explosionAt(vec2i p, float power)
+{
+    int r = scalar::ceili(power);
+    for (int y = -r; y <= r; ++y)
+    {
+        for (int x = -r; x <= r; ++x)
+        {
+            int d2 = x * x + y * y;
+            if (d2 > r * r) continue;
+            float chance = 1 - sqrtf(x * x + y * y) / power;
+            chance *= chance;
+            if (g_game.rng.nextFloat() > chance) continue;
+            auto it = map->tiles.find(p + vec2i(x, y));
+            if (it.found)
+            {
+                if (it.value.terrain == Terrain::ShipWall)
+                    it.value.terrain = Terrain::DamagedShipWall;
+                else if (it.value.terrain == Terrain::ShipFloor)
+                    it.value.terrain = Terrain::DamagedShipFloor;
+                if (it.value.actor)
+                {
+                    switch (it.value.actor->type)
+                    {
+                    case ActorType::PilotSeat:
+                    case ActorType::Reactor:
+                    case ActorType::Engine:
+                    case ActorType::TorpedoLauncher:
+                    case ActorType::PDC:
+                    case ActorType::Railgun:
+                    {
+                        ShipObject* obj = (ShipObject*)it.value.actor;
+                        obj->status = ShipObject::Status::Damaged;
+                    } break;
+                    }
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < 3; ++i)
+    {
+        vec2i c = p + vec2i(g_game.rng.nextInt(-3, 3), g_game.rng.nextInt(-3, 3));
+        ExplosionAnimation* e = new ExplosionAnimation(c, scalar::ceili(power + g_game.rng.nextFloat() * 3 - 1.5f));
+        g_game.animations.push_back(e);
+    }
 }
 
 void Ship::railgun(vec2i d)
