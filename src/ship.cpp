@@ -75,16 +75,26 @@ void Ship::update()
     }
 }
 
-void Ship::explosion(vec2i d, float power)
+void Ship::explosion(vec2f d, float power)
 {
+    if (!map)
+    {
+        hull_integrity = 0;
+        return;
+    }
     vec2i center = (map->max + map->min) / 2;
-    std::vector<vec2i> ray = map->findRay(center + d * scalar::floori((map->max - center).length()), center);
+    std::vector<vec2i> ray = map->findRay(center + (d * (map->max - center).length()).cast<int>(), center);
     vec2i p = ray.back();
     explosionAt(p, power);
 }
 
 void Ship::explosionAt(vec2i p, float power)
 {
+    if (!map)
+    {
+        hull_integrity = 0;
+        return;
+    }
     int r = scalar::ceili(power);
     for (int y = -r; y <= r; ++y)
     {
@@ -95,6 +105,7 @@ void Ship::explosionAt(vec2i p, float power)
             float chance = 1 - sqrtf(x * x + y * y) / power;
             chance *= chance;
             if (g_game.rng.nextFloat() > chance) continue;
+            hull_integrity--;
             auto it = map->tiles.find(p + vec2i(x, y));
             if (it.found)
             {
@@ -122,16 +133,24 @@ void Ship::explosionAt(vec2i p, float power)
         }
     }
 
-    for (int i = 0; i < 3; ++i)
+    if (this == g_game.player_ship)
     {
-        vec2i c = p + vec2i(g_game.rng.nextInt(-3, 3), g_game.rng.nextInt(-3, 3));
-        ExplosionAnimation* e = new ExplosionAnimation(c, scalar::ceili(power + g_game.rng.nextFloat() * 3 - 1.5f));
-        g_game.animations.push_back(e);
+        for (int i = 0; i < 3; ++i)
+        {
+            vec2i c = p + vec2i(g_game.rng.nextInt(-3, 3), g_game.rng.nextInt(-3, 3));
+            ExplosionAnimation* e = new ExplosionAnimation(c, scalar::ceili(power + g_game.rng.nextFloat() * 3 - 1.5f));
+            g_game.animations.push_back(e);
+        }
     }
 }
 
 void Ship::railgun(vec2i d)
 {
+    if (!map)
+    {
+        hull_integrity = 0;
+        return;
+    }
 
 }
 

@@ -48,6 +48,8 @@ struct Ship
     std::vector<PDC*> pdcs;
     std::vector<Railgun*> railguns;
 
+    int hull_integrity = 500;
+
     Ship(Map* map) : map(map) {}
 
     ShipRoom* getRoom(vec2i p);
@@ -57,7 +59,7 @@ struct Ship
 
     void update();
 
-    void explosion(vec2i d, float power);
+    void explosion(vec2f d, float power);
     void explosionAt(vec2i p, float power);
     void railgun(vec2i d);
 };

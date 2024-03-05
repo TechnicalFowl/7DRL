@@ -51,6 +51,9 @@ struct InfoLog
 
 struct Animation
 {
+    int tick_created;
+
+    Animation();
     virtual ~Animation() {}
     virtual bool draw() = 0;
 };
@@ -122,6 +125,7 @@ struct Game
     TextBuffer* mapterm = nullptr;
     TextBuffer* uiterm = nullptr;
 
+    std::vector<Ship*> ships;
     Map* current_level = nullptr;
     Ship* player_ship = nullptr;
     Universe* universe = nullptr;

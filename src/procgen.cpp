@@ -1291,6 +1291,31 @@ Ship* generate(const sstring& name, const char* type)
         map->spawn(player);
         return ship;
     }
+    else if (strings::equals(type, "cargo_ship"))
+    {
+        Map* map = new Map(name);
+        Ship* ship = new Ship(map);
+
+        ShipGenerator shape("ship_0.png", 3);
+        ShipParameters params;
+        params.primary_color = 0xFF14CCFF;
+        params.secondary_color = 0xFFC0C0C0;
+        params.max_pdcs = 6;
+        params.max_railguns = 0;
+        params.max_torpedos = 0;
+
+        bool success = false;
+        for (int a = 0; a < 10; ++a)
+        {
+            if (shape.generate(ship, *map, params))
+            {
+                success = true;
+                break;
+            }
+        }
+        debug_assertf(success, "Failed to generate ship layout within 10 attempts");
+        return ship;
+    }
     debug_assertf(false, "Unknown ship layout type");
     return nullptr;
 }

@@ -18,15 +18,16 @@ enum class UActorType
 
 struct UActor
 {
-    u32 id;
+    u32 id = 0;
     UActorType type;
     vec2i pos;
 
     bool dead = false;
 
     UActor(UActorType type, vec2i p) : type(type), pos(p) {}
+    virtual ~UActor() {}
 
-    virtual void update(pcg32& rng) {};
+    virtual void update(pcg32& rng) {}
     virtual void render(TextBuffer& buffer, vec2i origin) = 0;
 };
 
@@ -46,6 +47,9 @@ struct UShip : UActor
     Ship* ship = nullptr;
 
     UShip(UActorType t, vec2i p) : UActor(t, p) {}
+    ~UShip();
+
+    virtual void update(pcg32& rng) override;
 
     bool fireTorpedo(vec2i target);
     bool fireRailgun(vec2i target);
@@ -53,8 +57,7 @@ struct UShip : UActor
 
 struct UCargoShip : UShip
 {
-
-    UCargoShip(vec2i p) : UShip(UActorType::CargoShip, p) {}
+    UCargoShip(vec2i p);
 
     void update(pcg32& rng) override;
 
@@ -75,6 +78,7 @@ struct UPlayer : UShip
 
 struct UTorpedo : UShip
 {
+    vec2i target_pos;
     u32 target = 0;
     u32 source = 0;
 

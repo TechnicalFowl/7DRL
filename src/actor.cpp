@@ -536,6 +536,13 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                         }
                     }
                 } break;
+                case ItemType::Torpedoes:
+                {
+                    if (it.value.actor && it.value.actor->type == ActorType::TorpedoLauncher)
+                    {
+                        move = dirs[i];
+                    }
+                } break;
                 default: break;
                 }
             }
@@ -615,6 +622,25 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                         return true;
                     }
                     default: break;
+                    }
+                } break;
+                case ItemType::Torpedoes:
+                {
+                    if (it.value.actor->type == ActorType::TorpedoLauncher)
+                    {
+                        TorpedoLauncher* launcher = (TorpedoLauncher*)it.value.actor;
+                        if (launcher->torpedoes < 5)
+                        {
+                            delete pl->holding;
+                            pl->holding = nullptr;
+                            launcher->torpedoes = 5;
+                            g_game.log.log("You reload the torpedoes.");
+                        }
+                        else
+                        {
+                            g_game.log.log("That is already fully loaded.");
+                        }
+                        return true;
                     }
                 } break;
                 default: break;

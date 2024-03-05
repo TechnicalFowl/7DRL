@@ -64,6 +64,8 @@ char getProjectileCharacter(Direction dir)
     return " |-/||\\>-\\-^/<v+"[dir];
 }
 
+Animation::Animation() : tick_created(g_game.current_level->turn) {}
+
 ProjectileAnimation::ProjectileAnimation(const vec2i& from, const vec2i& to, u32 color, int c)
     : from(from), to(to), color(color), character(c)
 {
@@ -212,6 +214,7 @@ void initGame(int w, int h)
     g_game.universe->update(g_game.uplayer->pos);
 
     g_game.player_ship->update();
+    g_game.ships.push_back(g_game.player_ship);
 }
 
 vec2i game_mouse_pos()
@@ -261,16 +264,6 @@ bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color)
 
 void updateGame()
 {
-    if (input_key_pressed(GLFW_KEY_F9))
-    {
-        delete g_game.player_ship;
-        delete g_game.current_level;
-        g_game.player_ship = generate("player", "player_ship");
-        g_game.current_level = g_game.player_ship->map;
-        g_game.uplayer->ship = g_game.player_ship;
-    }
-
-    Map& map = *g_game.current_level;
     bool do_map_turn = false;
 
     if (g_game.console_input_displayed)
@@ -289,6 +282,7 @@ void updateGame()
     }
     else if (!g_game.modal && !g_game.show_universe && g_game.transition == 0)
     {
+        Map& map = *g_game.current_level;
         do_map_turn = map.player->next_action.action != Action::Wait;
         if (input_key_pressed(GLFW_KEY_UP))
         {
@@ -341,7 +335,10 @@ void updateGame()
         }
         if (input_key_pressed(GLFW_KEY_X))
         {
-            g_game.player_ship->explosionAt(game_mouse_pos(), g_game.rng.nextFloat() * 8 + 4);
+            vec2i center = (map.max + map.min) / 2;
+            vec2i offset = game_mouse_pos() - center;
+            vec2f dir = offset.cast<float>().normalize();
+            g_game.player_ship->explosion(dir, g_game.rng.nextFloat() * 20 + 10);
         }
 
 
@@ -381,6 +378,9 @@ void updateGame()
     }
     else if (!g_game.modal && g_game.show_universe && g_game.transition == 0 && g_game.uanimations.empty())
     {
+        // Clear ship animations if we're still in the universe view.
+        g_game.animations.clear();
+
         bool do_turn = false;
         if (input_key_pressed(GLFW_KEY_UP))
         {
@@ -467,67 +467,82 @@ void updateGame()
         if (do_turn)
         {
             do_map_turn = true;
-            g_game.last_universe_update = map.turn;
+            g_game.last_universe_update = g_game.current_level->turn;
             g_game.universe->update(g_game.uplayer->pos);
         }
     }
 
     if (do_map_turn)
     {
-        float dt = map.player->next_action.energy;
+        float dt = g_game.current_level->player->next_action.energy;
 
-        std::vector<ActionData> actions;
-        for (Actor* a : map.actors)
+        for (Ship* s : g_game.ships)
         {
-            // @Todo: Allow polling multiple actions per turn if the actor has enough stored energy?
-            ActionData act = a->update(map, g_game.rng, dt);
-            if (act.action != Action::Wait) actions.emplace_back(act);
-        }
+            std::vector<ActionData> actions;
 
-        for (ActionData& act : actions)
-        {
-            if (act.actor->dead) continue;
-            act.apply(g_game.player_ship, g_game.rng);
-            if (act.actor->type == ActorType::Player)
+            for (Actor* a : s->map->actors)
             {
-                ((Player*)act.actor)->is_aiming = false;
+                // @Todo: Allow polling multiple actions per turn if the actor has enough stored energy?
+                ActionData act = a->update(*s->map, g_game.rng, dt);
+                if (act.action != Action::Wait) actions.emplace_back(act);
             }
-        }
-        for (auto it = map.actors.begin(); it != map.actors.end();)
-        {
-            if ((*it)->dead)
+
+            for (ActionData& act : actions)
             {
-                ActorInfo& ai = g_game.reg.actor_info[int((*it)->type)];
-                auto tile_it = map.tiles.find((*it)->pos);
-                if (tile_it.found)
+                if (act.actor->dead) continue;
+                act.apply(s, g_game.rng);
+                if (act.actor->type == ActorType::Player)
                 {
-                    TerrainInfo& ti = g_game.reg.terrain_info[(int)tile_it.value.terrain];
-                    if (ai.is_ground)
-                    {
-                        debug_assert(tile_it.value.ground == *it);
-                        tile_it.value.ground = nullptr;
-                    }
-                    else
-                    {
-                        debug_assert(tile_it.value.actor == *it);
-                        tile_it.value.actor = nullptr;
-                    }
+                    ((Player*)act.actor)->is_aiming = false;
                 }
-                delete* it;
-                it = map.actors.erase(it);
             }
-            else
+
+            for (auto it = s->map->actors.begin(); it != s->map->actors.end();)
             {
-                ++it;
+                if ((*it)->dead)
+                {
+                    ActorInfo& ai = g_game.reg.actor_info[int((*it)->type)];
+                    auto tile_it = s->map->tiles.find((*it)->pos);
+                    if (tile_it.found)
+                    {
+                        TerrainInfo& ti = g_game.reg.terrain_info[(int)tile_it.value.terrain];
+                        if (ai.is_ground)
+                        {
+                            debug_assert(tile_it.value.ground == *it);
+                            tile_it.value.ground = nullptr;
+                        }
+                        else
+                        {
+                            debug_assert(tile_it.value.actor == *it);
+                            tile_it.value.actor = nullptr;
+                        }
+                    }
+                    delete* it;
+                    it = s->map->actors.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
             }
+
+            s->map->turn++;
+            s->update();
         }
-        map.turn++;
-        if (map.turn > g_game.last_universe_update + 10)
+
+        if (g_game.player_ship->map->turn > g_game.last_universe_update + 10)
         {
-            g_game.last_universe_update = map.turn;
+            g_game.last_universe_update = g_game.current_level->turn;
             g_game.universe->update(g_game.uplayer->pos);
         }
-        g_game.player_ship->update();
+        if (g_game.player_ship->hull_integrity <= 0)
+        {
+            g_game.log.log("Your ship sustained too much damage and your hull breaks apart.");
+            g_game.log.log("Game over.");
+            g_game.state = GameState::GameOver;
+            g_game.player_ship->hull_integrity = 500;
+            g_game.uplayer->dead = false;
+        }
     }
 
     g_game.uiterm->clear();
@@ -575,7 +590,7 @@ void updateGame()
     if (g_game.show_universe)
     {
         vec2i mouse_pos = game_mouse_pos();
-        top_bar.appendf("Mx: %d %d Px: %d %d", mouse_pos.x, mouse_pos.y, map.player->pos.x, map.player->pos.y);
+        top_bar.appendf("Mx: %d %d Px: %d %d", mouse_pos.x, mouse_pos.y, g_game.current_level->player->pos.x, g_game.current_level->player->pos.y);
     }
     else
     {
@@ -594,7 +609,7 @@ void updateGame()
     }
     else
     {
-        bottom_bar.appendf("Turn: %d/%d V: %s", map.turn, g_game.universe->universe_ticks, g_game.show_universe ? "Universe" : "Ship");
+        bottom_bar.appendf("Turn: %d/%d V: %s", g_game.current_level->turn, g_game.universe->universe_ticks, g_game.show_universe ? "Universe" : "Ship");
     }
     g_game.uiterm->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF101010, LayerPriority_UI - 2);
     g_game.uiterm->write(vec2i(2, 0), bottom_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
@@ -641,6 +656,12 @@ void updateGame()
         g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, 9), vec2i(g_game.w * 2 - 1, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
 
         Ship* ps = g_game.player_ship;
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Hull: %d", ps->hull_integrity);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
 
         if (ps->pilot)
         {
@@ -707,7 +728,7 @@ void updateGame()
     }
     {
         sstring line_0;
-        line_0.appendf("Holding: %s", map.player->holding ? map.player->holding->name.c_str() : "nothing");
+        line_0.appendf("Holding: %s", g_game.current_level->player->holding ? g_game.current_level->player->holding->name.c_str() : "nothing");
         g_game.uiterm->write(vec2i(102, g_game.h - 4), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         g_game.uiterm->fillText(vec2i(100, g_game.h - 4), vec2i(100, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, g_game.h - 4), vec2i(g_game.w * 2 - 1, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
@@ -758,7 +779,7 @@ void updateGame()
         if (past_half ^ g_game.show_universe)
             g_game.universe->render(*g_game.mapterm, g_game.uplayer->pos);
         else
-            map.render(*g_game.mapterm, map.player->pos);
+            g_game.current_level->render(*g_game.mapterm, g_game.current_level->player->pos);
         g_game.transition -= 0.02f;
         if (g_game.transition <= 0)
         {
@@ -781,6 +802,6 @@ void updateGame()
     }
     else
     {
-        map.render(*g_game.mapterm, map.player->pos);
+        g_game.current_level->render(*g_game.mapterm, g_game.current_level->player->pos);
     }
 }

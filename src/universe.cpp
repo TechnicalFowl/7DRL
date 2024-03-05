@@ -4,11 +4,33 @@
 
 #include "actor.h"
 #include "game.h"
+#include "map.h"
 #include "ship.h"
+#include "procgen.h"
 
 bool isShipType(UActorType t)
 {
     return t == UActorType::CargoShip || t == UActorType::Player || t == UActorType::Torpedo;
+}
+
+UShip::~UShip()
+{
+    if (ship)
+    {
+        auto it = std::find(g_game.ships.begin(), g_game.ships.end(), ship);
+        if (it != g_game.ships.end())
+            g_game.ships.erase(it);
+        delete ship->map;
+        delete ship;
+    }
+    ship = nullptr;
+}
+
+void UShip::update(pcg32& rng)
+{
+    UActor::update(rng);
+    if (ship && ship->hull_integrity < 0)
+        dead = true;
 }
 
 bool UShip::fireTorpedo(vec2i target)
@@ -45,7 +67,8 @@ bool UShip::fireTorpedo(vec2i target)
 
         UTorpedo* torp = new UTorpedo(spawn_pos);
         torp->source = id;
-        torp->target = t.value->id;
+        torp->target = isShipType(t.value->type) ? t.value->id : 0;
+        torp->target_pos = target;
         g_game.universe->spawn(torp);
         if (this == g_game.uplayer) g_game.log.log("Torpedo launched.");
         return true;
@@ -79,7 +102,7 @@ bool UShip::fireRailgun(vec2i target)
     pcg32& rng = g_game.universe->rng;
     float firing_variance = scalar::PIf / 20;
     bool hit_anything = false;
-    std::vector<vec2i> steps = findRay(pos, pos + (target - pos) * (100 / (target - pos).length()));
+    std::vector<vec2i> steps = findRay(pos, pos + (target - pos) * int(100 / (target - pos).length()));
     RailgunAnimation* anim = new RailgunAnimation(0xFFFFFFFF, getProjectileCharacter(getDirection(pos, target)));
     for (vec2i s: steps)
     {
@@ -152,8 +175,16 @@ bool UShip::fireRailgun(vec2i target)
     return true;
 }
 
+UCargoShip::UCargoShip(vec2i p)
+    : UShip(UActorType::CargoShip, p)
+{
+    ship = generate("cargo", "cargo_ship");
+    g_game.ships.push_back(ship);
+}
+
 void UCargoShip::update(pcg32& rng)
 {
+    UShip::update(rng);
     if (vel.length() < 2)
     {
         vel += vec2i(rng.nextInt(-1, 2), rng.nextInt(-1, 2));
@@ -183,6 +214,7 @@ void UCargoShip::render(TextBuffer& buffer, vec2i origin)
 
 void UPlayer::update(pcg32& rng)
 {
+    UShip::update(rng);
     float speed = vel.length();
     if (speed > 0)
     {
@@ -208,18 +240,23 @@ void UPlayer::render(TextBuffer& buffer, vec2i origin)
 
 void UTorpedo::update(pcg32& rng)
 {
-    auto it = g_game.universe->actor_ids.find(target);
-    if (!it.found)
+    UShip::update(rng);
+    if (target != 0)
     {
-        if (source == g_game.uplayer->id)
-            g_game.log.log("Torpedo has self-destructed as it's target was lost.");
-        dead = true;
-        return;
+        auto it = g_game.universe->actor_ids.find(target);
+        if (!it.found)
+        {
+            if (source == g_game.uplayer->id)
+                g_game.log.log("Torpedo has self-destructed as it's target was lost.");
+            dead = true;
+            return;
+        }
+        debug_assert(isShipType(it.value->type));
+        UShip* target = (UShip*)it.value;
+        target_pos = target->pos + target->vel;
     }
-    debug_assert(isShipType(it.value->type));
-    UShip* target = (UShip*) it.value;
     float speed = vel.length();
-    vec2i dist = (target->pos + target->vel) - pos;
+    vec2i dist = target_pos - pos;
 
     int slowdown_x = (abs(vel.x) * (abs(vel.x) + 1)) / 2;
     if ((vel.x < 0) != (dist.x < 0))
@@ -252,7 +289,7 @@ void UAsteroid::render(TextBuffer& buffer, vec2i origin)
     float step = scalar::PIf / (4 * radius);
     for (float a = 0; a + step/2 < scalar::PIf * 2; a += step)
     {
-        float r = (radius + cos(a * 1.2 + sfreq) * radius);
+        float r = (radius + (float) cos(a * 1.2 + sfreq) * radius);
         vec2i p = pos + vec2i((int) round(cos(a) * r), (int) round(sin(a) * r));
         for (int r0 = 0; r0 < r; ++r0)
             buffer.setTile(pos + vec2i((int)round(cos(a) * r0), (int)round(sin(a) * r0)) - origin, '0', 0xFF505050, LayerPriority_Background-1);
@@ -303,17 +340,30 @@ void Universe::move(UActor* a, vec2i d)
                 UTorpedo* t = (UTorpedo*) it.value;
                 if (t->source != a->id || (p.x == a->pos.x + d.x && p.y == a->pos.y + d.y))
                 {
-                    if (a == g_game.uplayer) g_game.log.log("Torpedo detonating on hull!");
+                    if (pl->ship)
+                    {
+                        float incoming = rng.nextFloat() * scalar::PIf * 2;
+                        vec2f dir = vec2f(cos(incoming), sin(incoming));
+                        pl->ship->explosion(dir, rng.nextFloat() * 20 + 10);
+                    }
+                    else
+                    {
+                        pl->dead = true;
+                    }
+
+                    if (a == g_game.uplayer)
+                    {
+                        g_game.log.log("Torpedo detonating on hull!");
+                    }
                     else
                     {
                         if (t->source == g_game.uplayer->id)
                         {
                             if (t->target == a->id)
-                                g_game.log.log("Target ship destroyed");
+                                g_game.log.log("Target ship hit.");
                             else
-                                g_game.log.log("Unknown ship destroyed");
+                                g_game.log.log("Unknown ship hit.");
                         }
-                        a->dead = true;
                     }
                     t->dead = true;
                 }
@@ -323,40 +373,49 @@ void Universe::move(UActor* a, vec2i d)
                 UTorpedo* at = (UTorpedo*) a;
                 if (at->source != it.value->id || (p.x == a->pos.x + d.x && p.y == a->pos.y + d.y))
                 {
-                    if (it.value == g_game.uplayer) g_game.log.log("Torpedo detonating on hull!");
+                    if (isShipType(it.value->type) && ((UShip*) it.value)->ship)
+                    {
+                        float incoming = rng.nextFloat() * scalar::PIf * 2;
+                        vec2f dir = vec2f(cos(incoming), sin(incoming));
+                        UShip* os = (UShip*)it.value;
+                        os->ship->explosion(dir, rng.nextFloat() * 20 + 10);
+                    }
+
+                    if (it.value == g_game.uplayer)
+                    {
+                        g_game.log.log("Torpedo detonating on hull!");
+                    }
                     else
                     {
                         if (at->source == g_game.uplayer->id)
                         {
                             if (at->target == it.value->id)
-                                g_game.log.log("Target ship destroyed");
+                                g_game.log.log("Target ship hit.");
                             else
-                                g_game.log.log("Unknown ship destroyed");
+                                g_game.log.log("Torpedo detonated on unknown target.");
                         }
-                        it.value->dead = true;
                     }
                     at->dead = true;
+                    break;
                 }
             }
             else if (pl->vel.length() > 6)
             {
-                if (a == g_game.uplayer)
-                {
-                    g_game.log.log("You crash your ship at such a speed that there is only dust left from the impact.");
-                    g_game.log.log("");
-                    g_game.log.log("Game over.");
-                    g_game.state = GameState::GameOver;
-                }
-                else
-                    a->dead = true;
-                return;
+                if (a == g_game.uplayer) g_game.log.log("Impact alert! Significant damage sustained.");
+
+                vec2f dir = vec2f(rng.nextFloat() - 0.5f, 2.0f).normalize();
+                pl->ship->explosion(dir, rng.nextFloat() * 8 * pl->vel.length() + 10);
+                pl->vel = vec2i(0, 0);
+                break;
             }
             else if (it.value->type == UActorType::Asteroid)
             {
                 if (pl->vel.length() > 2)
                 {
                     if (a == g_game.uplayer) g_game.log.log("Impact alert!");
-                    // TODO: damage ship from asteroid hit
+
+                    vec2f dir = vec2f(rng.nextFloat() - 0.5f, 2.0f).normalize();
+                    pl->ship->explosion(dir, rng.nextFloat() * 5 * pl->vel.length() + 5);
                 }
                 else if (!warned_this_step)
                 {
@@ -414,7 +473,7 @@ void Universe::spawn(UActor* a)
         float step = scalar::PIf / (4 * ast->radius);
         for (float a = 0; a + step / 2 < scalar::PIf * 2; a += step)
         {
-            float r = (ast->radius + cos(a * 1.2 + ast->sfreq) * ast->radius);
+            float r = (ast->radius + (float) cos(a * 1.2 + ast->sfreq) * ast->radius);
             vec2i p = ast->pos + vec2i((int)round(cos(a) * r), (int)round(sin(a) * r));
             for (int r0 = 0; r0 < r; ++r0)
             {
@@ -520,7 +579,7 @@ void Universe::update(vec2i origin)
         {
             // Remove proxies
             UAsteroid* ast = (UAsteroid*)a;
-            float r2 = ast->radius;
+            int r2 = scalar::ceili(ast->radius);
             for (int y = -r2; y <= r2; ++y)
             {
                 for (int x = -r2; x <= r2; ++x)

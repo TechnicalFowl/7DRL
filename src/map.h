@@ -15,7 +15,7 @@ struct Tile
     Terrain terrain = Terrain::Empty;
     Actor* ground = nullptr;
     Actor* actor = nullptr;
-    bool explored = false;
+    bool explored = true;
 
     Tile(vec2i pos) : pos(pos) {}
     Tile(vec2i pos, Terrain trr) : pos(pos), terrain(trr) {}
