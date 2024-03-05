@@ -14,6 +14,7 @@ enum class UActorType
     Asteroid,
     CargoShip,
     Torpedo,
+    PirateShip,
 };
 
 struct UActor
@@ -58,6 +59,15 @@ struct UShip : UActor
 struct UCargoShip : UShip
 {
     UCargoShip(vec2i p);
+
+    void update(pcg32& rng) override;
+
+    void render(TextBuffer& buffer, vec2i origin) override;
+};
+
+struct UPirateShip : UShip
+{
+    UPirateShip(vec2i p);
 
     void update(pcg32& rng) override;
 

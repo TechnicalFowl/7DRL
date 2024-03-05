@@ -1328,6 +1328,31 @@ Ship* generate(const sstring& name, const char* type)
         debug_assertf(success, "Failed to generate ship layout within 10 attempts");
         return ship;
     }
+    else if (strings::equals(type, "pirate_ship"))
+    {
+        Map* map = new Map(name);
+        Ship* ship = new Ship(map);
+
+        ShipGenerator shape(ship_shapes[rng.nextInt(0, 7)], 3);
+        ShipParameters params;
+        params.primary_color = 0xFFFFCC14;
+        params.secondary_color = 0xFFC0C0C0;
+        params.max_pdcs = 2;
+        params.max_railguns = 1;
+        params.max_torpedos = 4;
+
+        bool success = false;
+        for (int a = 0; a < 10; ++a)
+        {
+            if (shape.generate(ship, *map, params))
+            {
+                success = true;
+                break;
+            }
+        }
+        debug_assertf(success, "Failed to generate ship layout within 10 attempts");
+        return ship;
+    }
     debug_assertf(false, "Unknown ship layout type");
     return nullptr;
 }

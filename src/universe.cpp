@@ -10,7 +10,7 @@
 
 bool isShipType(UActorType t)
 {
-    return t == UActorType::CargoShip || t == UActorType::Player || t == UActorType::Torpedo;
+    return t == UActorType::CargoShip || t == UActorType::Player || t == UActorType::Torpedo || t == UActorType::PirateShip;
 }
 
 UShip::~UShip()
@@ -208,6 +208,43 @@ void UCargoShip::render(TextBuffer& buffer, vec2i origin)
     if (!vel.zero())
     {
         buffer.setOverlay((pos + vel) - origin, 0x800000FF, LayerPriority_Overlay);
+    }
+}
+
+UPirateShip::UPirateShip(vec2i p)
+    : UShip(UActorType::PirateShip, p)
+{
+    ship = generate("pirate", "pirate_ship");
+    g_game.ships.push_back(ship);
+}
+
+void UPirateShip::update(pcg32& rng)
+{
+    UShip::update(rng);
+    if (vel.length() < 2)
+    {
+        vel += vec2i(rng.nextInt(-1, 2), rng.nextInt(-1, 2));
+    }
+    float speed = vel.length();
+    if (speed > 0)
+    {
+        for (int i = 1; i <= 3; ++i)
+        {
+            if (g_game.universe->hasActor(pos + vel * i))
+            {
+                vel = vec2i((int)round(vel.x / speed), (int)round(vel.y / speed));
+                break;
+            }
+        }
+    }
+}
+
+void UPirateShip::render(TextBuffer& buffer, vec2i origin)
+{
+    buffer.setTile(pos - origin, 'P', 0xFFFF0000, LayerPriority_Actors);
+    if (!vel.zero())
+    {
+        buffer.setOverlay((pos + vel) - origin, 0x80FF8080, LayerPriority_Overlay);
     }
 }
 
@@ -530,6 +567,12 @@ void Universe::update(vec2i origin)
                             if (rng.nextFloat() < 0.01f)
                             {
                                 UCargoShip* s = new UCargoShip(vec2i((rx << 5) + (x0 << 4) + 2, (ry << 5) + (y0 << 3)));
+                                spawn(s);
+                            }
+                            else if (rng.nextFloat() < 0.01f)
+                            {
+                                int count = 1 + rng.nextFloat() * rng.nextFloat() > 0.5f ? 1 : 0;
+                                UPirateShip* s = new UPirateShip(vec2i((rx << 5) + (x0 << 4) + 2, (ry << 5) + (y0 << 3)));
                                 spawn(s);
                             }
                         }
