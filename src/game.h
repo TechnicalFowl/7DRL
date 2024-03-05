@@ -87,6 +87,18 @@ struct RailgunAnimation : Animation
     bool draw() override;
 };
 
+struct ExplosionAnimation : Animation
+{
+    vec2i center;
+    int radius;
+
+    float step = 0.0f;
+
+    ExplosionAnimation(vec2i c, int r);
+
+    bool draw() override;
+};
+
 struct Modal
 {
     vec2i pos, size;

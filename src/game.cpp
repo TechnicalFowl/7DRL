@@ -117,6 +117,34 @@ bool RailgunAnimation::draw()
     return !points.empty() || !misses.empty() || !hits.empty();
 }
 
+ExplosionAnimation::ExplosionAnimation(vec2i c, int r)
+    : center(c), radius(r)
+{
+
+}
+
+bool ExplosionAnimation::draw()
+{
+    if (step > radius + 2)
+        return false;
+
+    step += 0.5f;
+    vec2i bl = g_game.current_level->player->pos - vec2i(25, 22);
+    for (float a = 0; a < 2 * scalar::PIf; a += scalar::PIf / (3 * step))
+    {
+        vec2i p = center + vec2i(int(cos(a) * step), int(sin(a) * step));
+        std::vector<vec2i> r = findRay(p, center);
+        if (step < radius)
+            g_game.mapterm->setOverlay(p - bl, 0xA0FF8000, LayerPriority_Particles+1);
+        for (int i = 0; i < 3 && i < r.size(); ++i)
+        {
+            if (step - i - 1 < radius)
+                g_game.mapterm->setOverlay(r[i] - bl, 0xD0D0D0D0, LayerPriority_Particles);
+        }
+    }
+    return true;
+}
+
 struct TestModal : Modal
 {
     TestModal(): Modal(vec2i(4, 10), vec2i(30, 10), "Test Modal") {}
@@ -149,6 +177,7 @@ void initGame(int w, int h)
         reg.terrain_info[int(Terrain::Empty)] = TerrainInfo(Terrain::Empty, "Empty", TileEmpty, 0, 0xFF000000, true);
         reg.terrain_info[int(Terrain::ShipWall)] = TerrainInfo(Terrain::ShipWall, "Wall", TileFull, 0xFFD0D0D0, 0, false);
         reg.terrain_info[int(Terrain::ShipFloor)] = TerrainInfo(Terrain::ShipFloor, "Floor", TileFull, 0, 0xFF303030, true);
+        reg.terrain_info[int(Terrain::DamagedShipWall)] = TerrainInfo(Terrain::DamagedShipWall, "Damaged Wall", TileFull, 0, 0xFFB08080, false);
 
         reg.actor_info[int(ActorType::Player)] = ActorInfo(ActorType::Player, "Player", '@', 0xFFFFFFFF, LayerPriority_Actors + 10, false, 10);
         reg.actor_info[int(ActorType::GroundItem)] = ActorInfo(ActorType::GroundItem, "Item", '?', 0xFFFF00FF, LayerPriority_Objects + 1, true, 999);
@@ -307,6 +336,13 @@ void updateGame()
                 last_scroll = g_window.frame_count;
             }
         }
+        if (input_key_pressed(GLFW_KEY_X))
+        {
+            ExplosionAnimation* ex = new ExplosionAnimation(game_mouse_pos(), g_game.rng.nextInt(4, 8));
+            g_game.animations.push_back(ex);
+        }
+
+
 #if 0
         if (input_key_pressed(GLFW_KEY_Z))
         {

@@ -62,6 +62,18 @@ void Ship::update()
     }
 }
 
+void Ship::explosion(vec2i d, float power)
+{
+    vec2i center = (map->max + map->min) / 2;
+    std::vector<vec2i> ray = findRay(center + d * scalar::floori((map->max - center).length()), center);
+    vec2i p = ray.back();
+}
+
+void Ship::railgun(vec2i d)
+{
+
+}
+
 std::vector<Actor*> findDoors(Ship* ship, vec2i p)
 {
     std::vector<Actor*> doors;

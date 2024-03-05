@@ -56,6 +56,9 @@ struct Ship
     std::vector<ShipRoom*> getRooms(RoomType t);
 
     void update();
+
+    void explosion(vec2i d, float power);
+    void railgun(vec2i d);
 };
 
 std::vector<Actor*> findDoors(Ship* ship, vec2i p);
