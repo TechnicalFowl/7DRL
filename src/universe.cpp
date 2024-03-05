@@ -59,16 +59,13 @@ bool UShip::fireTorpedo(vec2i target)
             return false;
         }
 
-        vec2i spawn_pos = pos;
-        if (vel.zero())
-            spawn_pos += vec2i(1, 0);
-        else
-            spawn_pos -= vel;
+        vec2i spawn_pos = pos + vel + direction(getDirection(pos, target));
 
         UTorpedo* torp = new UTorpedo(spawn_pos);
         torp->source = id;
         torp->target = isShipType(t.value->type) ? t.value->id : 0;
         torp->target_pos = target;
+        torp->vel = vel;
         g_game.universe->spawn(torp);
         if (this == g_game.uplayer) g_game.log.log("Torpedo launched.");
         return true;
@@ -241,6 +238,7 @@ void UPlayer::render(TextBuffer& buffer, vec2i origin)
 void UTorpedo::update(pcg32& rng)
 {
     UShip::update(rng);
+    vec2i tvel;
     if (target != 0)
     {
         auto it = g_game.universe->actor_ids.find(target);
@@ -253,25 +251,28 @@ void UTorpedo::update(pcg32& rng)
         }
         debug_assert(isShipType(it.value->type));
         UShip* target = (UShip*)it.value;
+        tvel = target->vel;
         target_pos = target->pos + target->vel;
     }
     float speed = vel.length();
     vec2i dist = target_pos - pos;
 
-    int slowdown_x = (abs(vel.x) * (abs(vel.x) + 1)) / 2;
-    if ((vel.x < 0) != (dist.x < 0))
+    vec2i rvel = vel - tvel;
+
+    int slowdown_x = (abs(rvel.x) * (abs(rvel.x) + 1)) / 2;
+    if ((rvel.x < 0) != (dist.x < 0))
         vel.x += (dist.x < 0) ? -1 : 1;
     else if (dist.y != 0 && abs(dist.x) <= slowdown_x)
         vel.x += (vel.x < 0) ? 1 : -1;
     else if (abs(dist.x) > slowdown_x)
         vel.x += (vel.x < 0) ? -1 : 1;
 
-    int slowdown_y = (abs(vel.y) * (abs(vel.y) + 1)) / 2;
+    int slowdown_y = (abs(rvel.y) * (abs(rvel.y) + 1)) / 2;
     if ((vel.y < 0) != (dist.y < 0))
         vel.y += (dist.y < 0) ? -1 : 1;
     else if (dist.x != 0 && abs(dist.y) <= slowdown_y)
         vel.y += (vel.y < 0) ? 1 : -1;
-    else if (abs(dist.y) > slowdown_y + abs(vel.y))
+    else if (abs(dist.y) > slowdown_y)
         vel.y += (vel.y < 0) ? -1 : 1;
 }
 
