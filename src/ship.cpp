@@ -50,28 +50,57 @@ void Ship::update()
         default: break;
         }
     }
+    std::vector<ShipObject*> all_objects;
+    all_objects.insert(all_objects.end(), engines.begin(), engines.end());
+    if (pilot) all_objects.push_back(pilot);
+    all_objects.insert(all_objects.end(), pdcs.begin(), pdcs.end());
+    all_objects.insert(all_objects.end(), torpedoes.begin(), torpedoes.end());
+    all_objects.insert(all_objects.end(), railguns.begin(), railguns.end());
 
     if (reactor && reactor->status == ShipObject::Status::Active)
     {
         map->see_all = true;
+        float power_used = 0.0f;
+        for (ShipObject* o : all_objects)
+        {
+            if (o->status == ShipObject::Status::Active)
+                power_used += o->power_required;
+            else if (o->status == ShipObject::Status::Unpowered)
+                o->status = ShipObject::Status::Disabled;
+        }
+
+        reactor->power = power_used;
+        if (reactor->power > reactor->capacity)
+        {
+            if (this == g_game.player_ship)
+                g_game.log.log("Your reactor is overloaded and will shutdown!");
+            reactor->status = ShipObject::Status::Disabled;
+            for (ShipObject* o : all_objects)
+                if (o->status == ShipObject::Status::Active)
+                    o->status = ShipObject::Status::Unpowered;
+        }
     }
     else
     {
         map->see_all = false;
-        if (pilot)
-            if (pilot->status != ShipObject::Status::Damaged)
-                pilot->status = ShipObject::Status::Unpowered;
+        for (ShipObject* o : all_objects)
+            if (o->status == ShipObject::Status::Active)
+                o->status = ShipObject::Status::Unpowered;
     }
 
     for (TorpedoLauncher* t : torpedoes)
     {
-        if (t->status != ShipObject::Status::Active) continue;
-        if (t->charge_time > 0) t->charge_time--;
+        if (t->status != ShipObject::Status::Active)
+            t->charge_time = 2;
+        else if (t->charge_time > 0)
+            t->charge_time--;
     }
     for (Railgun* t : railguns)
     {
-        if (t->status != ShipObject::Status::Active) continue;
-        if (t->charge_time > 0) t->charge_time--;
+        if (t->status != ShipObject::Status::Active)
+            t->charge_time = 2;
+        else if (t->charge_time > 0)
+            t->charge_time--;
     }
 }
 

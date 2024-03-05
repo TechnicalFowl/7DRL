@@ -349,6 +349,11 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                     {
                         g_game.transition = 1.0f;
                     } break;
+                    case ShipObject::Status::Disabled:
+                    {
+                        obj->status = ShipObject::Status::Active;
+                        if (actor == map.player) g_game.log.logf("You activate the %s.", ai.name.c_str());
+                    } break;
                     case ShipObject::Status::Damaged:
                     {
                         if (actor == map.player)
@@ -811,11 +816,13 @@ void Airlock::render(TextBuffer& buffer, vec2i origin, bool dim)
 PilotSeat::PilotSeat(vec2i p)
     : ShipObject(p, ActorType::PilotSeat)
 {
+    power_required = 10.0f;
 }
 
 MainEngine::MainEngine(vec2i p)
     : ShipObject(p, ActorType::Engine)
 {
+    power_required = 200.0f;
 }
 
 Reactor::Reactor(vec2i p)
@@ -826,16 +833,19 @@ Reactor::Reactor(vec2i p)
 TorpedoLauncher::TorpedoLauncher(vec2i p)
     : ShipObject(p, ActorType::TorpedoLauncher)
 {
+    power_required = 75.0f;
 }
 
 PDC::PDC(vec2i p)
     : ShipObject(p, ActorType::PDC)
 {
+    power_required = 50.0f;
 }
 
 Railgun::Railgun(vec2i p)
     : ShipObject(p, ActorType::Railgun)
 {
+    power_required = 400.0f;
 }
 
 #if 0

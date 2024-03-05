@@ -59,7 +59,9 @@ bool UShip::fireTorpedo(vec2i target)
             return false;
         }
 
-        vec2i spawn_pos = pos + vel + direction(getDirection(pos, target));
+        vec2i offs = direction(getDirection(pos, target));
+        if (offs.zero()) offs = vec2i(1, 0);
+        vec2i spawn_pos = pos + vel + offs;
 
         UTorpedo* torp = new UTorpedo(spawn_pos);
         torp->source = id;

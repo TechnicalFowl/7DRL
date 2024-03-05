@@ -338,7 +338,7 @@ void updateGame()
             vec2i center = (map.max + map.min) / 2;
             vec2i offset = game_mouse_pos() - center;
             vec2f dir = offset.cast<float>().normalize();
-            g_game.player_ship->explosion(dir, g_game.rng.nextFloat() * 20 + 10);
+            g_game.player_ship->explosionAt(game_mouse_pos(), g_game.rng.nextFloat() * 20 + 10);
         }
 
 
@@ -676,7 +676,7 @@ void updateGame()
             sstring line_0;
             line_0.appendf("Reactor [%s]", ShipObjectStatus[int(ps->reactor->status)]);
             if (ps->reactor->status == ShipObject::Status::Active)
-                line_0.appendf(" %.0f%%", ps->reactor->power * 100);
+                line_0.appendf(" %.0f%%", (ps->reactor->power / ps->reactor->capacity ) * 100);
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (MainEngine* e : ps->engines)

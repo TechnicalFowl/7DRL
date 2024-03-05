@@ -202,6 +202,7 @@ struct ShipObject : Actor
     };
 
     Status status = Status::Active;
+    float power_required = 0.0f;
 
     ShipObject(vec2i p, ActorType t) : Actor(p, t) {}
 
@@ -245,6 +246,7 @@ struct MainEngine : ShipObject
 struct Reactor : ShipObject
 {
     float power = 0.0f;
+    float capacity = 1000.0f;
 
     Reactor(vec2i pos);
 };
