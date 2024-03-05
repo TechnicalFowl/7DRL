@@ -846,6 +846,7 @@ Railgun::Railgun(vec2i p)
     : ShipObject(p, ActorType::Railgun)
 {
     power_required = 400.0f;
+    status = Status::Disabled;
 }
 
 #if 0
