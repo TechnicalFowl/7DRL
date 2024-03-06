@@ -23,10 +23,10 @@ typedef int64_t s64;
 void do_assert(const char* check, const char* file, s32 line, const char* fmt, ...);
 [[noreturn]] void crash();
 
-#if _DEBUG
+//#if _DEBUG
 #   define debug_assert(E) do { if (!(E)) { do_assert(#E, __FILE__, __LINE__, ""); }} while(0)
 #   define debug_assertf(E, F, ...) do { if (!(E)) { do_assert(#E, __FILE__, __LINE__, F, __VA_ARGS__); } } while(0)
-#else
-#   define debug_assert(E)
-#   define debug_assertf(E, F, ...)
-#endif
+//#else
+//#   define debug_assert(E)
+//#   define debug_assertf(E, F, ...)
+//#endif

@@ -580,6 +580,7 @@ struct ShipParameters
     u32 primary_color = 0xFFFFFFFF;
     u32 secondary_color = 0xFF000000;
 
+    int max_engines = 4;
     float engines = 0.5f;
     float engine_merge_chance = 0.7f;
 
@@ -875,7 +876,7 @@ struct ShipGenerator
             }
         }
         debug_assert(!possible_engines.empty());
-        int engine_count = scalar::ceili(possible_engines.size() * params.engines);
+        int engine_count = scalar::min(scalar::ceili(possible_engines.size() * params.engines), params.max_engines);
         while (engine_count > 0)
         {
             int next = scalar::floori(rng.nextFloat() * possible_engines.size());

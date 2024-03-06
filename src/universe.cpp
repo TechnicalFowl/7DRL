@@ -221,19 +221,166 @@ UPirateShip::UPirateShip(vec2i p)
 void UPirateShip::update(pcg32& rng)
 {
     UShip::update(rng);
-    if (vel.length() < 2)
+
+    if (target == 0)
     {
-        vel += vec2i(rng.nextInt(-1, 2), rng.nextInt(-1, 2));
-    }
-    float speed = vel.length();
-    if (speed > 0)
-    {
-        for (int i = 1; i <= 3; ++i)
+        // If no target, look for one every 10 turns
+        if (check_for_target <= 0)
         {
-            if (g_game.universe->hasActor(pos + vel * i))
+            // Look for the closest visible ship within our sensor range
+            float closest_distance = 999999;
+
+            for (auto it : g_game.universe->actors)
             {
-                vel = vec2i((int)round(vel.x / speed), (int)round(vel.y / speed));
+                if (it.value->type == UActorType::Player || it.value->type == UActorType::CargoShip)
+                {
+                    float dist = (pos - it.value->pos).length();
+                    if (dist < closest_distance && dist < ship->sensor_range && g_game.universe->isVisible(pos, it.value->pos))
+                    {
+                        closest_distance = dist;
+                        target = it.value->id;
+                        target_last_pos = it.value->pos;
+                    }
+                }
+            }
+            // if we didn't find a target, try again in 10 turns
+            if (target == 0)
+                check_for_target = 10;
+        }
+        else
+            check_for_target--;
+    }
+    else
+    {
+        // If we have a target, check if it's still valid
+        auto target_it = g_game.universe->actor_ids.find(target);
+        if (!target_it.found)
+        {
+            target = 0;
+            check_for_target = 5;
+        }
+        else
+        {
+            UShip* s = (UShip*) target_it.value;
+            float dist = (pos - s->pos).length();
+            if (dist < ship->sensor_range && g_game.universe->isVisible(pos, s->pos))
+            {
+                // If the target is visible and within sensor range, update its last known position and potentially fire upon it
+                target_last_pos = s->pos;
+                if (dist < 12 && rng.nextFloat() < 0.6f)
+                {
+                    fireRailgun(s->pos);
+                }
+                else if (dist < 25 && rng.nextFloat() < 0.3f)
+                {
+                    fireTorpedo(s->pos);
+                }
+            }
+
+        }
+    }
+
+    if (target == 0)
+    {
+        // If no target, wander around
+        if (vel.length() < 2)
+        {
+            vel += vec2i(rng.nextInt(-1, 2), rng.nextInt(-1, 2));
+        }
+        float speed = vel.length();
+        if (speed > 0)
+        {
+            for (int i = 1; i <= 3; ++i)
+            {
+                if (g_game.universe->hasActor(pos + vel * i))
+                {
+                    vel = vec2i((int)round(vel.x / speed), (int)round(vel.y / speed));
+                    break;
+                }
+            }
+        }
+    }
+    else
+    {
+        auto target_it = g_game.universe->actor_ids.find(target);
+        debug_assert(target_it.found);
+        UShip* s = (UShip*)target_it.value;
+
+        float speed = vel.length();
+        vec2i dist = target_last_pos - pos;
+        if (dist.length() > 8)
+        {
+            // If we're far from the target, move towards it
+            vec2i rvel = vel - s->vel;
+
+            int slowdown_x = (abs(rvel.x) * (abs(rvel.x) + 1)) / 2;
+            if ((rvel.x < 0) != (dist.x < 0))
+                vel.x += (dist.x < 0) ? -1 : 1;
+            else if (dist.y != 0 && abs(dist.x) <= slowdown_x)
+                vel.x += (vel.x < 0) ? 1 : -1;
+            else if (abs(dist.x) > slowdown_x)
+                vel.x += (vel.x < 0) ? -1 : 1;
+
+            int slowdown_y = (abs(rvel.y) * (abs(rvel.y) + 1)) / 2;
+            if ((vel.y < 0) != (dist.y < 0))
+                vel.y += (dist.y < 0) ? -1 : 1;
+            else if (dist.x != 0 && abs(dist.y) <= slowdown_y)
+                vel.y += (vel.y < 0) ? 1 : -1;
+            else if (abs(dist.y) > slowdown_y)
+                vel.y += (vel.y < 0) ? -1 : 1;
+        }
+        else
+        {
+            // Slowdown
+            if (vel.x < 0) vel.x++;
+            else if (vel.x > 0) vel.x--;
+
+            if (vel.y < 0) vel.y++;
+            else if (vel.y > 0) vel.y--;
+        }
+    }
+
+    if (torp_max_reloads > 0)
+    {
+        TorpedoLauncher* needs_reload = nullptr;
+        for (TorpedoLauncher* torp : ship->torpedoes)
+        {
+            if (torp->torpedoes == 0)
+            {
+                needs_reload = torp;
                 break;
+            }
+        }
+        if (needs_reload)
+        {
+            torp_reload_cooldown--;
+            if (torp_reload_cooldown <= 0)
+            {
+                torp_reload_cooldown = 10;
+                needs_reload->torpedoes = 5;
+                torp_max_reloads--;
+            }
+        }
+    }
+    if (railgun_max_reloads > 0)
+    {
+        Railgun* needs_reload = nullptr;
+        for (Railgun* torp : ship->railguns)
+        {
+            if (torp->rounds == 0)
+            {
+                needs_reload = torp;
+                break;
+            }
+        }
+        if (needs_reload)
+        {
+            railgun_reload_cooldown--;
+            if (railgun_reload_cooldown <= 0)
+            {
+                railgun_reload_cooldown = 10;
+                needs_reload->rounds = 25;
+                railgun_max_reloads--;
             }
         }
     }
@@ -360,6 +507,20 @@ vec2i getOffset(int& i, int& x, int& y)
         x = -i;
         y = -i;
     }
+}
+
+bool Universe::isVisible(vec2i from, vec2i to)
+{
+    auto points = findRay(from, to);
+    if (points.empty()) return true;
+    points.pop_back(); // Don't check the last point, as it's the target
+    for (vec2i p : points)
+    {
+        auto it = actors.find(p);
+        if (it.found && it.value->type == UActorType::Asteroid)
+            return false;
+    }
+    return true;
 }
 
 void Universe::move(UActor* a, vec2i d)

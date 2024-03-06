@@ -49,6 +49,7 @@ struct Ship
     std::vector<Railgun*> railguns;
 
     int hull_integrity = 500;
+    float sensor_range = 35;
 
     Ship(Map* map) : map(map) {}
 

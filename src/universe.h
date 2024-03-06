@@ -67,6 +67,16 @@ struct UCargoShip : UShip
 
 struct UPirateShip : UShip
 {
+    u32 target = 0;
+    vec2i target_last_pos;
+    int check_for_target = 10;
+
+    int torp_reload_cooldown = 10;
+    int torp_max_reloads = 5;
+
+    int railgun_reload_cooldown = 10;
+    int railgun_max_reloads = 4;
+
     UPirateShip(vec2i p);
 
     void update(pcg32& rng) override;
@@ -110,6 +120,8 @@ struct Universe
     u32 next_actor = 1;
 
     bool hasActor(vec2i p) { return actors.find(p).found; }
+
+    bool isVisible(vec2i from, vec2i to);
 
     void move(UActor* a, vec2i d);
     void spawn(UActor* a);
