@@ -557,7 +557,6 @@ bool Universe::checkArea(vec2i pos, int radius)
 void Universe::move(UActor* a, vec2i d)
 {
     debug_assert(isShipType(a->type));
-    if (a->type == UActorType::Player) __debugbreak();
     bool target_occupied = actors.find(a->pos + d).found;
     std::vector<vec2i> steps = findRay(a->pos, a->pos + d);
     bool warned_this_step = false;
@@ -677,12 +676,17 @@ void Universe::move(UActor* a, vec2i d)
                 break;
             }
         }
-        last = p;
+        else
+        {
+            last = p;
+        }
     }
     if (a->pos != last)
     {
-        actors.erase(a->pos);
+        bool rem = actors.erase(a->pos);
+        debug_assert(rem);
         a->pos = last;
+        debug_assert(!actors.find(last).found);
         actors.insert(a->pos, a);
     }
 }
@@ -794,7 +798,11 @@ void Universe::update(vec2i origin)
     for (auto it : actors)
     {
         UActor* a = it.value;
-        if (a->pos != it.key) continue; // Proxy actor
+        if (a->pos != it.key)
+        {
+            debug_assert(a->type == UActorType::Asteroid);
+            continue; // Proxy actor
+        }
         if ((a->pos - origin).length() > 160.0f)
         {
             to_remove.push_back(a);
@@ -824,13 +832,15 @@ void Universe::update(vec2i origin)
     }
     for (UActor* a : to_remove)
     {
-        actors.erase(a->pos);
-        actor_ids.erase(a->id);
+        bool rem = actors.erase(a->pos);
+        debug_assert(rem);
+        rem = actor_ids.erase(a->id);
+        debug_assert(rem);
         if (a->type == UActorType::Asteroid)
         {
             // Remove proxies
             UAsteroid* ast = (UAsteroid*)a;
-            int r2 = scalar::ceili(ast->radius);
+            int r2 = scalar::ceili(ast->radius * 2);
             for (int y = -r2; y <= r2; ++y)
             {
                 for (int x = -r2; x <= r2; ++x)
@@ -842,7 +852,7 @@ void Universe::update(vec2i origin)
                 }
             }
         }
-        delete a;
+        //delete a;
     }
 }
 

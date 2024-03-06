@@ -655,6 +655,7 @@ void updateGame()
         g_game.uiterm->fillText(vec2i(100, 9), vec2i(100, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, 9), vec2i(g_game.w * 2 - 1, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
 
+#if 1
         Ship* ps = g_game.player_ship;
         {
             --y0;
@@ -725,6 +726,53 @@ void updateGame()
             }
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
+#else
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Actors: %d", g_game.universe->actors.size());
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Player: %d %d", g_game.uplayer->pos.x, g_game.uplayer->pos.y);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
+
+        vec2i min_pos(99999, 99999);
+        vec2i max_pos(-99999, -99999);
+
+        int tcount[6]{ 0 };
+
+        for (auto it : g_game.universe->actors)
+        {
+            UActor* a = it.value;
+            tcount[int(a->type)]++;
+            min_pos = min(min_pos, a->pos);
+            max_pos = max(max_pos, a->pos);
+            if (a->type == UActorType::Asteroid)
+            {
+
+            }
+            else
+            {
+                debug_assert(it.key == it.value->pos);
+            }
+        }
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Min: %d %d Max: %d %d", min_pos.x, min_pos.y, max_pos.x, max_pos.y);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Counts: %d %d %d %d %d %d", tcount[0], tcount[1], tcount[2], tcount[3], tcount[4], tcount[5]);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
+#endif
     }
     {
         sstring line_0;
