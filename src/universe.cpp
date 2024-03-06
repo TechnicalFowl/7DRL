@@ -484,6 +484,24 @@ void UAsteroid::render(TextBuffer& buffer, vec2i origin)
     }
 }
 
+UStation::UStation(vec2i p)
+    : UActor(UActorType::Station, p)
+{
+
+}
+
+void UStation::update(pcg32& rng)
+{
+    UActor::update(rng);
+}
+
+void UStation::render(TextBuffer& buffer, vec2i origin)
+{
+    buffer.setTile(pos - origin, 'S', 0xFFFFFFFF, LayerPriority_Actors);
+    buffer.setText((pos - origin - vec2i(1, 0)) * vec2i(2, 1) + vec2i(1, 0), Border_TeeRight, 0xFFFFFFFF, LayerPriority_Actors - 1);
+    buffer.setText((pos - origin + vec2i(1, 0)) * vec2i(2, 1), Border_TeeLeft, 0xFFFFFFFF, LayerPriority_Actors - 1);
+}
+
 vec2i getOffset(int& i, int& x, int& y)
 {
     y++;
@@ -523,9 +541,23 @@ bool Universe::isVisible(vec2i from, vec2i to)
     return true;
 }
 
+bool Universe::checkArea(vec2i pos, int radius)
+{
+    for (int x = -radius; x <= radius; ++x)
+    {
+        for (int y = -radius; y <= radius; ++y)
+        {
+            if (actors.find(pos + vec2i(x, y)).found)
+                return false;
+        }
+    }
+    return true;
+}
+
 void Universe::move(UActor* a, vec2i d)
 {
     debug_assert(isShipType(a->type));
+    if (a->type == UActorType::Player) __debugbreak();
     bool target_occupied = actors.find(a->pos + d).found;
     std::vector<vec2i> steps = findRay(a->pos, a->pos + d);
     bool warned_this_step = false;
@@ -727,14 +759,26 @@ void Universe::update(vec2i origin)
                         {
                             if (rng.nextFloat() < 0.01f)
                             {
-                                UCargoShip* s = new UCargoShip(vec2i((rx << 5) + (x0 << 4) + 2, (ry << 5) + (y0 << 3)));
-                                spawn(s);
-                            }
-                            else if (rng.nextFloat() < 0.01f)
-                            {
-                                int count = 1 + rng.nextFloat() * rng.nextFloat() > 0.5f ? 1 : 0;
-                                UPirateShip* s = new UPirateShip(vec2i((rx << 5) + (x0 << 4) + 2, (ry << 5) + (y0 << 3)));
-                                spawn(s);
+                                vec2i p = vec2i((rx << 5) + (x0 << 4) + 2, (ry << 5) + (y0 << 3));
+                                if (checkArea(p, 1))
+                                {
+                                    int type = rng.nextInt(0, 3);
+                                    if (type == 0)
+                                    {
+                                        UCargoShip* s = new UCargoShip(p);
+                                        spawn(s);
+                                    }
+                                    else if (type == 1)
+                                    {
+                                        UPirateShip* s = new UPirateShip(p);
+                                        spawn(s);
+                                    }
+                                    else
+                                    {
+                                        UStation* s = new UStation(p);
+                                        spawn(s);
+                                    }
+                                }
                             }
                         }
                     }

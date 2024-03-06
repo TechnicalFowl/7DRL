@@ -15,6 +15,7 @@ enum class UActorType
     CargoShip,
     Torpedo,
     PirateShip,
+    Station,
 };
 
 struct UActor
@@ -109,6 +110,17 @@ struct UTorpedo : UShip
     void render(TextBuffer& buffer, vec2i origin) override;
 };
 
+struct UStation : UActor
+{
+
+    UStation(vec2i p);
+
+    void update(pcg32& rng) override;
+
+    void render(TextBuffer& buffer, vec2i origin) override;
+
+};
+
 struct Universe
 {
     linear_map<u32, UActor*> actor_ids;
@@ -122,6 +134,7 @@ struct Universe
     bool hasActor(vec2i p) { return actors.find(p).found; }
 
     bool isVisible(vec2i from, vec2i to);
+    bool checkArea(vec2i pos, int radius);
 
     void move(UActor* a, vec2i d);
     void spawn(UActor* a);
