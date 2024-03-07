@@ -574,26 +574,64 @@ void updateGame()
         // Clear ship animations if we're still in the universe view.
         g_game.animations.clear();
 
+        bool engines_functional = false;
+        for (MainEngine* e : g_game.player_ship->engines)
+        {
+            if (e->status == ShipObject::Status::Active)
+            {
+                engines_functional = true;
+                break;
+            }
+        }
+
         bool do_turn = g_game.modal_close;
         if (input_key_pressed(GLFW_KEY_UP))
         {
-            do_turn = true;
-            g_game.uplayer->vel += vec2i(0, 1);
+            if (!engines_functional)
+            {
+                g_game.log.log("Cannot move before repairing engines!");
+            }
+            else
+            {
+                do_turn = true;
+                g_game.uplayer->vel += vec2i(0, 1);
+            }
         }
         if (input_key_pressed(GLFW_KEY_DOWN))
         {
-            do_turn = true;
-            g_game.uplayer->vel += vec2i(0, -1);
+            if (!engines_functional)
+            {
+                g_game.log.log("Cannot move before repairing engines!");
+            }
+            else
+            {
+                do_turn = true;
+                g_game.uplayer->vel += vec2i(0, -1);
+            }
         }
         if (input_key_pressed(GLFW_KEY_RIGHT))
         {
-            do_turn = true;
-            g_game.uplayer->vel += vec2i(1, 0);
+            if (!engines_functional)
+            {
+                g_game.log.log("Cannot move before repairing engines!");
+            }
+            else
+            {
+                do_turn = true;
+                g_game.uplayer->vel += vec2i(1, 0);
+            }
         }
         if (input_key_pressed(GLFW_KEY_LEFT))
         {
-            do_turn = true;
-            g_game.uplayer->vel += vec2i(-1, 0);
+            if (!engines_functional)
+            {
+                g_game.log.log("Cannot move before repairing engines!");
+            }
+            else
+            {
+                do_turn = true;
+                g_game.uplayer->vel += vec2i(-1, 0);
+            }
         }
         if (input_key_pressed(GLFW_KEY_O))
         {
