@@ -828,7 +828,7 @@ Scanner::Scanner(vec2i p)
 MainEngine::MainEngine(vec2i p)
     : ShipObject(p, ActorType::Engine)
 {
-    power_required = 200.0f;
+    power_required = 150.0f;
 }
 
 Reactor::Reactor(vec2i p)
@@ -851,8 +851,7 @@ PDC::PDC(vec2i p)
 Railgun::Railgun(vec2i p)
     : ShipObject(p, ActorType::Railgun)
 {
-    power_required = 400.0f;
-    status = Status::Disabled;
+    power_required = 300.0f;
 }
 
 #if 0

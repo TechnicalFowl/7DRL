@@ -511,6 +511,22 @@ void UStation::render(TextBuffer& buffer, vec2i origin)
     buffer.setText((pos - origin + vec2i(1, 0)) * vec2i(2, 1), Border_TeeLeft, 0xFFFFFFFF, LayerPriority_Actors - 1);
 }
 
+UShipWreck::UShipWreck(vec2i p)
+    : UActor(UActorType::CargoShip, p)
+{
+    scrap = g_game.rng.nextInt(50, 150);
+}
+
+void UShipWreck::update(pcg32& rng)
+{
+    UActor::update(rng);
+}
+
+void UShipWreck::render(TextBuffer& buffer, vec2i origin)
+{
+    buffer.setTile(pos - origin, '$', 0xFFFFFFFF, LayerPriority_Actors);
+}
+
 vec2i getOffset(int& i, int& x, int& y)
 {
     y++;
@@ -869,7 +885,12 @@ void Universe::update(vec2i origin)
                 }
             }
         }
-        //delete a;
+        else if (a->type == UActorType::CargoShip || a->type == UActorType::PirateShip)
+        {
+            UShipWreck* wreck = new UShipWreck(a->pos);
+            spawn(wreck);
+        }
+        delete a;
     }
 
     for (auto it: lost_tracks)

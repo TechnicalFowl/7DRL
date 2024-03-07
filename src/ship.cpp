@@ -75,11 +75,58 @@ void Ship::update()
         if (reactor->power > reactor->capacity)
         {
             if (this == g_game.player_ship)
-                g_game.log.log("Your reactor is overloaded and will shutdown!");
-            reactor->status = ShipObject::Status::Disabled;
-            for (ShipObject* o : all_objects)
-                if (o->status == ShipObject::Status::Active)
-                    o->status = ShipObject::Status::Unpowered;
+                g_game.log.log("Your reactor is overloaded, shutting down non-essential systems!");
+
+            while (reactor->power > reactor->capacity)
+            {
+                bool shutdown_something = false;
+                for (Railgun* r : railguns)
+                {
+                    if (r->status == ShipObject::Status::Active)
+                    {
+                        reactor->power -= r->power_required;
+                        r->status = ShipObject::Status::Unpowered;
+                        shutdown_something = true;
+                        break;
+                    }
+                }
+                if (shutdown_something) continue;
+                for (TorpedoLauncher* r : torpedoes)
+                {
+                    if (r->status == ShipObject::Status::Active)
+                    {
+                        reactor->power -= r->power_required;
+                        r->status = ShipObject::Status::Unpowered;
+                        shutdown_something = true;
+                        break;
+                    }
+                }
+                if (shutdown_something) continue;
+                for (MainEngine* r : engines)
+                {
+                    if (r->status == ShipObject::Status::Active)
+                    {
+                        reactor->power -= r->power_required;
+                        r->status = ShipObject::Status::Unpowered;
+                        shutdown_something = true;
+                        break;
+                    }
+                }
+                if (!shutdown_something) break;
+            }
+
+            if (reactor->power > reactor->capacity)
+            {
+                if (this == g_game.player_ship)
+                    g_game.log.log("Your reactor is still overloaded! Power systems failing");
+                reactor->power = 0;
+                reactor->status = ShipObject::Status::Disabled;
+                for (ShipObject* o : all_objects)
+                {
+                    if (o->status == ShipObject::Status::Active)
+                        o->status = ShipObject::Status::Unpowered;
+                }
+            }
         }
     }
     else

@@ -125,6 +125,17 @@ struct UStation : UActor
 
 };
 
+struct UShipWreck : UActor
+{
+    int scrap;
+
+    UShipWreck(vec2i p);
+
+    void update(pcg32& rng) override;
+
+    void render(TextBuffer& buffer, vec2i origin) override;
+};
+
 struct ULostTrack
 {
     vec2i pos;

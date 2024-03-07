@@ -158,6 +158,11 @@ struct StationModal : Modal
 
     void draw()
     {
+        if (input_key_pressed(GLFW_KEY_ESCAPE) || input_key_pressed(GLFW_KEY_D))
+        {
+            close = true;
+            return;
+        }
         Ship* ps = g_game.player_ship;
 
         sstring credits_line; credits_line.appendf("Credits: %d", g_game.credits);
@@ -219,8 +224,7 @@ struct StationModal : Modal
             if (drawButton(g_game.uiterm, vec2i(12, y0), line, 0xFFFFFFFF, g_game.credits < cost))
             {
                 g_game.credits -= cost;
-                ps->max_integrity += 100;
-                ps->hull_integrity += 100;
+                ps->reactor->capacity += 1000;
             }
             y0--;
         }
@@ -847,7 +851,7 @@ void updateGame()
             sstring line_0;
             line_0.appendf("Reactor [%s]", ShipObjectStatus[int(ps->reactor->status)]);
             if (ps->reactor->status == ShipObject::Status::Active)
-                line_0.appendf(" %.0f%%", (ps->reactor->power / ps->reactor->capacity ) * 100);
+                line_0.appendf(" %.0f/%.0f", ps->reactor->power, ps->reactor->capacity);
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (MainEngine* e : ps->engines)

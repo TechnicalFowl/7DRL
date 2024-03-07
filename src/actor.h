@@ -251,7 +251,7 @@ struct MainEngine : ShipObject
 struct Reactor : ShipObject
 {
     float power = 0.0f;
-    float capacity = 2000.0f;
+    float capacity = 1000.0f;
 
     Reactor(vec2i pos);
 };
