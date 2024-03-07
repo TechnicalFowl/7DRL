@@ -471,7 +471,12 @@ void UTorpedo::update(pcg32& rng)
 
 void UTorpedo::render(TextBuffer& buffer, vec2i origin)
 {
-    buffer.setTile(pos - origin, '!', 0xFFFFFFFF, LayerPriority_Actors);
+    u32 col = 0xFFFFFFFF;
+    if (target == g_game.uplayer->id)
+        col = 0xFFFF0000;
+    else if (source == g_game.uplayer->id)
+        col = 0xFF00FF00;
+    buffer.setTile(pos - origin, '!', col, LayerPriority_Actors);
     if (!vel.zero())
     {
         buffer.setOverlay((pos + vel) - origin, 0x80FFFF00, LayerPriority_Overlay);
