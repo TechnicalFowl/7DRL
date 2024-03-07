@@ -15,28 +15,35 @@ void Map::render(TextBuffer& buffer, vec2i origin)
     vec2i bl = origin - vec2i(25, 22);
 
     linear_map<vec2i, bool> los;
-    for (int x = -10; x <= 10; ++x)
+    if (!see_all)
     {
-        auto path = findRay(player->pos, player->pos + vec2i(x, 10));
-        for (vec2i p: path) los.insert(p, true);
-        path = findRay(player->pos, player->pos + vec2i(x, -10));
-        for (vec2i p: path) los.insert(p, true);
-    }
-    for (int y = -9; y <= 9; ++y)
-    {
-        auto path = findRay(player->pos, player->pos + vec2i(10, y));
-        for (vec2i p: path) los.insert(p, true);
-        path = findRay(player->pos, player->pos + vec2i(-10, y));
-        for (vec2i p: path) los.insert(p, true);
+        for (int x = -10; x <= 10; ++x)
+        {
+            auto path = findRay(player->pos, player->pos + vec2i(x, 10));
+            for (vec2i p : path) los.insert(p, true);
+            path = findRay(player->pos, player->pos + vec2i(x, -10));
+            for (vec2i p : path) los.insert(p, true);
+        }
+        for (int y = -9; y <= 9; ++y)
+        {
+            auto path = findRay(player->pos, player->pos + vec2i(10, y));
+            for (vec2i p : path) los.insert(p, true);
+            path = findRay(player->pos, player->pos + vec2i(-10, y));
+            for (vec2i p : path) los.insert(p, true);
+        }
     }
 
     for (auto it : tiles)
     {
-        bool visible = los.find(it.key).found;
-        if (!it.value.explored)
+        bool visible = true;
+        if (!see_all)
         {
-            if (!visible) continue;
-            it.value.explored = true;
+            visible = los.find(it.key).found;
+            if (!it.value.explored)
+            {
+                if (!visible) continue;
+                it.value.explored = true;
+            }
         }
         if (it.value.actor)
         {
