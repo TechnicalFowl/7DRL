@@ -889,6 +889,13 @@ void updateGame()
             line_0.appendf("Pilot [%s]", ShipObjectStatus[int(ps->pilot->status)]);
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
+        if (ps->scanner)
+        {
+            --y0;
+            sstring line_0;
+            line_0.appendf("Antenna [%s]", ShipObjectStatus[int(ps->pilot->status)]);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        }
         if (ps->reactor)
         {
             --y0;
