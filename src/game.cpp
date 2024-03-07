@@ -204,7 +204,7 @@ struct StationModal : Modal
             }
             y0 -= 2;
         }
-        else if (upgrades & 2)
+        else if (upgrades & 0x2)
         {
             int cost = 500 + 500 * (ps->max_integrity - 500) / 100;
             sstring line; line.appendf("Reinforce Hull (%d credits)", cost);
@@ -217,7 +217,7 @@ struct StationModal : Modal
             y0 -= 2;
         }
 
-        if (upgrades & 6)
+        if (upgrades & 0x6)
         {
             int cost = 500 + 500 * (ps->reactor->capacity - 1000) / 1000;
             sstring line; line.appendf("Upgrade Reactor (%d credits)", cost);
@@ -228,7 +228,7 @@ struct StationModal : Modal
             }
             y0--;
         }
-        if (upgrades & 12)
+        if (upgrades & 0xc)
         {
             Railgun* weapon_variance = nullptr;
             Railgun* weapon_charge = nullptr;
@@ -251,7 +251,7 @@ struct StationModal : Modal
             }
             y0 -= 2;
         }
-        if (upgrades & 24)
+        if (upgrades & 0x18)
         {
             TorpedoLauncher* weapon_count = nullptr;
             TorpedoLauncher* weapon_charge = nullptr;
@@ -274,7 +274,7 @@ struct StationModal : Modal
             }
             y0 -= 2;
         }
-        if (upgrades & 96)
+        if (upgrades & 0x30)
         {
             PDC* weapon_count = nullptr;
             PDC* weapon_charge = nullptr;
@@ -298,17 +298,16 @@ struct StationModal : Modal
             y0 -= 2;
         }
 
-        if (!g_game.player_ship->transponder_masked && (upgrades & 0xF00) == 0x800)
+        if (!g_game.player_ship->transponder_masked && (upgrades & 0x80))
         {
-            if (drawButton(g_game.uiterm, vec2i(12, y0), "Military Transponder code", 0xFFFFFFFF))
+            if (drawButton(g_game.uiterm, vec2i(12, y0), "Military Transponder code (1000 credits)", 0xFFFFFFFF, g_game.credits < 1000))
             {
                 g_game.log.log("Military Transponder code: 1234");
                 g_game.player_ship->transponder_masked = true;
+                g_game.credits -= 1000;
             }
             y0--;
         }
-
-
 
         if (drawButton(g_game.uiterm, vec2i(78, 6), "Undock", 0xFFFFFFFF))
         {
