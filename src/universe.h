@@ -112,6 +112,10 @@ struct UTorpedo : UShip
 
 struct UStation : UActor
 {
+    u32 upgrades = 0;
+
+    int repair_cost = 3;
+    int scrap_price = 3;
 
     UStation(vec2i p);
 
@@ -121,11 +125,22 @@ struct UStation : UActor
 
 };
 
+struct ULostTrack
+{
+    vec2i pos;
+    vec2i vel;
+    u32 color;
+    u32 id;
+
+    ULostTrack(vec2i p, vec2i v, u32 c, u32 i) : pos(p), vel(v), color(c), id(i) {}
+};
+
 struct Universe
 {
     linear_map<u32, UActor*> actor_ids;
     linear_map<vec2i, UActor*> actors;
     linear_map<vec2i, bool> regions_generated;
+    linear_map<u32, ULostTrack> lost_tracks;
 
     pcg32 rng;
     int universe_ticks = 0;

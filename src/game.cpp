@@ -147,18 +147,166 @@ bool ExplosionAnimation::draw()
     return true;
 }
 
-struct TestModal : Modal
+struct StationModal : Modal
 {
-    TestModal(): Modal(vec2i(4, 10), vec2i(30, 10), "Test Modal") {}
+    UStation* station;
+
+    StationModal(UStation* s)
+        : Modal(vec2i(4, 5), vec2i(40, g_game.h - 10), "Station")
+        , station(s)
+    {}
 
     void draw()
     {
+        Ship* ps = g_game.player_ship;
 
-        if (drawButton(g_game.uiterm, vec2i(22, 12), "Confirm", 0xFFFFFFFF))
+        sstring credits_line; credits_line.appendf("Credits: %d", g_game.credits);
+        g_game.uiterm->write(vec2i(12, g_game.h - 7), credits_line.c_str(), 0xFFFFFFFF, LayerPriority_UI + 1);
+
+        sstring scrap_line; scrap_line.appendf("Scrap: %d", g_game.scrap);
+        g_game.uiterm->write(vec2i(12, g_game.h - 9), scrap_line.c_str(), 0xFFFFFFFF, LayerPriority_UI + 1);
+
+        int price = station->scrap_price;
+        sstring scrap_sale; scrap_sale.appendf("Sell Scrap (%d credits)", price * g_game.scrap);
+        if (drawButton(g_game.uiterm, vec2i(27, g_game.h - 9), scrap_sale, 0xFFFFFFFF, g_game.scrap == 0))
         {
-            close = true;
+            g_game.credits += price * g_game.scrap;
+            g_game.scrap = 0;
         }
-        if (drawButton(g_game.uiterm, vec2i(34, 12), "Cancel", 0xFFFFFFFF))
+
+        int y0 = g_game.h - 11;
+
+        u32 upgrades = station->upgrades;
+        if (upgrades & 1)
+        {
+            int cost = station->repair_cost;
+            sstring repair_line; repair_line.appendf("Repair (%d credits per point)", cost);
+            g_game.uiterm->write(vec2i(12, y0), repair_line.c_str(), 0xFFFFFFFF, LayerPriority_UI + 1);
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Repair 10", 0xFFFFFFFF, g_game.credits < cost * 10 || ps->hull_integrity == ps->max_integrity))
+            {
+                g_game.credits -= cost * 10;
+                ps->hull_integrity = scalar::min(ps->hull_integrity + 10, ps->max_integrity);
+            }
+            if (drawButton(g_game.uiterm, vec2i(28, y0 - 1), "Repair 50", 0xFFFFFFFF, g_game.credits < cost * 50 || ps->hull_integrity >= ps->max_integrity - 10))
+            {
+                g_game.credits -= cost * 50;
+                ps->hull_integrity = scalar::min(ps->hull_integrity + 50, ps->max_integrity);
+            }
+            if (drawButton(g_game.uiterm, vec2i(48, y0 - 1), "Repair 100", 0xFFFFFFFF, g_game.credits < cost * 100 || ps->hull_integrity >= ps->max_integrity - 50))
+            {
+                g_game.credits -= cost * 100;
+                ps->hull_integrity = scalar::min(ps->hull_integrity + 100, ps->max_integrity);
+            }
+            y0 -= 2;
+        }
+        else if (upgrades & 2)
+        {
+            int cost = 500 + 500 * (ps->max_integrity - 500) / 100;
+            sstring line; line.appendf("Reinforce Hull (%d credits)", cost);
+            if (drawButton(g_game.uiterm, vec2i(12, y0), line, 0xFFFFFFFF, g_game.credits < cost || ps->hull_integrity >= ps->max_integrity - 50))
+            {
+                g_game.credits -= cost;
+                ps->max_integrity += 100;
+                ps->hull_integrity += 100;
+            }
+            y0 -= 2;
+        }
+
+        if (upgrades & 6)
+        {
+            int cost = 500 + 500 * (ps->reactor->capacity - 1000) / 1000;
+            sstring line; line.appendf("Upgrade Reactor (%d credits)", cost);
+            if (drawButton(g_game.uiterm, vec2i(12, y0), line, 0xFFFFFFFF, g_game.credits < cost))
+            {
+                g_game.credits -= cost;
+                ps->max_integrity += 100;
+                ps->hull_integrity += 100;
+            }
+            y0--;
+        }
+        if (upgrades & 12)
+        {
+            Railgun* weapon_variance = nullptr;
+            Railgun* weapon_charge = nullptr;
+            for (Railgun* r : ps->railguns)
+            {
+                if (!weapon_variance || r->firing_variance > weapon_variance->firing_variance)
+                    weapon_variance = r;
+                if (!weapon_charge || r->recharge_time > weapon_charge->recharge_time)
+                    weapon_charge = r;
+            }
+            if (drawButton(g_game.uiterm, vec2i(12, y0), "Upgrade Railgun Accuracy (500 credits)", 0xFFFFFFFF, !weapon_variance || g_game.credits < 500))
+            {
+                g_game.credits -= 500;
+                weapon_variance->firing_variance /= 2;
+            }
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Upgrade Railgun Charge Rate (500 credits)", 0xFFFFFFFF, !weapon_charge || weapon_charge->recharge_time == 0 || g_game.credits < 500))
+            {
+                g_game.credits -= 500;
+                weapon_charge->recharge_time--;
+            }
+            y0 -= 2;
+        }
+        if (upgrades & 24)
+        {
+            TorpedoLauncher* weapon_count = nullptr;
+            TorpedoLauncher* weapon_charge = nullptr;
+            for (TorpedoLauncher* r : ps->torpedoes)
+            {
+                if (!weapon_count || r->max_torpedoes < weapon_count->max_torpedoes)
+                    weapon_count = r;
+                if (!weapon_charge || r->recharge_time > weapon_charge->recharge_time)
+                    weapon_charge = r;
+            }
+            if (drawButton(g_game.uiterm, vec2i(12, y0), "Upgrade Torpedo Count (500 credits)", 0xFFFFFFFF, !weapon_count || g_game.credits < 500))
+            {
+                g_game.credits -= 500;
+                weapon_count->max_torpedoes++;
+            }
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Upgrade Torpedo Launcher Charge Rate (500 credits)", 0xFFFFFFFF, !weapon_charge || weapon_charge->recharge_time == 0 || g_game.credits < 500))
+            {
+                g_game.credits -= 500;
+                weapon_charge->recharge_time--;
+            }
+            y0 -= 2;
+        }
+        if (upgrades & 96)
+        {
+            PDC* weapon_count = nullptr;
+            PDC* weapon_charge = nullptr;
+            for (PDC* r : ps->pdcs)
+            {
+                if (!weapon_count || r->firing_variance > weapon_count->firing_variance)
+                    weapon_count = r;
+                if (!weapon_charge || r->max_rounds < weapon_charge->max_rounds)
+                    weapon_charge = r;
+            }
+            if (drawButton(g_game.uiterm, vec2i(12, y0), "Upgrade PDC Accuracy (500 credits)", 0xFFFFFFFF, !weapon_count || g_game.credits < 500))
+            {
+                g_game.credits -= 500;
+                weapon_count->firing_variance /= 2;
+            }
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Upgrade PDC Magazine Size (500 credits)", 0xFFFFFFFF, !weapon_charge || g_game.credits < 500))
+            {
+                g_game.credits -= 500;
+                weapon_charge->max_rounds += 500;
+            }
+            y0 -= 2;
+        }
+
+        if (!g_game.player_ship->transponder_masked && (upgrades & 0xF00) == 0x800)
+        {
+            if (drawButton(g_game.uiterm, vec2i(12, y0), "Military Transponder code", 0xFFFFFFFF))
+            {
+                g_game.log.log("Military Transponder code: 1234");
+                g_game.player_ship->transponder_masked = true;
+            }
+            y0--;
+        }
+
+
+
+        if (drawButton(g_game.uiterm, vec2i(78, 6), "Undock", 0xFFFFFFFF))
         {
             close = true;
         }
@@ -250,16 +398,18 @@ void drawUIFrame(TextBuffer* term, vec2i min, vec2i max, const char* title)
     term->write(vec2i(min.x * 2 + 8, max.y), title, 0xFFA0A0A0, LayerPriority_UI - 1);
 }
 
-bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color)
+bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color, bool disabled)
 {
     sstring text; text.appendf("[%s]", label);
 
     vec2f mouse = screen_mouse_pos();
     bool hovered = mouse.x >= pos.x / 2.0f && mouse.x < (pos.x + text.size()) / 2.0f && scalar::floori(mouse.y) == pos.y;
+    u32 col = hovered ? 0xFF00FF00 : color;
+    if (disabled) col = 0xFF404040;
 
-    term->write(vec2i(pos.x, pos.y), text.c_str(), hovered ? 0xFF00FF00 : color, LayerPriority_UI);
+    term->write(vec2i(pos.x, pos.y), text.c_str(), col, LayerPriority_UI);
     
-    return hovered && input_mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT);
+    return !disabled && hovered && input_mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT);
 }
 
 void updateGame()
@@ -322,6 +472,11 @@ void updateGame()
         {
             do_map_turn = true;
             map.player->next_action = ActionData(Action::Pickup, map.player, 1.0f);
+        }
+        if (input_key_pressed(GLFW_KEY_SPACE))
+        {
+            do_map_turn = true;
+            map.player->next_action = ActionData(Action::Wait, map.player, 1.0f);
         }
         if (g_window.inputs.scroll.y != 0)
         {
@@ -451,6 +606,21 @@ void updateGame()
                 if (g_game.uplayer->fireRailgun(target))
                     do_turn = true;
                 g_game.uplayer->is_aiming_railgun = false;
+            }
+        }
+        if (input_key_pressed(GLFW_KEY_SPACE))
+        {
+            do_turn = true;
+        }
+        if (input_key_pressed(GLFW_KEY_D))
+        {
+            for (int i = 0; i < 4; ++i)
+            {
+                auto it = g_game.universe->actors.find(g_game.uplayer->pos + cardinals[i]);
+                if (it.found && it.value->type == UActorType::Station)
+                {
+                    g_game.modal = new StationModal((UStation*) it.value);
+                }
             }
         }
 
@@ -685,8 +855,6 @@ void updateGame()
             --y0;
             sstring line_0;
             line_0.appendf("Engine [%s]", ShipObjectStatus[int(e->status)]);
-            if (ps->reactor->status == ShipObject::Status::Active)
-                line_0.appendf(" %.0f%%", e->thrust * 100);
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (TorpedoLauncher* e : ps->torpedoes)
@@ -696,7 +864,7 @@ void updateGame()
             line_0.appendf("Torpedo: [%s]", ShipObjectStatus[int(e->status)]);
             if (ps->reactor->status == ShipObject::Status::Active)
             {
-                line_0.appendf(" A: %d", e->torpedoes);
+                line_0.appendf(" A: %d/%d", e->torpedoes, e->max_torpedoes);
                 if (e->charge_time > 0)
                     line_0.appendf(" Ready-in: %d", e->charge_time);
             }
@@ -709,7 +877,7 @@ void updateGame()
             line_0.appendf("Point Defence: [%s]", ShipObjectStatus[int(e->status)]);
             if (ps->reactor->status == ShipObject::Status::Active)
             {
-                line_0.appendf(" A: %d", e->rounds);
+                line_0.appendf(" A: %d/%d", e->rounds, e->max_rounds);
             }
             g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
@@ -720,7 +888,7 @@ void updateGame()
             line_0.appendf("Railgun: [%s]", ShipObjectStatus[int(e->status)]);
             if (ps->reactor->status == ShipObject::Status::Active)
             {
-                line_0.appendf(" A: %d", e->rounds);
+                line_0.appendf(" A: %d/%d", e->rounds, 25);
                 if (e->charge_time > 0)
                     line_0.appendf(" Ready-in: %d", e->charge_time);
             }

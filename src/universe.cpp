@@ -78,14 +78,16 @@ bool UShip::fireTorpedo(vec2i target)
 bool UShip::fireRailgun(vec2i target)
 {
     bool found_weapon = false;
+    Railgun* weapon = nullptr;
     for (Railgun* r : ship->railguns)
     {
         if (r->status != ShipObject::Status::Active) continue;
         if (r->charge_time == 0 && r->rounds > 0)
         {
             found_weapon = true;
+            weapon = r;
             r->rounds--;
-            r->charge_time = 4;
+            r->charge_time = r->recharge_time;
             break;
         }
     }
@@ -99,7 +101,7 @@ bool UShip::fireRailgun(vec2i target)
     }
 
     pcg32& rng = g_game.universe->rng;
-    float firing_variance = scalar::PIf / 20;
+    float firing_variance = weapon->firing_variance;
     bool hit_anything = false;
     std::vector<vec2i> steps = findRay(pos, pos + (target - pos) * int(100 / (target - pos).length()));
     RailgunAnimation* anim = new RailgunAnimation(0xFFFFFFFF, getProjectileCharacter(getDirection(pos, target)));
@@ -121,6 +123,7 @@ bool UShip::fireRailgun(vec2i target)
                     g_game.log.log("Railgun impact.");
                     solid_target = true;
                     anim->hits.push_back(s);
+                    ((UShip*)it.value)->ship->railgun(vec2i());
                 }
                 else
                 {
@@ -135,12 +138,14 @@ bool UShip::fireRailgun(vec2i target)
                 solid_target = true;
             } break;
             case UActorType::CargoShip:
+            case UActorType::PirateShip:
             {
                 if (rng.nextFloat() < hit_chance)
                 {
                     if (this == g_game.uplayer) g_game.log.logf("Target hit (%.0f%%).", hit_chance * 100);
                     solid_target = true;
                     anim->hits.push_back(s);
+                    ((UShip*) it.value)->ship->railgun(vec2i());
                 }
                 else
                 {
@@ -222,6 +227,8 @@ void UPirateShip::update(pcg32& rng)
 {
     UShip::update(rng);
 
+    float sensor_range = ship->scannerRange();
+
     if (target == 0)
     {
         // If no target, look for one every 10 turns
@@ -235,7 +242,7 @@ void UPirateShip::update(pcg32& rng)
                 if (it.value->type == UActorType::Player || it.value->type == UActorType::CargoShip)
                 {
                     float dist = (pos - it.value->pos).length();
-                    if (dist < closest_distance && dist < ship->sensor_range && g_game.universe->isVisible(pos, it.value->pos))
+                    if (dist < closest_distance && dist < sensor_range && g_game.universe->isVisible(pos, it.value->pos))
                     {
                         closest_distance = dist;
                         target = it.value->id;
@@ -263,7 +270,7 @@ void UPirateShip::update(pcg32& rng)
         {
             UShip* s = (UShip*) target_it.value;
             float dist = (pos - s->pos).length();
-            if (dist < ship->sensor_range && g_game.universe->isVisible(pos, s->pos))
+            if (dist < sensor_range && g_game.universe->isVisible(pos, s->pos))
             {
                 // If the target is visible and within sensor range, update its last known position and potentially fire upon it
                 target_last_pos = s->pos;
@@ -487,7 +494,9 @@ void UAsteroid::render(TextBuffer& buffer, vec2i origin)
 UStation::UStation(vec2i p)
     : UActor(UActorType::Station, p)
 {
-
+    upgrades = g_game.rng.nextUInt();
+    repair_cost = g_game.rng.nextInt(3, 10);
+    scrap_price = g_game.rng.nextInt(7, 15);
 }
 
 void UStation::update(pcg32& rng)
@@ -793,6 +802,7 @@ void Universe::update(vec2i origin)
         }
     }
 
+    float player_scanners = g_game.uplayer->ship->scannerRange();
     std::vector<UShip*> moved;
     std::vector<UActor*> to_remove;
     for (auto it : actors)
@@ -807,6 +817,13 @@ void Universe::update(vec2i origin)
         {
             to_remove.push_back(a);
             continue;
+        }
+        else if ((a->pos - origin).length() > player_scanners && isShipType(a->type))
+        {
+            if (!lost_tracks.find(a->id).found)
+            {
+                lost_tracks.insert(a->id, ULostTrack(a->pos, ((UShip*)a)->vel, 0xFFFF0000, a->id));
+            }
         }
         a->update(rng);
 
@@ -854,6 +871,17 @@ void Universe::update(vec2i origin)
         }
         //delete a;
     }
+
+    for (auto it: lost_tracks)
+    {
+        auto actor_it = actor_ids.find(it.key);
+        if (!actor_it.found || (it.value.pos - origin).length() > 160.0f || ((actor_it.value->pos - origin).length() <= player_scanners && isVisible(actor_it.value->pos, origin)))
+        {
+            lost_tracks.erase(it.key);
+            continue;
+        }
+        it.value.pos += it.value.vel;
+    }
 }
 
 void Universe::render(TextBuffer& buffer, vec2i origin)
@@ -862,7 +890,15 @@ void Universe::render(TextBuffer& buffer, vec2i origin)
     for (auto it : actors)
     {
         if (it.value->pos == it.key)
-            it.value->render(buffer, bl);
+        {
+            auto lost = lost_tracks.find(it.value->id);
+            if (lost.found)
+            {
+                buffer.setOverlay(lost.value.pos, lost.value.color, LayerPriority_Overlay);
+            }
+            else
+                it.value->render(buffer, bl);
+        }
         // else
         //    buffer.setBg(it.key - bl, 0xFF303030, LayerPriority_Background);
     }

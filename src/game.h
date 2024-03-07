@@ -125,6 +125,9 @@ struct Game
     TextBuffer* mapterm = nullptr;
     TextBuffer* uiterm = nullptr;
 
+    int credits = 1000;
+    int scrap = 15;
+
     std::vector<Ship*> ships;
     Map* current_level = nullptr;
     Ship* player_ship = nullptr;
@@ -154,4 +157,4 @@ void updateGame();
 vec2i game_mouse_pos();
 vec2f screen_mouse_pos();
 
-bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color);
+bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color, bool disabled=false);

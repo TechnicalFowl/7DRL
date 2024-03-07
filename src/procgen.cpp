@@ -408,6 +408,14 @@ void placePilotSeat(Map& map, vec2i p)
     map.spawn(pilot_seat);
 }
 
+void placeOperationsDeck(Map& map, vec2i p)
+{
+    decorate(map, vec2i(p.x, p.y + 2), '=', '=', 0xFF00FF00, 0xFF00FF00, 0);
+
+    Scanner* scanner = new Scanner(p);
+    map.spawn(scanner);
+}
+
 void placeEngine(Map& map, vec2i p)
 {
     decorate(map, vec2i(p.x - 1, p.y + 3), '/', Border_Horizontal, 0xFFFFFFFF, 0xFFFFFFFF, 0);
@@ -1121,7 +1129,7 @@ struct ShipGenerator
             case RoomType::OperationsDeck:
             {
                 fillRoom(map, r.min, r.max, Terrain::ShipFloor, Terrain::ShipWall);
-                decorate(map, r.min + vec2i(2, 2), 'O', 0, 0xFFFFFFFF, 0xFFFFFFFF, 0);
+                placeOperationsDeck(map, r.min + vec2i(size + 1, size));
             } break;
             case RoomType::Airlock:
             {

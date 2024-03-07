@@ -10,6 +10,7 @@ struct Map;
 struct MainEngine;
 struct Reactor;
 struct PilotSeat;
+struct Scanner;
 struct TorpedoLauncher;
 struct PDC;
 struct Railgun;
@@ -44,12 +45,15 @@ struct Ship
     std::vector<MainEngine*> engines;
     Reactor* reactor = nullptr;
     PilotSeat* pilot = nullptr;
+    Scanner* scanner = nullptr;
     std::vector<TorpedoLauncher*> torpedoes;
     std::vector<PDC*> pdcs;
     std::vector<Railgun*> railguns;
 
     int hull_integrity = 500;
-    float sensor_range = 35;
+    int max_integrity = 500;
+
+    bool transponder_masked = false;
 
     Ship(Map* map) : map(map) {}
 
@@ -63,6 +67,8 @@ struct Ship
     void explosion(vec2f d, float power);
     void explosionAt(vec2i p, float power);
     void railgun(vec2i d);
+
+    float scannerRange() const;
 };
 
 std::vector<Actor*> findDoors(Ship* ship, vec2i p);

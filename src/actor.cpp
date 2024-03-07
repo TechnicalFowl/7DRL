@@ -819,6 +819,12 @@ PilotSeat::PilotSeat(vec2i p)
     power_required = 10.0f;
 }
 
+Scanner::Scanner(vec2i p)
+    : ShipObject(p, ActorType::Scanner)
+{
+    power_required = 50.0f;
+}
+
 MainEngine::MainEngine(vec2i p)
     : ShipObject(p, ActorType::Engine)
 {

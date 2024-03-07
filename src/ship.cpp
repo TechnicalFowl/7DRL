@@ -42,6 +42,7 @@ void Ship::update()
         switch (a->type)
         {
         case ActorType::PilotSeat: pilot = (PilotSeat*)a; break;
+        case ActorType::Scanner: scanner = (Scanner*) a; break;
         case ActorType::Reactor: reactor = (Reactor*)a; break;
         case ActorType::Engine: engines.push_back((MainEngine*)a); break;
         case ActorType::TorpedoLauncher: torpedoes.push_back((TorpedoLauncher*)a); break;
@@ -53,6 +54,7 @@ void Ship::update()
     std::vector<ShipObject*> all_objects;
     all_objects.insert(all_objects.end(), engines.begin(), engines.end());
     if (pilot) all_objects.push_back(pilot);
+    if (scanner) all_objects.push_back(scanner);
     all_objects.insert(all_objects.end(), pdcs.begin(), pdcs.end());
     all_objects.insert(all_objects.end(), torpedoes.begin(), torpedoes.end());
     all_objects.insert(all_objects.end(), railguns.begin(), railguns.end());
@@ -181,6 +183,13 @@ void Ship::railgun(vec2i d)
         return;
     }
 
+}
+
+float Ship::scannerRange() const
+{
+    if (!scanner) return 1;
+    if (scanner->status != ShipObject::Status::Active) return 1;
+    return scanner->range;
 }
 
 std::vector<Actor*> findDoors(Ship* ship, vec2i p)

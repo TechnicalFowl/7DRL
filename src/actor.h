@@ -236,10 +236,15 @@ struct PilotSeat : ShipObject
     PilotSeat(vec2i pos);
 };
 
+struct Scanner : ShipObject
+{
+    float range = 35.0f;
+
+    Scanner(vec2i pos);
+};
+
 struct MainEngine : ShipObject
 {
-    float thrust = 0.0f;
-
     MainEngine(vec2i pos);
 };
 
@@ -256,12 +261,18 @@ struct TorpedoLauncher : ShipObject
     int torpedoes = 5;
     int charge_time = 0;
 
+    int recharge_time = 5;
+    int max_torpedoes = 5;
+
     TorpedoLauncher(vec2i pos);
 };
 
 struct PDC : ShipObject
 {
     int rounds = 1000;
+    float firing_variance = scalar::PIf / 4;
+
+    int max_rounds = 1000;
 
     PDC(vec2i pos);
 };
@@ -270,6 +281,9 @@ struct Railgun : ShipObject
 {
     int rounds = 25;
     int charge_time = 0;
+
+    int recharge_time = 4;
+    float firing_variance = scalar::PIf / 20;
 
     Railgun(vec2i pos);
 };
