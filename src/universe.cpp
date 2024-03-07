@@ -512,7 +512,7 @@ void UStation::render(TextBuffer& buffer, vec2i origin)
 }
 
 UShipWreck::UShipWreck(vec2i p)
-    : UActor(UActorType::CargoShip, p)
+    : UActor(UActorType::ShipWreck, p)
 {
     scrap = g_game.rng.nextInt(50, 150);
 }
@@ -912,12 +912,14 @@ void Universe::render(TextBuffer& buffer, vec2i origin)
     {
         if (it.value->pos == it.key)
         {
+#if 1
             auto lost = lost_tracks.find(it.value->id);
             if (lost.found)
             {
                 buffer.setOverlay(lost.value.pos, lost.value.color, LayerPriority_Overlay);
             }
             else
+#endif
                 it.value->render(buffer, bl);
         }
         // else

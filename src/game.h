@@ -145,6 +145,7 @@ struct Game
     bool console_input_displayed = false;
 
     Modal* modal = nullptr;
+    bool modal_close = false;
 
     std::vector<Animation*> animations;
     std::vector<Animation*> uanimations;

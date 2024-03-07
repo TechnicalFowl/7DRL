@@ -16,6 +16,7 @@ enum class UActorType
     Torpedo,
     PirateShip,
     Station,
+    ShipWreck,
 };
 
 struct UActor

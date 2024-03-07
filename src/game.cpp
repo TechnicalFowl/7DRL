@@ -158,7 +158,7 @@ struct StationModal : Modal
 
     void draw()
     {
-        if (input_key_pressed(GLFW_KEY_ESCAPE) || input_key_pressed(GLFW_KEY_D))
+        if (input_key_pressed(GLFW_KEY_ESCAPE))
         {
             close = true;
             return;
@@ -311,6 +311,40 @@ struct StationModal : Modal
 
 
         if (drawButton(g_game.uiterm, vec2i(78, 6), "Undock", 0xFFFFFFFF))
+        {
+            close = true;
+        }
+    }
+};
+
+struct SalvageModal : Modal
+{
+    UShipWreck* wreck;
+
+    SalvageModal(UShipWreck* s)
+        : Modal(vec2i(4, 5), vec2i(40, g_game.h - 10), "Salvage")
+        , wreck(s)
+    {}
+
+    void draw()
+    {
+        if (input_key_pressed(GLFW_KEY_ESCAPE))
+        {
+            close = true;
+            return;
+        }
+        Ship* ps = g_game.player_ship;
+
+        g_game.uiterm->write(vec2i(12, g_game.h - 7), "Select a salvage priority:", 0xFFFFFFFF, LayerPriority_UI + 1);
+        if (drawButton(g_game.uiterm, vec2i(12, g_game.h - 8), "Scrap", 0xFFFFFFFF))
+        {
+            g_game.scrap += wreck->scrap;
+            g_game.log.logf("Salvaged %d scrap.", wreck->scrap);
+            wreck->dead = true;
+            close = true;
+        }
+
+        if (drawButton(g_game.uiterm, vec2i(78, 6), "Leave", 0xFFFFFFFF))
         {
             close = true;
         }
@@ -540,7 +574,7 @@ void updateGame()
         // Clear ship animations if we're still in the universe view.
         g_game.animations.clear();
 
-        bool do_turn = false;
+        bool do_turn = g_game.modal_close;
         if (input_key_pressed(GLFW_KEY_UP))
         {
             do_turn = true;
@@ -621,9 +655,18 @@ void updateGame()
             for (int i = 0; i < 4; ++i)
             {
                 auto it = g_game.universe->actors.find(g_game.uplayer->pos + cardinals[i]);
-                if (it.found && it.value->type == UActorType::Station)
+                if (it.found)
                 {
-                    g_game.modal = new StationModal((UStation*) it.value);
+                    if (it.value->type == UActorType::Station)
+                    {
+                        g_game.modal = new StationModal((UStation*)it.value);
+                        break;
+                    }
+                    else if (it.value->type == UActorType::ShipWreck)
+                    {
+                        g_game.modal = new SalvageModal((UShipWreck*) it.value);
+                        break;
+                    }
                 }
             }
         }
@@ -641,6 +684,7 @@ void updateGame()
         if (do_turn)
         {
             do_map_turn = true;
+            g_game.modal_close = false;
             g_game.last_universe_update = g_game.current_level->turn;
             g_game.universe->update(g_game.uplayer->pos);
         }
@@ -965,6 +1009,7 @@ void updateGame()
         {
             delete g_game.modal;
             g_game.modal = nullptr;
+            g_game.modal_close = true;
         }
     }
     if (g_game.transition == 0)
