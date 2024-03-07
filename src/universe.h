@@ -154,6 +154,8 @@ struct Universe
     linear_map<vec2i, bool> regions_generated;
     linear_map<u32, ULostTrack> lost_tracks;
 
+    std::vector<UTorpedo*> torpedoes;
+
     pcg32 rng;
     int universe_ticks = 0;
     u32 next_actor = 1;

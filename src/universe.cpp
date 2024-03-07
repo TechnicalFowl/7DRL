@@ -29,8 +29,80 @@ UShip::~UShip()
 void UShip::update(pcg32& rng)
 {
     UActor::update(rng);
-    if (ship && ship->hull_integrity < 0)
-        dead = true;
+
+    if (ship)
+    {
+        if (ship->hull_integrity <= 0)
+            dead = true;
+
+        bool pdc_used[16]{ false };
+
+        for (UTorpedo* t : g_game.universe->torpedoes)
+        {
+            if (t->target == id)
+            {
+                bool has_pdc = false;
+                int i = 0;
+                for (PDC* p : ship->pdcs)
+                {
+                    i++;
+                    if (p->status != ShipObject::Status::Active) continue;
+                    if (p->rounds == 0) continue;
+                    if (pdc_used[i]) continue;
+
+                    std::vector<UTorpedo*> intermediates;
+                    auto points = findRay(pos, t->pos);
+                    bool blocked = false;
+                    for (vec2i p : points)
+                    {
+                        auto it = g_game.universe->actors.find(p);
+                        if (it.found)
+                        {
+                            if (it.value->type == UActorType::Torpedo)
+                            {
+                                intermediates.push_back((UTorpedo*)it.value);
+                            }
+                            else
+                            {
+                                blocked = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (blocked) continue;
+                    u32 col = 0xFFFFFFFF;
+                    if (type == UActorType::PirateShip) col = 0xFFFF0000;
+                    else if (type == UActorType::CargoShip) col = 0xFF0000FF;
+                    RailgunAnimation* anim = new RailgunAnimation(0xFFFFFFFF, getProjectileCharacter(getDirection(pos, t->pos)));
+                    for (vec2i p : points) anim->points.push_back(p);
+                    pdc_used[i] = true;
+                    p->rounds = scalar::max(0, p->rounds - g_game.rng.nextInt(25, 75));
+                    has_pdc = true;
+                    for (UTorpedo* torp : intermediates)
+                    {
+                        float distance = (torp->pos - pos).length();
+                        float hit_chance = 1 / (p->firing_variance * distance);
+                        if (g_game.rng.nextFloat() < hit_chance)
+                        {
+                            anim->hits.push_back(torp->pos);
+                            torp->dead = true;
+                            if (this == g_game.uplayer)
+                            {
+                                if (torp->target == g_game.uplayer->id) g_game.log.log("Incoming torpedo destroyted by point defences.");
+                                else g_game.log.log("Collateral torpedo destroyted by point defences.");
+                            }
+                            else if (torp->source == g_game.uplayer->id) g_game.log.log("Torpedo destroyed by enemy point defences.");
+                            break;
+                        }
+                        else
+                            anim->misses.push_back(torp->pos);
+                    }
+                    g_game.uanimations.push_back(anim);
+                }
+                if (!has_pdc) break;
+            }
+        }
+    }
 }
 
 bool UShip::fireTorpedo(vec2i target)
@@ -61,7 +133,7 @@ bool UShip::fireTorpedo(vec2i target)
 
         vec2i offs = direction(getDirection(pos, target));
         if (offs.zero()) offs = vec2i(1, 0);
-        vec2i spawn_pos = pos + vel + offs;
+        vec2i spawn_pos = pos - vel + offs * 2;
 
         UTorpedo* torp = new UTorpedo(spawn_pos);
         torp->source = id;
@@ -752,6 +824,10 @@ void Universe::spawn(UActor* a)
                 actors.insert(p, (UActor*)ast);
         }
     }
+    else if (a->type == UActorType::Torpedo)
+    {
+        torpedoes.push_back((UTorpedo*) a);
+    }
     a->id = next_actor++;
     actor_ids.insert(a->id, a);
 }
@@ -894,6 +970,10 @@ void Universe::update(vec2i origin)
         {
             UShipWreck* wreck = new UShipWreck(a->pos);
             spawn(wreck);
+        }
+        else if (a->type == UActorType::Torpedo)
+        {
+            torpedoes.erase(std::find(torpedoes.begin(), torpedoes.end(), a));
         }
         delete a;
     }
