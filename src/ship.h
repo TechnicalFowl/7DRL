@@ -5,6 +5,7 @@
 #include "util/vector_math.h"
 
 struct Actor;
+struct Item;
 struct Map;
 
 struct MainEngine;
@@ -60,7 +61,7 @@ struct Ship
     ShipRoom* getRoom(vec2i p);
     ShipRoom* getRoom(RoomType t);
 
-    std::vector<ShipRoom*> getRooms(RoomType t);
+    std::vector<const ShipRoom*> getRooms(RoomType t) const;
 
     void update();
 
@@ -71,6 +72,9 @@ struct Ship
     float scannerRange() const;
 
     void repair(int points);
+
+    bool airlockFull() const;
+    bool spawnItemInAirlock(Item* item);
 };
 
 std::vector<Actor*> findDoors(Ship* ship, vec2i p);

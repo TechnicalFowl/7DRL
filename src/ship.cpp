@@ -22,9 +22,9 @@ ShipRoom* Ship::getRoom(RoomType t)
     return nullptr;
 }
 
-std::vector<ShipRoom*> Ship::getRooms(RoomType t)
+std::vector<const ShipRoom*> Ship::getRooms(RoomType t) const
 {
-    std::vector<ShipRoom*> result;
+    std::vector<const ShipRoom*> result;
     for (auto& r : rooms)
         if (r.type == t)
             result.push_back(&r);
@@ -260,6 +260,56 @@ void Ship::repair(int points)
             }
         }
     }
+}
+
+bool Ship::airlockFull() const
+{
+    if (!map) return true;
+    auto airlocks = getRooms(RoomType::Airlock);
+    for (const ShipRoom* r : airlocks)
+    {
+        for (int y = r->min.y; y <= r->max.y; ++y)
+        {
+            for (int x = r->min.x; x <= r->max.x; ++x)
+            {
+                auto it = map->tiles.find(vec2i(x, y));
+                if (it.found)
+                {
+                    if ((it.value.terrain == Terrain::ShipFloor || it.value.terrain == Terrain::DamagedShipFloor) && !it.value.ground && !it.value.actor)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool Ship::spawnItemInAirlock(Item* item)
+{
+    if (!map) return false;
+    auto airlocks = getRooms(RoomType::Airlock);
+    for (const ShipRoom* r : airlocks)
+    {
+        for (int y = r->min.y; y <= r->max.y; ++y)
+        {
+            for (int x = r->min.x; x <= r->max.x; ++x)
+            {
+                auto it = map->tiles.find(vec2i(x, y));
+                if (it.found)
+                {
+                    if ((it.value.terrain == Terrain::ShipFloor || it.value.terrain == Terrain::DamagedShipFloor) && !it.value.ground && !it.value.actor)
+                    {
+                        GroundItem* gr = new GroundItem(vec2i(x, y), item);
+                        map->spawn(gr);
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
 }
 
 std::vector<Actor*> findDoors(Ship* ship, vec2i p)

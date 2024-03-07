@@ -177,6 +177,7 @@ struct StationModal : Modal
         {
             g_game.credits += price * g_game.scrap;
             g_game.scrap = 0;
+            g_game.log.log("[Station] Thanks for your sale.");
         }
 
         int y0 = g_game.h - 11;
@@ -191,16 +192,19 @@ struct StationModal : Modal
             {
                 g_game.credits -= cost * 10;
                 ps->repair(10);
+                g_game.log.log("[Station] We have repaired some damage to your hull.");
             }
             if (drawButton(g_game.uiterm, vec2i(28, y0 - 1), "Repair 50", 0xFFFFFFFF, g_game.credits < cost * 50 || ps->hull_integrity >= ps->max_integrity - 10))
             {
                 g_game.credits -= cost * 50;
                 ps->repair(50);
+                g_game.log.log("[Station] We have repaired some damage to your hull.");
             }
             if (drawButton(g_game.uiterm, vec2i(48, y0 - 1), "Repair 100", 0xFFFFFFFF, g_game.credits < cost * 100 || ps->hull_integrity >= ps->max_integrity - 50))
             {
                 g_game.credits -= cost * 100;
                 ps->repair(100);
+                g_game.log.log("[Station] We have repaired some damage to your hull.");
             }
             y0 -= 2;
         }
@@ -213,10 +217,12 @@ struct StationModal : Modal
                 g_game.credits -= cost;
                 ps->max_integrity += 100;
                 ps->hull_integrity += 100;
+                g_game.log.log("[Station] Your hull has been reinforced.");
             }
             y0 -= 2;
         }
 
+        y0--;
         if (upgrades & 0x6)
         {
             int cost = 500 + 500 * (ps->reactor->capacity - 1000) / 1000;
@@ -225,6 +231,7 @@ struct StationModal : Modal
             {
                 g_game.credits -= cost;
                 ps->reactor->capacity += 1000;
+                g_game.log.log("[Station] Your reactor capacity has been upgraded.");
             }
             y0--;
         }
@@ -246,16 +253,19 @@ struct StationModal : Modal
             {
                 g_game.credits -= 500;
                 weapon_variance->firing_variance /= 2;
+                g_game.log.log("[Station] Your railgun accuracy has been upgraded.");
             }
             if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Upgrade Railgun Charge Rate (500 credits)", 0xFFFFFFFF, !weapon_charge || weapon_charge->recharge_time == 0 || g_game.credits < 500))
             {
                 g_game.credits -= 500;
                 weapon_charge->recharge_time--;
+                g_game.log.log("[Station] Your railgun charge rate has been upgraded.");
             }
             if (drawButton(g_game.uiterm, vec2i(12, y0 - 2), "Upgrade Railgun Max Rounds (500 credits)", 0xFFFFFFFF, !weapon_rounds || g_game.credits < 500))
             {
                 g_game.credits -= 500;
                 weapon_charge->max_rounds += 5;
+                g_game.log.log("[Station] Your railgun magazine size has been upgraded.");
             }
             y0 -= 3;
         }
@@ -274,11 +284,13 @@ struct StationModal : Modal
             {
                 g_game.credits -= 500;
                 weapon_count->max_torpedoes++;
+                g_game.log.log("[Station] Your torpedo launcher magazine size has been upgraded.");
             }
             if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Upgrade Torpedo Launcher Charge Rate (500 credits)", 0xFFFFFFFF, !weapon_charge || weapon_charge->recharge_time == 0 || g_game.credits < 500))
             {
                 g_game.credits -= 500;
                 weapon_charge->recharge_time--;
+                g_game.log.log("[Station] Your torpedo launcher charge rate has been upgraded.");
             }
             y0 -= 2;
         }
@@ -297,22 +309,103 @@ struct StationModal : Modal
             {
                 g_game.credits -= 500;
                 weapon_count->firing_variance /= 2;
+                g_game.log.log("[Station] Your point defence accuracy has been upgraded.");
             }
             if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Upgrade PDC Magazine Size (500 credits)", 0xFFFFFFFF, !weapon_charge || g_game.credits < 500))
             {
                 g_game.credits -= 500;
                 weapon_charge->max_rounds += 500;
+                g_game.log.log("[Station] Your point defence magazine size has been upgraded.");
             }
             y0 -= 2;
         }
+        y0--;
+        if (upgrades & 0x40)
+        {
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Buy Repair Parts (50 credits / 5)", 0xFFFFFFFF, g_game.credits < 50))
+            {
+                ItemTypeInfo& ii = g_game.reg.item_type_info[int(ItemType::RepairParts)];
+                Item* item = new Item(ii.character, ii.color, ItemType::RepairParts, ii.name, 5);
+                if (ps->spawnItemInAirlock(item))
+                {
+                    g_game.credits -= 50;
+                    g_game.log.log("[Station] Repair parts transported to your airlock");
+                }
+                else
+                {
+                    delete item;
+                    g_game.log.log("[Station] Please clear some space from your airlock to make room for your purchase");
+                }
+            }
+            y0--;
+        }
+        if (upgrades & 0x80)
+        {
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Buy Torpedoes (100 credits / 5)", 0xFFFFFFFF, g_game.credits < 100))
+            {
+                ItemTypeInfo& ii = g_game.reg.item_type_info[int(ItemType::Torpedoes)];
+                Item* item = new Item(ii.character, ii.color, ItemType::Torpedoes, ii.name, 5);
+                if (ps->spawnItemInAirlock(item))
+                {
+                    g_game.credits -= 100;
+                    g_game.log.log("[Station] Torpedoes transported to your airlock");
+                }
+                else
+                {
+                    delete item;
+                    g_game.log.log("[Station] Please clear some space from your airlock to make room for your purchase");
+                }
+            }
+            y0--;
+        }
+        if (upgrades & 0x100)
+        {
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Buy Railgun Rounds (100 credits / 25)", 0xFFFFFFFF, g_game.credits < 100))
+            {
+                ItemTypeInfo& ii = g_game.reg.item_type_info[int(ItemType::RailgunRounds)];
+                Item* item = new Item(ii.character, ii.color, ItemType::RailgunRounds, ii.name, 25);
+                if (ps->spawnItemInAirlock(item))
+                {
+                    g_game.credits -= 100;
+                    g_game.log.log("[Station] Railgun Rounds transported to your airlock");
+                }
+                else
+                {
+                    delete item;
+                    g_game.log.log("[Station] Please clear some space from your airlock to make room for your purchase");
+                }
+            }
+            y0--;
+        }
+        if (upgrades & 0x200)
+        {
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Buy PDC Rounds (100 credits / 500)", 0xFFFFFFFF, g_game.credits < 100))
+            {
+                ItemTypeInfo& ii = g_game.reg.item_type_info[int(ItemType::PDCRounds)];
+                Item* item = new Item(ii.character, ii.color, ItemType::PDCRounds, ii.name, 500);
+                if (ps->spawnItemInAirlock(item))
+                {
+                    g_game.credits -= 100;
+                    g_game.log.log("[Station] PDC Rounds transported to your airlock");
+                }
+                else
+                {
+                    delete item;
+                    g_game.log.log("[Station] Please clear some space from your airlock to make room for your purchase");
+                }
+            }
+            y0--;
+        }
 
+        y0--;
         if (!g_game.player_ship->transponder_masked && (upgrades & 0x80))
         {
             if (drawButton(g_game.uiterm, vec2i(12, y0), "Military Transponder code (1000 credits)", 0xFFFFFFFF, g_game.credits < 1000))
             {
-                g_game.log.log("Military Transponder code: 1234");
                 g_game.player_ship->transponder_masked = true;
                 g_game.credits -= 1000;
+                g_game.log.log("[Station] If anyone asks you didn't buy this here.");
+                g_game.log.log("Military Transponder code: 1234");
             }
             y0--;
         }

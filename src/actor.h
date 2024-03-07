@@ -21,6 +21,7 @@ struct Item
     int count = 1;
 
     Item(int id, u32 color, ItemType type, const sstring& name) : character(id), color(color), type(type), name(name) {}
+    Item(int id, u32 color, ItemType type, const sstring& name, int count) : character(id), color(color), type(type), name(name), count(count) {}
 
     sstring getName() const
     {
