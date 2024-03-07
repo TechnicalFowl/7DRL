@@ -232,12 +232,15 @@ struct StationModal : Modal
         {
             Railgun* weapon_variance = nullptr;
             Railgun* weapon_charge = nullptr;
+            Railgun* weapon_rounds = nullptr;
             for (Railgun* r : ps->railguns)
             {
                 if (!weapon_variance || r->firing_variance > weapon_variance->firing_variance)
                     weapon_variance = r;
                 if (!weapon_charge || r->recharge_time > weapon_charge->recharge_time)
                     weapon_charge = r;
+                if (!weapon_rounds || r->max_rounds < weapon_rounds->max_rounds)
+                    weapon_rounds = r;
             }
             if (drawButton(g_game.uiterm, vec2i(12, y0), "Upgrade Railgun Accuracy (500 credits)", 0xFFFFFFFF, !weapon_variance || g_game.credits < 500))
             {
@@ -249,7 +252,12 @@ struct StationModal : Modal
                 g_game.credits -= 500;
                 weapon_charge->recharge_time--;
             }
-            y0 -= 2;
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 2), "Upgrade Railgun Max Rounds (500 credits)", 0xFFFFFFFF, !weapon_rounds || g_game.credits < 500))
+            {
+                g_game.credits -= 500;
+                weapon_charge->max_rounds += 5;
+            }
+            y0 -= 3;
         }
         if (upgrades & 0x18)
         {
@@ -453,6 +461,7 @@ void updateGame()
 {
     bool do_map_turn = false;
 
+#if !SHIP
     if (g_game.console_input_displayed)
     {
         InputTextResult res = input_handle_text(g_game.console_input, g_game.console_cursor);
@@ -467,7 +476,9 @@ void updateGame()
             g_game.console_input_displayed = false;
         }
     }
-    else if (!g_game.modal && !g_game.show_universe && g_game.transition == 0)
+    else 
+#endif
+        if (!g_game.modal && !g_game.show_universe && g_game.transition == 0)
     {
         Map& map = *g_game.current_level;
         do_map_turn = map.player->next_action.action != Action::Wait;
@@ -689,7 +700,6 @@ void updateGame()
         {
             do_turn = true;
         }
-#if !SHIP
         if (input_key_pressed(GLFW_KEY_D))
         {
             for (int i = 0; i < 4; ++i)
@@ -710,7 +720,6 @@ void updateGame()
                 }
             }
         }
-#endif
 
         if (g_window.inputs.scroll.y != 0)
         {
@@ -848,18 +857,52 @@ void updateGame()
     sstring top_bar;
     if (g_game.show_universe)
     {
-        vec2i mouse_pos = game_mouse_pos();
-        top_bar.appendf("Mx: %d %d Px: %d %d", mouse_pos.x, mouse_pos.y, g_game.current_level->player->pos.x, g_game.current_level->player->pos.y);
+        vec2i mouse_pos = universe_mouse_pos();
+        top_bar.appendf("Examine: %d %d", mouse_pos.x, mouse_pos.y);
+        auto it = g_game.universe->actors.find(mouse_pos);
+        if (it.found)
+        {
+            top_bar.appendf("   %s", UActorTypeNames[int(it.value->type)]);
+        }
     }
     else
     {
-        vec2i mouse_pos = universe_mouse_pos();
-        top_bar.appendf("Mx: %d %d Px: %d %d", mouse_pos.x, mouse_pos.y, g_game.uplayer->pos.x, g_game.uplayer->pos.y);
+        vec2i mouse_pos = game_mouse_pos();
+        auto it = g_game.current_level->tiles.find(mouse_pos);
+        top_bar.appendf("Examine: (%d %d)", mouse_pos.x, mouse_pos.y);
+        if (it.found)
+        {
+            TerrainInfo& ti = g_game.reg.terrain_info[int(it.value.terrain)];
+            top_bar.appendf("   %s", ti.name.c_str());
+            if (it.value.actor)
+            {
+                ActorInfo& ai = g_game.reg.actor_info[int(it.value.actor->type)];
+                top_bar.appendf("  %s", ai.name.c_str());
+            }
+            if (it.value.ground)
+            {
+                if (it.value.ground->type == ActorType::GroundItem)
+                {
+                    GroundItem* item = (GroundItem*)it.value.ground;
+                    top_bar.appendf("  %s", item->item->getName().c_str());
+                }
+                else
+                {
+                    ActorInfo& ai = g_game.reg.actor_info[int(it.value.ground->type)];
+                    top_bar.appendf("  %s", ai.name.c_str());
+                }
+            }
+        }
+        else
+        {
+            top_bar.append("   empty");
+        }
     }
     g_game.uiterm->fillBg(vec2i(0, g_game.h - 1), vec2i(49, g_game.h - 1), 0xFF101010, LayerPriority_UI - 1);
     g_game.uiterm->write(vec2i(2, g_game.h - 1), top_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
 
     sstring bottom_bar;
+#if !SHIP
     if (g_game.console_input_displayed)
     {
         bottom_bar.appendf("# %s", g_game.console_input);
@@ -868,8 +911,15 @@ void updateGame()
     }
     else
     {
-        bottom_bar.appendf("Turn: %d/%d V: %s", g_game.current_level->turn, g_game.universe->universe_ticks, g_game.show_universe ? "Universe" : "Ship");
+#endif
+        sstring holding = g_game.current_level->player->holding ? g_game.current_level->player->holding->getName() : sstring("nothing");
+        bottom_bar.appendf("Turn: %d/%d    View: %s    Holding: %s",
+            g_game.current_level->turn, g_game.universe->universe_ticks,
+            g_game.show_universe ? "Universe" : "Ship",
+            holding.c_str());
+#if !SHIP
     }
+#endif
     g_game.uiterm->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF101010, LayerPriority_UI - 2);
     g_game.uiterm->write(vec2i(2, 0), bottom_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
 
@@ -1039,9 +1089,20 @@ void updateGame()
 #endif
     }
     {
-        sstring line_0;
-        line_0.appendf("Holding: %s", g_game.current_level->player->holding ? g_game.current_level->player->holding->name.c_str() : "nothing");
-        g_game.uiterm->write(vec2i(102, g_game.h - 4), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+        if (g_game.show_universe)
+        {
+            g_game.uiterm->write(vec2i(102, g_game.h - 1), "", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, g_game.h - 2), "arrows: move   space: wait", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, g_game.h - 3), "z: railgun    f: torpedoes", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, g_game.h - 4), "u: stop piloting   d: dock    h: hail", 0xFFFFFFFF, LayerPriority_UI);
+        }
+        else
+        {
+            g_game.uiterm->write(vec2i(102, g_game.h - 1), "", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, g_game.h - 2), "arrows: move    space: wait", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, g_game.h - 3), "", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, g_game.h - 4), "o: interact     u: use     comma: pickup", 0xFFFFFFFF, LayerPriority_UI);
+        }
         g_game.uiterm->fillText(vec2i(100, g_game.h - 4), vec2i(100, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, g_game.h - 4), vec2i(g_game.w * 2 - 1, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
     }

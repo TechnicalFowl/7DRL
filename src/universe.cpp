@@ -8,6 +8,17 @@
 #include "ship.h"
 #include "procgen.h"
 
+const char* UActorTypeNames[UActorTypeCount]
+{
+    "Player",
+    "Asteroid",
+    "CargoShip",
+    "Torpedo",
+    "PirateShip",
+    "Station",
+    "ShipWreck",
+};
+
 bool isShipType(UActorType t)
 {
     return t == UActorType::CargoShip || t == UActorType::Player || t == UActorType::Torpedo || t == UActorType::PirateShip;

@@ -17,7 +17,11 @@ enum class UActorType
     PirateShip,
     Station,
     ShipWreck,
+
+    __COUNT,
 };
+constexpr int UActorTypeCount = int(UActorType::__COUNT);
+extern const char* UActorTypeNames[UActorTypeCount];
 
 struct UActor
 {

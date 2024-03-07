@@ -18,7 +18,17 @@ struct Item
     ItemType type;
     sstring name;
 
+    int count = 1;
+
     Item(int id, u32 color, ItemType type, const sstring& name) : character(id), color(color), type(type), name(name) {}
+
+    sstring getName() const
+    {
+        sstring s = name;
+        if (count > 1)
+            s.appendf(" (x%d)", count);
+        return s;
+    }
 };
 
 #if 0
@@ -282,6 +292,7 @@ struct Railgun : ShipObject
     int rounds = 25;
     int charge_time = 0;
 
+    int max_rounds = 25;
     int recharge_time = 4;
     float firing_variance = scalar::PIf / 20;
 

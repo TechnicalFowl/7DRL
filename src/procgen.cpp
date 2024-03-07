@@ -381,6 +381,21 @@ void placeItem(Map& map, vec2i p, ItemType it)
 {
     ItemTypeInfo& ii = g_game.reg.item_type_info[int(it)];
     Item* item = new Item(ii.character, ii.color, it, ii.name);
+    switch (it)
+    {
+    case ItemType::RepairParts:
+        item->count = 5;
+        break;
+    case ItemType::RailgunRounds:
+        item->count = 20;
+        break;
+    case ItemType::Torpedoes:
+        item->count = 4;
+        break;
+    case ItemType::PDCRounds:
+        item->count = 500;
+        break;
+    }
     GroundItem* ground_item = new GroundItem(p, item);
     map.spawn(ground_item);
 }

@@ -548,6 +548,20 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                         move = dirs[i];
                     }
                 } break;
+                case ItemType::PDCRounds:
+                {
+                    if (it.value.actor && it.value.actor->type == ActorType::PDC)
+                    {
+                        move = dirs[i];
+                    }
+                } break;
+                case ItemType::RailgunRounds:
+                {
+                    if (it.value.actor && it.value.actor->type == ActorType::Railgun)
+                    {
+                        move = dirs[i];
+                    }
+                } break;
                 default: break;
                 }
             }
@@ -614,8 +628,12 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                         ShipObject* obj = (ShipObject*)it.value.actor;
                         if (obj->status == ShipObject::Status::Damaged)
                         {
-                            delete pl->holding;
-                            pl->holding = nullptr;
+                            pl->holding->count--;
+                            if (pl->holding->count == 0)
+                            {
+                                delete pl->holding;
+                                pl->holding = nullptr;
+                            }
                             obj->status = ShipObject::Status::Disabled;
                             ActorInfo& ai = g_game.reg.actor_info[int(obj->type)];
                             g_game.log.logf("You repair the %s.", ai.name.c_str());
@@ -634,12 +652,68 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                     if (it.value.actor->type == ActorType::TorpedoLauncher)
                     {
                         TorpedoLauncher* launcher = (TorpedoLauncher*)it.value.actor;
-                        if (launcher->torpedoes < 5)
+                        if (launcher->torpedoes < launcher->max_torpedoes)
                         {
-                            delete pl->holding;
-                            pl->holding = nullptr;
-                            launcher->torpedoes = 5;
+                            int needed = launcher->max_torpedoes - launcher->torpedoes;
+                            int consumed = scalar::min(pl->holding->count, needed);
+                            pl->holding->count -= consumed;
+                            if (pl->holding->count == 0)
+                            {
+                                delete pl->holding;
+                                pl->holding = nullptr;
+                            }
+                            launcher->torpedoes += consumed;
                             g_game.log.log("You reload the torpedoes.");
+                        }
+                        else
+                        {
+                            g_game.log.log("That is already fully loaded.");
+                        }
+                        return true;
+                    }
+                } break;
+                case ItemType::PDCRounds:
+                {
+                    if (it.value.actor->type == ActorType::PDC)
+                    {
+                        PDC* launcher = (PDC*)it.value.actor;
+                        if (launcher->rounds < launcher->max_rounds)
+                        {
+                            int needed = launcher->max_rounds - launcher->rounds;
+                            int consumed = scalar::min(pl->holding->count, needed);
+                            pl->holding->count -= consumed;
+                            if (pl->holding->count == 0)
+                            {
+                                delete pl->holding;
+                                pl->holding = nullptr;
+                            }
+                            launcher->rounds += consumed;
+                            g_game.log.log("You reload the point defences.");
+                        }
+                        else
+                        {
+                            g_game.log.log("That is already fully loaded.");
+                        }
+                        return true;
+                    }
+                } break;
+                case ItemType::RailgunRounds:
+                {
+                    if (it.value.actor->type == ActorType::Railgun)
+                    {
+                        Railgun* launcher = (Railgun*) it.value.actor;
+                        if (launcher->rounds < launcher->max_rounds)
+                        {
+                            int needed = launcher->max_rounds - launcher->rounds;
+                            int consumed = scalar::min(pl->holding->count, needed);
+                            pl->holding->count -= consumed;
+                            if (pl->holding->count == 0)
+                            {
+                                delete pl->holding;
+                                pl->holding = nullptr;
+                            }
+                            launcher->rounds += consumed;
+                            g_game.log.log("You reload the railgun.");
                         }
                         else
                         {

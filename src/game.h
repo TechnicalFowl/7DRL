@@ -140,9 +140,11 @@ struct Game
 
     GameState state = GameState::Ingame;
 
+#if !SHIP
     sstring console_input;
     int console_cursor = 0;
     bool console_input_displayed = false;
+#endif
 
     Modal* modal = nullptr;
     bool modal_close = false;
