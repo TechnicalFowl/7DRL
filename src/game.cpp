@@ -185,17 +185,17 @@ struct StationModal : Modal
             if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Repair 10", 0xFFFFFFFF, g_game.credits < cost * 10 || ps->hull_integrity == ps->max_integrity))
             {
                 g_game.credits -= cost * 10;
-                ps->hull_integrity = scalar::min(ps->hull_integrity + 10, ps->max_integrity);
+                ps->repair(10);
             }
             if (drawButton(g_game.uiterm, vec2i(28, y0 - 1), "Repair 50", 0xFFFFFFFF, g_game.credits < cost * 50 || ps->hull_integrity >= ps->max_integrity - 10))
             {
                 g_game.credits -= cost * 50;
-                ps->hull_integrity = scalar::min(ps->hull_integrity + 50, ps->max_integrity);
+                ps->repair(50);
             }
             if (drawButton(g_game.uiterm, vec2i(48, y0 - 1), "Repair 100", 0xFFFFFFFF, g_game.credits < cost * 100 || ps->hull_integrity >= ps->max_integrity - 50))
             {
                 g_game.credits -= cost * 100;
-                ps->hull_integrity = scalar::min(ps->hull_integrity + 100, ps->max_integrity);
+                ps->repair(100);
             }
             y0 -= 2;
         }

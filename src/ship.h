@@ -69,6 +69,8 @@ struct Ship
     void railgun(vec2i d);
 
     float scannerRange() const;
+
+    void repair(int points);
 };
 
 std::vector<Actor*> findDoors(Ship* ship, vec2i p);

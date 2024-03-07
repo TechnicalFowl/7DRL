@@ -192,6 +192,29 @@ float Ship::scannerRange() const
     return scanner->range;
 }
 
+void Ship::repair(int points)
+{
+    hull_integrity = scalar::min(hull_integrity + points, max_integrity);
+    if (map)
+    {
+        int remaining = points;
+        for (auto it : map->tiles)
+        {
+            if (it.value.terrain == Terrain::DamagedShipFloor)
+            {
+                remaining--;
+                it.value.terrain = Terrain::ShipFloor;
+                if (remaining <= 0) break;
+            } else if (it.value.terrain == Terrain::DamagedShipWall)
+            {
+                remaining--;
+                it.value.terrain = Terrain::ShipWall;
+                if (remaining <= 0) break;
+            }
+        }
+    }
+}
+
 std::vector<Actor*> findDoors(Ship* ship, vec2i p)
 {
     std::vector<Actor*> doors;
