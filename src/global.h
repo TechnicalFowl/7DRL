@@ -30,3 +30,9 @@ void do_assert(const char* check, const char* file, s32 line, const char* fmt, .
 //#   define debug_assert(E)
 //#   define debug_assertf(E, F, ...)
 //#endif
+
+#if _DEBUG
+#define SHIP 0
+#else
+#define SHIP 1
+#endif

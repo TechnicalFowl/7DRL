@@ -502,10 +502,12 @@ void updateGame()
             do_map_turn = true;
             map.player->next_action = ActionData(Action::UseOn, map.player, 1.0f);
         }
+#if !SHIP
         if (input_key_pressed(GLFW_KEY_3) && (input_key_down(GLFW_KEY_LEFT_SHIFT) || input_key_down(GLFW_KEY_RIGHT_SHIFT)))
         {
             g_game.console_input_displayed = true;
         }
+#endif
         if (input_key_pressed(GLFW_KEY_COMMA))
         {
             do_map_turn = true;
@@ -688,6 +690,7 @@ void updateGame()
         {
             do_turn = true;
         }
+#if !SHIP
         if (input_key_pressed(GLFW_KEY_D))
         {
             for (int i = 0; i < 4; ++i)
@@ -708,6 +711,7 @@ void updateGame()
                 }
             }
         }
+#endif
 
         if (g_window.inputs.scroll.y != 0)
         {
