@@ -76,7 +76,7 @@ struct TextBuffer
     TextBuffer(int w, int h);
     ~TextBuffer();
 
-    void clear();
+    void clear(int w, int h);
     void write(vec2i p, const char* text, u32 color, int priority = 0);
     void fillText(vec2i from, vec2i to, char c, u32 color, int prio = 0);
     void fill(vec2i from, vec2i to, int id, u32 color, int prio = 0);

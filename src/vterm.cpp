@@ -11,8 +11,17 @@ TextBuffer::~TextBuffer()
     delete[] buffer;
 }
 
-void TextBuffer::clear()
+void TextBuffer::clear(int w0, int h0)
 {
+    if (w != w0 || h != h0)
+    {
+        delete[] buffer;
+        buffer = new Char[w0 * h0];
+
+        w = w0;
+        h = h0;
+    }
+
     for (int i = 0; i < w * h; ++i)
         buffer[i] = Char();
 }

@@ -79,7 +79,7 @@ bool ProjectileAnimation::draw()
     if (points.empty())
         return false;
 
-    vec2i bl = g_game.current_level->player->pos - vec2i(25, 22);
+    vec2i bl = g_game.current_level->player->pos - vec2i((g_game.w - 30) / 2, g_game.h / 2);
     g_game.mapterm->setTile(points[0] - bl, character, color, LayerPriority_Particles);
     points.erase(points.begin());
     return !points.empty();
@@ -92,7 +92,7 @@ RailgunAnimation::RailgunAnimation(u32 color, int c)
 
 bool RailgunAnimation::draw()
 {
-    vec2i bl = g_game.uplayer->pos - vec2i(25, 22);
+    vec2i bl = g_game.uplayer->pos - vec2i((g_game.w - 30) / 2, g_game.h / 2);
     if (!hits.empty() && hits[0] == last)
     {
         g_game.mapterm->setTile(hits[0] - bl, 'X', 0xFFFF0000, LayerPriority_Particles + 1);
@@ -131,7 +131,7 @@ bool ExplosionAnimation::draw()
         return false;
 
     step += 0.5f;
-    vec2i bl = g_game.current_level->player->pos - vec2i(25, 22);
+    vec2i bl = g_game.current_level->player->pos - vec2i((g_game.w - 30) / 2, g_game.h / 2);
     for (float a = 0; a < 2 * scalar::PIf; a += scalar::PIf / (3 * step))
     {
         vec2i p = center + vec2i(int(cos(a) * step), int(sin(a) * step));
@@ -190,7 +190,7 @@ bool ShipMoveAnimation::draw()
     if (points.empty())
         return false;
 
-    vec2i bl = g_game.uplayer->pos - vec2i(25, 22);
+    vec2i bl = g_game.uplayer->pos - vec2i((g_game.w - 30) / 2, g_game.h / 2);
     vec2i p = points[0] - bl;
     if (p.x < -2 || p.y < -2 || p.x >= g_game.w + 2 || p.y >= g_game.h + 2)
     {
@@ -561,13 +561,13 @@ void initGame(int w, int h)
 
 vec2i game_mouse_pos()
 {
-    vec2i bl = g_game.current_level->player->pos - vec2i(25, 22);
+    vec2i bl = g_game.current_level->player->pos - vec2i((g_game.w - 30) / 2, g_game.h / 2);
     return vec2i(GetMouseX() / 16, g_game.h - GetMouseY() / 16) + bl;
 }
 
 vec2i universe_mouse_pos()
 {
-    vec2i bl = g_game.uplayer->pos - vec2i(25, 22);
+    vec2i bl = g_game.uplayer->pos - vec2i((g_game.w - 30) / 2, g_game.h / 2);
     return vec2i(GetMouseX() / 16, g_game.h - GetMouseY() / 16) + bl;
 }
 
@@ -608,7 +608,12 @@ void updateGame()
 {
     bool do_map_turn = false;
 
-        if (!g_game.modal && !g_game.show_universe && g_game.transition == 0)
+    g_game.w = GetScreenWidth() / 16;
+    g_game.h = GetScreenHeight() / 16;
+
+    int gw = g_game.w - 30;
+
+    if (!g_game.modal && !g_game.show_universe && g_game.transition == 0)
     {
         Map& map = *g_game.current_level;
         do_map_turn = map.player->next_action.action != Action::Wait;
@@ -937,8 +942,8 @@ void updateGame()
         }
     }
 
-    g_game.uiterm->clear();
-    g_game.mapterm->clear();
+    g_game.uiterm->clear(g_game.w, g_game.h);
+    g_game.mapterm->clear(g_game.w, g_game.h);
 
 #if 0
     // Pathfinding debug
@@ -951,7 +956,7 @@ void updateGame()
 
     if (!g_game.show_universe && map.player->is_aiming)
     {
-        vec2i bl = map.player->pos - vec2i(25, 22);
+        vec2i bl = map.player->pos - vec2i((g_game.w - 30) / 2, g_game.h / 2);
         auto path = map.findRay(map.player->pos, mouse_pos);
         for (vec2i p : path)
         {
@@ -965,13 +970,13 @@ void updateGame()
         if (g_game.uplayer->is_aiming)
         {
             vec2i mouse_pos = universe_mouse_pos();
-            vec2i bl = g_game.uplayer->pos - vec2i(25, 22);
+            vec2i bl = g_game.uplayer->pos - vec2i((g_game.w - 30) / 2, g_game.h / 2);
             g_game.mapterm->setOverlay(mouse_pos - bl, 0x8000FF00, LayerPriority_Overlay);
         }
         else if (g_game.uplayer->is_aiming_railgun)
         {
             vec2i mouse_pos = universe_mouse_pos();
-            vec2i bl = g_game.uplayer->pos - vec2i(25, 22);
+            vec2i bl = g_game.uplayer->pos - vec2i((g_game.w - 30) / 2, g_game.h / 2);
             std::vector<vec2i> steps = findRay(g_game.uplayer->pos, mouse_pos);
             for (vec2i s: steps)
                 g_game.mapterm->setOverlay(s - bl, 0x8080FF00, LayerPriority_Overlay);
@@ -1022,7 +1027,7 @@ void updateGame()
             top_bar.append("   empty");
         }
     }
-    g_game.uiterm->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF101010, LayerPriority_UI - 1); // @Sizing
+    g_game.uiterm->fillBg(vec2i(0, 0), vec2i(gw - 1, 0), 0xFF101010, LayerPriority_UI - 1);
     g_game.uiterm->write(vec2i(2, 0), top_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
 
     sstring bottom_bar;
@@ -1031,50 +1036,47 @@ void updateGame()
         g_game.current_level->turn, g_game.universe->universe_ticks,
         g_game.show_universe ? "Universe" : "Ship",
         holding.c_str());
-    g_game.uiterm->fillBg(vec2i(0, g_game.h - 1), vec2i(49, g_game.h - 1), 0xFF101010, LayerPriority_UI - 2); // @Sizing
+    g_game.uiterm->fillBg(vec2i(0, g_game.h - 1), vec2i(gw - 1, g_game.h - 1), 0xFF101010, LayerPriority_UI - 2);
     g_game.uiterm->write(vec2i(2, g_game.h - 1), bottom_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
 
-    g_game.uiterm->fillBg(vec2i(50, 0), vec2i(g_game.w - 1, g_game.h - 1), 0xFF101010, LayerPriority_UI - 2); // @Sizing
+    g_game.uiterm->fillBg(vec2i(gw, 0), vec2i(g_game.w - 1, g_game.h - 1), 0xFF101010, LayerPriority_UI - 2);
     {
         // Log
-        // @Sizing!!!
-        int y0 = g_game.h - 15;
-        g_game.uiterm->setText(vec2i(100, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->fillText(vec2i(101, y0), vec2i(106, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->setText(vec2i(107, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->write(vec2i(109, y0), "Log", 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->setText(vec2i(113, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->fillText(vec2i(114, y0), vec2i(g_game.w * 2 - 2, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
+        int rows = g_game.h / 3;
+        int y0 = g_game.h - rows;
+        g_game.uiterm->setText(vec2i(gw * 2, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(gw * 2 + 1, y0), vec2i(gw * 2 + 6, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->setText(vec2i(gw * 2 + 7, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->write(vec2i(gw * 2 + 9, y0), "Log", 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->setText(vec2i(gw * 2 + 13, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(gw * 2 + 14, y0), vec2i(g_game.w * 2 - 2, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->setText(vec2i(g_game.w * 2 - 1, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->fillText(vec2i(100, y0 + 1), vec2i(100, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(gw * 2, y0 + 1), vec2i(gw * 2, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, y0 + 1), vec2i(g_game.w * 2 - 1, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
-
-        int rows = 15;
 
         InfoLog& log = g_game.log;
         int j = 1;
         for (int i = (int)log.entries.size() - 1; i >= 0 && j < rows; --i)
         {
             auto& e = log.entries[i];
-            auto parts = smartSplit(e.msg, (g_game.w - 52) * 2);
+            auto parts = smartSplit(e.msg, (g_game.w - gw - 2) * 2);
             for (int k = (int)parts.size() - 1; k >= 0 && j < rows; --k)
             {
-                g_game.uiterm->write(vec2i(102, g_game.h - j), parts[k].c_str(), e.color, LayerPriority_UI);
+                g_game.uiterm->write(vec2i(gw * 2 + 2, g_game.h - j), parts[k].c_str(), e.color, LayerPriority_UI);
                 j++;
             }
         }
     }
     {
-        // @Sizing!!!
         int y0 = 5;
-        g_game.uiterm->setText(vec2i(100, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->fillText(vec2i(101, y0), vec2i(106, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->setText(vec2i(107, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->write(vec2i(109, y0), "Ship", 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->setText(vec2i(114, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->fillText(vec2i(115, y0), vec2i(g_game.w * 2 - 2, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->setText(vec2i(gw * 2, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(gw * 2 + 1, y0), vec2i(gw * 2 + 6, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->setText(vec2i(gw * 2 + 7, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->write(vec2i(gw * 2 + 9, y0), "Ship", 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->setText(vec2i(gw * 2 + 14, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(gw * 2 + 15, y0), vec2i(g_game.w * 2 - 2, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->setText(vec2i(g_game.w * 2 - 1, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->fillText(vec2i(100, 6), vec2i(100, g_game.h - 16), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(gw * 2, 6), vec2i(gw * 2, g_game.h - 16), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, 6), vec2i(g_game.w * 2 - 1, g_game.h - 16), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
 
 #if 1
@@ -1083,7 +1085,7 @@ void updateGame()
             ++y0;
             sstring line_0;
             line_0.appendf("Hull: %d", ps->hull_integrity);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
 
         if (ps->pilot)
@@ -1091,14 +1093,14 @@ void updateGame()
             ++y0;
             sstring line_0;
             line_0.appendf("Pilot [%s]", ShipObjectStatus[int(ps->pilot->status)]);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         if (ps->scanner)
         {
             ++y0;
             sstring line_0;
             line_0.appendf("Antenna [%s]", ShipObjectStatus[int(ps->pilot->status)]);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         if (ps->reactor)
         {
@@ -1107,14 +1109,14 @@ void updateGame()
             line_0.appendf("Reactor [%s]", ShipObjectStatus[int(ps->reactor->status)]);
             if (ps->reactor->status == ShipObject::Status::Active)
                 line_0.appendf(" %.0f/%.0f", ps->reactor->power, ps->reactor->capacity);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (MainEngine* e : ps->engines)
         {
             ++y0;
             sstring line_0;
             line_0.appendf("Engine [%s]", ShipObjectStatus[int(e->status)]);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (TorpedoLauncher* e : ps->torpedoes)
         {
@@ -1127,7 +1129,7 @@ void updateGame()
                 if (e->charge_time > 0)
                     line_0.appendf(" Ready-in: %d", e->charge_time);
             }
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (PDC* e : ps->pdcs)
         {
@@ -1138,7 +1140,7 @@ void updateGame()
             {
                 line_0.appendf(" A: %d/%d", e->rounds, e->max_rounds);
             }
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         for (Railgun* e : ps->railguns)
         {
@@ -1151,20 +1153,20 @@ void updateGame()
                 if (e->charge_time > 0)
                     line_0.appendf(" Ready-in: %d", e->charge_time);
             }
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
 #else
         {
             ++y0;
             sstring line_0;
             line_0.appendf("Actors: %d", g_game.universe->actors.size());
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         {
             ++y0;
             sstring line_0;
             line_0.appendf("Player: %d %d", g_game.uplayer->pos.x, g_game.uplayer->pos.y);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
 
         vec2i min_pos(99999, 99999);
@@ -1191,32 +1193,32 @@ void updateGame()
             ++y0;
             sstring line_0;
             line_0.appendf("Min: %d %d Max: %d %d", min_pos.x, min_pos.y, max_pos.x, max_pos.y);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
         {
             ++y0;
             sstring line_0;
             line_0.appendf("Counts: %d %d %d %d %d %d", tcount[0], tcount[1], tcount[2], tcount[3], tcount[4], tcount[5]);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
+            g_game.uiterm->write(vec2i(gw * 2 + 2, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
         }
 #endif
     }
     {
         if (g_game.show_universe)
         {
-            g_game.uiterm->write(vec2i(102, 0), "", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, 1), "arrows: move   space: wait", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, 2), "z: railgun    f: torpedoes", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, 3), "u: stop piloting   d: dock    h: hail", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(gw * 2 + 2, 0), "", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(gw * 2 + 2, 1), "arrows: move   space: wait", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(gw * 2 + 2, 2), "z: railgun    f: torpedoes", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(gw * 2 + 2, 3), "u: stop piloting   d: dock    h: hail", 0xFFFFFFFF, LayerPriority_UI);
         }
         else
         {
-            g_game.uiterm->write(vec2i(102, 0), "", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, 1), "arrows: move    space: wait", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, 2), "", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, 3), "o: interact     u: use     comma: pickup", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(gw * 2 + 2, 0), "", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(gw * 2 + 2, 1), "arrows: move    space: wait", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(gw * 2 + 2, 2), "", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(gw * 2 + 2, 3), "o: interact     u: use     comma: pickup", 0xFFFFFFFF, LayerPriority_UI);
         }
-        g_game.uiterm->fillText(vec2i(100, 0), vec2i(100, 4), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(gw * 2, 0), vec2i(gw * 2, 4), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, 0), vec2i(g_game.w * 2 - 1, 4), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
     }
 

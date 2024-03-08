@@ -12,7 +12,7 @@ Map::Map(const sstring& name)
 
 void Map::render(TextBuffer& buffer, vec2i origin)
 {
-    vec2i bl = origin - vec2i(25, 22);
+    vec2i bl = origin - vec2i((g_game.w - 30) / 2, g_game.h / 2);
 
     linear_map<vec2i, bool> los;
     if (!see_all)

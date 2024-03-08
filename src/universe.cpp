@@ -1013,7 +1013,7 @@ void Universe::update(vec2i origin)
 
 void Universe::render(TextBuffer& buffer, vec2i origin)
 {
-    vec2i bl = origin - vec2i(25, 22);
+    vec2i bl = origin - vec2i((g_game.w - 30) / 2, g_game.h / 2);
     for (auto it : actors)
     {
         if (it.value->pos == it.key)

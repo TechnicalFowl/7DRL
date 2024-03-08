@@ -10,6 +10,9 @@ void window_open(const char* title, int w, int h)
 {
     InitWindow(w, h, title);
     SetTargetFPS(60);
+    SetWindowMinSize(1280, 720);
+    SetWindowMaxSize(2560, 1440);
+    SetWindowState(FLAG_WINDOW_RESIZABLE);
 
     g_window.width = w;
     g_window.height = h;
@@ -29,7 +32,7 @@ Rectangle makeCharTexture(int x, int y)
 {
     float x0 = x * 8.0f;
     float y0 = y * 16.0f;
-    return Rectangle{ x0, y0, 8, 16 };
+    return Rectangle{ x0 + 0.01f, y0 + 0.01f, 7.98f, 15.98f };
 }
 
 Rectangle getCharTexture(char c)
@@ -74,7 +77,7 @@ Rectangle getTexture(int id)
 
     int tx = id % tw;
     int ty = id / tw;
-    return Rectangle{ tx * 16.0f, ty * 16.0f, 16.0f, 16.0f };
+    return Rectangle{ tx * 16.0f + 0.01f, ty * 16.0f + 0.01f, 15.98f, 15.98f };
 }
 
 Color makeColor(u32 c)
