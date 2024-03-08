@@ -58,6 +58,7 @@ struct VertexBuffer
 struct Inputs
 {
     bool keys[GLFW_KEY_LAST + 1]{ 0 };
+    bool repeat[GLFW_KEY_LAST + 1]{ 0 };
     bool last_keys[GLFW_KEY_LAST + 1]{ 0 };
     bool buttons[GLFW_MOUSE_BUTTON_LAST + 1]{ 0 };
     bool last_buttons[GLFW_MOUSE_BUTTON_LAST + 1]{ 0 };

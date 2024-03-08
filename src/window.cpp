@@ -33,8 +33,7 @@ void render_glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
         g_window.inputs.keys[key] = true;
         break;
     case GLFW_REPEAT:
-        g_window.inputs.last_keys[key] = false;
-        g_window.inputs.keys[key] = true;
+        g_window.inputs.repeat[key] = true;
         break;
     case GLFW_RELEASE:
         g_window.inputs.keys[key] = false;
@@ -156,6 +155,7 @@ void window_open(const char* title, int w, int h)
 bool frame_start()
 {
     memcpy(g_window.inputs.last_keys, g_window.inputs.keys, sizeof(g_window.inputs.keys));
+    memset(g_window.inputs.repeat, 0, sizeof(g_window.inputs.repeat));
     memcpy(g_window.inputs.last_buttons, g_window.inputs.buttons, sizeof(g_window.inputs.buttons));
     g_window.inputs.scroll = vec2f(0.0f, 0.0f);
 
@@ -193,7 +193,14 @@ void frame_end()
     g_window.frame_count++;
 }
 
-bool input_key_pressed(int key) { return g_window.inputs.keys[key] && !g_window.inputs.last_keys[key]; }
+bool input_key_pressed(int key)
+{
+    return g_window.inputs.keys[key]
+        && (!g_window.inputs.last_keys[key]
+            || g_window.inputs.repeat[key]
+            && (g_window.inputs.keys[GLFW_KEY_LEFT_CONTROL]
+                || g_window.inputs.keys[GLFW_KEY_RIGHT_CONTROL]));
+}
 bool input_key_down(int key) { return g_window.inputs.keys[key]; }
 bool input_key_released(int key) { return !g_window.inputs.keys[key] && g_window.inputs.last_keys[key]; }
 
