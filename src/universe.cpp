@@ -943,6 +943,15 @@ void Universe::update(vec2i origin)
                 lost_tracks.insert(a->id, ULostTrack(a->pos, ((UShip*)a)->vel, 0xFFFF0000, a->id));
             }
         }
+        else if (a->type == UActorType::PirateShip)
+        {
+            UPirateShip* pirate = (UPirateShip*)a;
+            if (!pirate->has_alerted)
+            {
+                pirate->has_alerted = true;
+                g_game.log.log("[Alert] New hostile contact in sensor range!");
+            }
+        }
         a->update(rng);
 
         if (a->dead)
@@ -1002,7 +1011,7 @@ void Universe::update(vec2i origin)
     for (auto it: lost_tracks)
     {
         auto actor_it = actor_ids.find(it.key);
-        if (!actor_it.found || (it.value.pos - origin).length() > 160.0f || ((actor_it.value->pos - origin).length() <= player_scanners && isVisible(actor_it.value->pos, origin)))
+        if (!actor_it.found || (it.value.pos - origin).length() > 160.0f || (it.value.pos - origin).length() < player_scanners || ((actor_it.value->pos - origin).length() <= player_scanners && isVisible(actor_it.value->pos, origin)))
         {
             lost_tracks.erase(it.key);
             continue;

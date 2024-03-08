@@ -85,6 +85,8 @@ struct UPirateShip : UShip
     int railgun_reload_cooldown = 10;
     int railgun_max_reloads = 4;
 
+    bool has_alerted = false;
+
     UPirateShip(vec2i p);
 
     void update(pcg32& rng) override;
