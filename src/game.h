@@ -10,6 +10,7 @@
 
 struct Map;
 struct Ship;
+struct UShip;
 struct UPlayer;
 struct Universe;
 
@@ -98,6 +99,21 @@ struct ExplosionAnimation : Animation
     float step = 0.0f;
 
     ExplosionAnimation(vec2i c, int r);
+
+    bool draw() override;
+};
+
+struct ShipMoveAnimation : Animation
+{
+    UShip* ship;
+    vec2i from, to;
+    int character;
+    u32 color;
+
+    std::vector<vec2i> points;
+
+    ShipMoveAnimation(UShip* s, vec2i f, vec2i t);
+    virtual ~ShipMoveAnimation();
 
     bool draw() override;
 };

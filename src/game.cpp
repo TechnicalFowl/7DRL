@@ -147,6 +147,61 @@ bool ExplosionAnimation::draw()
     return true;
 }
 
+ShipMoveAnimation::ShipMoveAnimation(UShip* s, vec2i f, vec2i t)
+    : ship(s), from(f), to(t)
+{
+    points = findRay(f, t);
+    switch (s->type)
+    {
+    case UActorType::Player:
+        character = '@';
+        color = 0xFFFFFFFF;
+        break;
+    case UActorType::CargoShip:
+        character = 'C';
+        color = 0xFFFFFFFF;
+        break;
+    case UActorType::PirateShip:
+        character = 'P';
+        color = 0xFFFF0000;
+        break;
+    case UActorType::Torpedo:
+    {
+        character = '!';
+        UTorpedo* torp = (UTorpedo*)s;
+        if (torp->target == g_game.uplayer->id)
+            color = 0xFFFF0000;
+        else if (torp->source == g_game.uplayer->id)
+            color = 0xFF00FF00;
+        else
+            color = 0xFFFFFFFF;
+    } break;
+    }
+    ship->animating = true;
+}
+
+ShipMoveAnimation::~ShipMoveAnimation()
+{
+    ship->animating = false;
+}
+
+bool ShipMoveAnimation::draw()
+{
+    if (points.empty())
+        return false;
+
+    vec2i bl = g_game.uplayer->pos - vec2i(25, 22);
+    vec2i p = points[0] - bl;
+    if (p.x < -2 || p.y < -2 || p.x >= g_game.w + 2 || p.y >= g_game.h + 2)
+    {
+        points.clear();
+        return false;
+    }
+    g_game.mapterm->setTile(p, character, color, LayerPriority_Particles);
+    points.erase(points.begin());
+    return !points.empty();
+}
+
 struct StationModal : Modal
 {
     UStation* station;
@@ -1222,7 +1277,10 @@ void updateGame()
             {
                 Animation* a = *it;
                 if (!a->draw())
+                {
                     it = g_game.uanimations.erase(it);
+                    delete a;
+                }
                 else
                     ++it;
             }
@@ -1233,7 +1291,10 @@ void updateGame()
             {
                 Animation* a = *it;
                 if (!a->draw())
+                {
                     it = g_game.animations.erase(it);
+                    delete a;
+                }
                 else
                     ++it;
             }

@@ -53,6 +53,8 @@ struct UShip : UActor
     vec2i vel;
     Ship* ship = nullptr;
 
+    bool animating = false;
+
     UShip(UActorType t, vec2i p) : UActor(t, p) {}
     ~UShip();
 

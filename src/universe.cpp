@@ -84,7 +84,7 @@ void UShip::update(pcg32& rng)
                     u32 col = 0xFFFFFFFF;
                     if (type == UActorType::PirateShip) col = 0xFFFF0000;
                     else if (type == UActorType::CargoShip) col = 0xFF0000FF;
-                    RailgunAnimation* anim = new RailgunAnimation(0xFFFFFFFF, getProjectileCharacter(getDirection(pos, t->pos)));
+                    RailgunAnimation* anim = new RailgunAnimation(0xFFFFFFFF, getProjectileCharacter(getDirection(pos, t->pos + t->vel)));
                     for (vec2i p : points) anim->points.push_back(p);
                     pdc_used[i] = true;
                     p->rounds = scalar::max(0, p->rounds - g_game.rng.nextInt(25, 75));
@@ -292,6 +292,7 @@ void UCargoShip::update(pcg32& rng)
 
 void UCargoShip::render(TextBuffer& buffer, vec2i origin)
 {
+    if (animating) return;
     buffer.setTile(pos - origin, 'C', 0xFFFFFFFF, LayerPriority_Actors);
     if (!vel.zero())
     {
@@ -478,6 +479,7 @@ void UPirateShip::update(pcg32& rng)
 
 void UPirateShip::render(TextBuffer& buffer, vec2i origin)
 {
+    if (animating) return;
     buffer.setTile(pos - origin, 'P', 0xFFFF0000, LayerPriority_Actors);
     if (!vel.zero())
     {
@@ -504,6 +506,7 @@ void UPlayer::update(pcg32& rng)
 
 void UPlayer::render(TextBuffer& buffer, vec2i origin)
 {
+    if (animating) return;
     buffer.setTile(pos - origin, '@', 0xFFFFFFFF, LayerPriority_Actors);
     if (!vel.zero())
     {
@@ -554,6 +557,7 @@ void UTorpedo::update(pcg32& rng)
 
 void UTorpedo::render(TextBuffer& buffer, vec2i origin)
 {
+    if (animating) return;
     u32 col = 0xFFFFFFFF;
     if (target == g_game.uplayer->id)
         col = 0xFFFF0000;
@@ -796,6 +800,12 @@ void Universe::move(UActor* a, vec2i d)
     }
     if (a->pos != last)
     {
+        if (a != g_game.uplayer)
+        {
+            ShipMoveAnimation* anim = new ShipMoveAnimation((UShip*)a, a->pos, last);
+            g_game.uanimations.push_back(anim);
+        }
+
         bool rem = actors.erase(a->pos);
         debug_assert(rem);
         a->pos = last;
