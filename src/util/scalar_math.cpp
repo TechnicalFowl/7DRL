@@ -44,12 +44,6 @@ namespace scalar
         return v;
     }
 
-    u64 log2(u64 n)
-    {
-        return sizeof(n) * 8 - bsr(n) - 1;
-    }
-
-
     u32 convertToGrayscale(u32 color, float mag)
     {
         u32 r = (color >> 16) & 0xff;

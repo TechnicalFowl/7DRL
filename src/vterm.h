@@ -71,6 +71,7 @@ struct TextBuffer
 
     int w, h;
     Char* buffer = nullptr;
+    bool invert = false;
 
     TextBuffer(int w, int h);
     ~TextBuffer();

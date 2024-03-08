@@ -207,13 +207,13 @@ struct StationModal : Modal
     UStation* station;
 
     StationModal(UStation* s)
-        : Modal(vec2i(4, 5), vec2i(40, g_game.h - 10), "Station")
+        : Modal(vec2i(4, 4), vec2i(40, g_game.h - 10), "Station")
         , station(s)
     {}
 
     void draw()
     {
-        if (input_key_pressed(GLFW_KEY_ESCAPE))
+        if (IsKeyPressed(KEY_ESCAPE))
         {
             close = true;
             return;
@@ -221,21 +221,21 @@ struct StationModal : Modal
         Ship* ps = g_game.player_ship;
 
         sstring credits_line; credits_line.appendf("Credits: %d", g_game.credits);
-        g_game.uiterm->write(vec2i(12, g_game.h - 7), credits_line.c_str(), 0xFFFFFFFF, LayerPriority_UI + 1);
+        g_game.uiterm->write(vec2i(12, 7), credits_line.c_str(), 0xFFFFFFFF, LayerPriority_UI + 1);
 
         sstring scrap_line; scrap_line.appendf("Scrap: %d", g_game.scrap);
-        g_game.uiterm->write(vec2i(12, g_game.h - 9), scrap_line.c_str(), 0xFFFFFFFF, LayerPriority_UI + 1);
+        g_game.uiterm->write(vec2i(12, 9), scrap_line.c_str(), 0xFFFFFFFF, LayerPriority_UI + 1);
 
         int price = station->scrap_price;
         sstring scrap_sale; scrap_sale.appendf("Sell Scrap (%d credits)", price * g_game.scrap);
-        if (drawButton(g_game.uiterm, vec2i(27, g_game.h - 9), scrap_sale, 0xFFFFFFFF, g_game.scrap == 0))
+        if (drawButton(g_game.uiterm, vec2i(27, 9), scrap_sale, 0xFFFFFFFF, g_game.scrap == 0))
         {
             g_game.credits += price * g_game.scrap;
             g_game.scrap = 0;
             g_game.log.log("[Station] Thanks for your sale.");
         }
 
-        int y0 = g_game.h - 11;
+        int y0 = 11;
 
         u32 upgrades = station->upgrades;
         if (upgrades & 1)
@@ -261,7 +261,7 @@ struct StationModal : Modal
                 ps->repair(100);
                 g_game.log.log("[Station] We have repaired some damage to your hull.");
             }
-            y0 -= 2;
+            y0 += 2;
         }
         else if (upgrades & 0x2)
         {
@@ -274,10 +274,10 @@ struct StationModal : Modal
                 ps->hull_integrity += 100;
                 g_game.log.log("[Station] Your hull has been reinforced.");
             }
-            y0 -= 2;
+            y0 += 2;
         }
 
-        y0--;
+        y0++;
         if (upgrades & 0x6)
         {
             int cost = 500 + 500 * (ps->reactor->capacity - 1000) / 1000;
@@ -288,7 +288,7 @@ struct StationModal : Modal
                 ps->reactor->capacity += 1000;
                 g_game.log.log("[Station] Your reactor capacity has been upgraded.");
             }
-            y0--;
+            y0++;
         }
         if (upgrades & 0xc)
         {
@@ -322,7 +322,7 @@ struct StationModal : Modal
                 weapon_charge->max_rounds += 5;
                 g_game.log.log("[Station] Your railgun magazine size has been upgraded.");
             }
-            y0 -= 3;
+            y0 += 3;
         }
         if (upgrades & 0x18)
         {
@@ -347,7 +347,7 @@ struct StationModal : Modal
                 weapon_charge->recharge_time--;
                 g_game.log.log("[Station] Your torpedo launcher charge rate has been upgraded.");
             }
-            y0 -= 2;
+            y0 += 2;
         }
         if (upgrades & 0x30)
         {
@@ -372,9 +372,9 @@ struct StationModal : Modal
                 weapon_charge->max_rounds += 500;
                 g_game.log.log("[Station] Your point defence magazine size has been upgraded.");
             }
-            y0 -= 2;
+            y0 += 2;
         }
-        y0--;
+        y0++;
         if (upgrades & 0x40)
         {
             if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Buy Repair Parts (50 credits / 5)", 0xFFFFFFFF, g_game.credits < 50))
@@ -392,7 +392,7 @@ struct StationModal : Modal
                     g_game.log.log("[Station] Please clear some space from your airlock to make room for your purchase");
                 }
             }
-            y0--;
+            y0++;
         }
         if (upgrades & 0x80)
         {
@@ -411,7 +411,7 @@ struct StationModal : Modal
                     g_game.log.log("[Station] Please clear some space from your airlock to make room for your purchase");
                 }
             }
-            y0--;
+            y0++;
         }
         if (upgrades & 0x100)
         {
@@ -430,7 +430,7 @@ struct StationModal : Modal
                     g_game.log.log("[Station] Please clear some space from your airlock to make room for your purchase");
                 }
             }
-            y0--;
+            y0++;
         }
         if (upgrades & 0x200)
         {
@@ -449,10 +449,10 @@ struct StationModal : Modal
                     g_game.log.log("[Station] Please clear some space from your airlock to make room for your purchase");
                 }
             }
-            y0--;
+            y0++;
         }
 
-        y0--;
+        y0++;
         if (!g_game.player_ship->transponder_masked && (upgrades & 0x80))
         {
             if (drawButton(g_game.uiterm, vec2i(12, y0), "Military Transponder code (1000 credits)", 0xFFFFFFFF, g_game.credits < 1000))
@@ -462,7 +462,7 @@ struct StationModal : Modal
                 g_game.log.log("[Station] If anyone asks you didn't buy this here.");
                 g_game.log.log("Military Transponder code: 1234");
             }
-            y0--;
+            y0++;
         }
 
         if (drawButton(g_game.uiterm, vec2i(78, 6), "Undock", 0xFFFFFFFF))
@@ -477,21 +477,21 @@ struct SalvageModal : Modal
     UShipWreck* wreck;
 
     SalvageModal(UShipWreck* s)
-        : Modal(vec2i(4, 5), vec2i(40, g_game.h - 10), "Salvage")
+        : Modal(vec2i(4, 4), vec2i(40, g_game.h - 10), "Salvage")
         , wreck(s)
     {}
 
     void draw()
     {
-        if (input_key_pressed(GLFW_KEY_ESCAPE))
+        if (IsKeyPressed(KEY_ESCAPE))
         {
             close = true;
             return;
         }
         Ship* ps = g_game.player_ship;
 
-        g_game.uiterm->write(vec2i(12, g_game.h - 7), "Select a salvage priority:", 0xFFFFFFFF, LayerPriority_UI + 1);
-        if (drawButton(g_game.uiterm, vec2i(12, g_game.h - 8), "Scrap", 0xFFFFFFFF))
+        g_game.uiterm->write(vec2i(12, 7), "Select a salvage priority:", 0xFFFFFFFF, LayerPriority_UI + 1);
+        if (drawButton(g_game.uiterm, vec2i(12, 8), "Scrap", 0xFFFFFFFF))
         {
             g_game.scrap += wreck->scrap;
             g_game.log.logf("Salvaged %d scrap.", wreck->scrap);
@@ -499,7 +499,7 @@ struct SalvageModal : Modal
             close = true;
         }
 
-        if (drawButton(g_game.uiterm, vec2i(78, 6), "Leave", 0xFFFFFFFF))
+        if (drawButton(g_game.uiterm, vec2i(78, g_game.h - 7), "Leave", 0xFFFFFFFF))
         {
             close = true;
         }
@@ -512,6 +512,7 @@ void initGame(int w, int h)
     g_game.h = h;
     g_game.uiterm = new TextBuffer(w, h);
     g_game.mapterm = new TextBuffer(w, h);
+    g_game.mapterm->invert = true;
 
     g_game.log.log("Welcome.");
 
@@ -561,21 +562,19 @@ void initGame(int w, int h)
 vec2i game_mouse_pos()
 {
     vec2i bl = g_game.current_level->player->pos - vec2i(25, 22);
-    vec2f mouse_posf = g_window.inputs.mouse_pos / 16;
-    return vec2i(scalar::floori(mouse_posf.x), scalar::floori(g_game.mapterm->h - mouse_posf.y)) + bl;
+    return vec2i(GetMouseX() / 16, g_game.h - GetMouseY() / 16) + bl;
 }
 
 vec2i universe_mouse_pos()
 {
     vec2i bl = g_game.uplayer->pos - vec2i(25, 22);
-    vec2f mouse_posf = g_window.inputs.mouse_pos / 16;
-    return vec2i(scalar::floori(mouse_posf.x), scalar::floori(g_game.mapterm->h - mouse_posf.y)) + bl;
+    return vec2i(GetMouseX() / 16, g_game.h - GetMouseY() / 16) + bl;
 }
 
 vec2f screen_mouse_pos()
 {
-    vec2f mouse_posf = g_window.inputs.mouse_pos / 16;
-    return vec2f(mouse_posf.x, g_game.mapterm->h - mouse_posf.y);
+    Vector2 mouse = GetMousePosition();
+    return vec2f(mouse.x / 16, g_game.h - mouse.y / 16);
 }
 
 void drawUIFrame(TextBuffer* term, vec2i min, vec2i max, const char* title)
@@ -586,9 +585,9 @@ void drawUIFrame(TextBuffer* term, vec2i min, vec2i max, const char* title)
     term->fillBg(vec2i(max.x, min.y), vec2i(max.x, max.y), 0xFF202020, LayerPriority_UI - 2);
     term->fillBg(vec2i(min.x + 1, min.y + 1), vec2i(max.x - 1, max.y - 1), 0xFF101010, LayerPriority_UI - 2);
     int title_len = (int) strlen(title);
-    term->fillText(vec2i(min.x * 2, max.y), vec2i(min.x * 2 + 6, max.y), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
-    term->fillText(vec2i(min.x * 2 + 9 + title_len, max.y), vec2i(max.x*2 + 1, max.y), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
-    term->write(vec2i(min.x * 2 + 8, max.y), title, 0xFFA0A0A0, LayerPriority_UI - 1);
+    term->fillText(vec2i(min.x * 2, min.y), vec2i(min.x * 2 + 6, min.y), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
+    term->fillText(vec2i(min.x * 2 + 9 + title_len, min.y), vec2i(max.x*2 + 1, min.y), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
+    term->write(vec2i(min.x * 2 + 8, min.y), title, 0xFFA0A0A0, LayerPriority_UI - 1);
 }
 
 bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color, bool disabled)
@@ -602,81 +601,58 @@ bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color, bool 
 
     term->write(vec2i(pos.x, pos.y), text.c_str(), col, LayerPriority_UI);
     
-    return !disabled && hovered && input_mouse_button_pressed(GLFW_MOUSE_BUTTON_LEFT);
+    return !disabled && hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 }
 
 void updateGame()
 {
     bool do_map_turn = false;
 
-#if !SHIP
-    if (g_game.console_input_displayed)
-    {
-        InputTextResult res = input_handle_text(g_game.console_input, g_game.console_cursor);
-        if (res != InputTextResult::Continue)
-        {
-            if (res == InputTextResult::Finished)
-            {
-                std::vector<sstring> args = g_game.console_input.split(' ');
-            }
-            g_game.console_input = "";
-            g_game.console_cursor = 0;
-            g_game.console_input_displayed = false;
-        }
-    }
-    else 
-#endif
         if (!g_game.modal && !g_game.show_universe && g_game.transition == 0)
     {
         Map& map = *g_game.current_level;
         do_map_turn = map.player->next_action.action != Action::Wait;
-        if (input_key_pressed(GLFW_KEY_UP))
+        if (IsKeyPressed(KEY_UP))
         {
             do_map_turn = true;
             map.player->tryMove(map, vec2i(0, 1));
         }
-        if (input_key_pressed(GLFW_KEY_DOWN))
+        if (IsKeyPressed(KEY_DOWN))
         {
             do_map_turn = true;
             map.player->tryMove(map, vec2i(0, -1));
         }
-        if (input_key_pressed(GLFW_KEY_RIGHT))
+        if (IsKeyPressed(KEY_RIGHT))
         {
             do_map_turn = true;
             map.player->tryMove(map, vec2i(1, 0));
         }
-        if (input_key_pressed(GLFW_KEY_LEFT))
+        if (IsKeyPressed(KEY_LEFT))
         {
             do_map_turn = true;
             map.player->tryMove(map, vec2i(-1, 0));
         }
-        if (input_key_pressed(GLFW_KEY_O))
+        if (IsKeyPressed(KEY_O))
         {
             do_map_turn = true;
             map.player->next_action = ActionData(Action::Open, map.player, 1.0f);
         }
-        if (input_key_pressed(GLFW_KEY_U))
+        if (IsKeyPressed(KEY_U))
         {
             do_map_turn = true;
             map.player->next_action = ActionData(Action::UseOn, map.player, 1.0f);
         }
-#if !SHIP
-        if (input_key_pressed(GLFW_KEY_3) && (input_key_down(GLFW_KEY_LEFT_SHIFT) || input_key_down(GLFW_KEY_RIGHT_SHIFT)))
-        {
-            g_game.console_input_displayed = true;
-        }
-#endif
-        if (input_key_pressed(GLFW_KEY_COMMA))
+        if (IsKeyPressed(KEY_COMMA))
         {
             do_map_turn = true;
             map.player->next_action = ActionData(Action::Pickup, map.player, 1.0f);
         }
-        if (input_key_pressed(GLFW_KEY_SPACE))
+        if (IsKeyPressed(KEY_SPACE))
         {
             do_map_turn = true;
             map.player->next_action = ActionData(Action::Wait, map.player, 1.0f);
         }
-        if (g_window.inputs.scroll.y != 0)
+        if (GetMouseWheelMove() != 0)
         {
             static u64 last_scroll = 0;
             if (g_window.frame_count - last_scroll > 10)
@@ -686,7 +662,7 @@ void updateGame()
                 last_scroll = g_window.frame_count;
             }
         }
-        if (input_key_pressed(GLFW_KEY_X))
+        if (IsKeyPressed(KEY_X))
         {
             vec2i center = (map.max + map.min) / 2;
             vec2i offset = game_mouse_pos() - center;
@@ -696,7 +672,7 @@ void updateGame()
 
 
 #if 0
-        if (input_key_pressed(GLFW_KEY_Z))
+        if (IsKeyPressed(KEY_Z))
         {
             if (map.player->is_aiming)
             {
@@ -714,7 +690,7 @@ void updateGame()
                 }
             }
         }
-        if (input_mouse_button_pressed(GLFW_MOUSE_BUTTON_1))
+        if (input_mouse_button_pressed(MOUSE_BUTTON_1))
         {
             if (map.player->is_aiming)
             {
@@ -745,7 +721,7 @@ void updateGame()
         }
 
         bool do_turn = g_game.modal_close;
-        if (input_key_pressed(GLFW_KEY_UP))
+        if (IsKeyPressed(KEY_UP))
         {
             if (!engines_functional)
             {
@@ -757,7 +733,7 @@ void updateGame()
                 g_game.uplayer->vel += vec2i(0, 1);
             }
         }
-        if (input_key_pressed(GLFW_KEY_DOWN))
+        if (IsKeyPressed(KEY_DOWN))
         {
             if (!engines_functional)
             {
@@ -769,7 +745,7 @@ void updateGame()
                 g_game.uplayer->vel += vec2i(0, -1);
             }
         }
-        if (input_key_pressed(GLFW_KEY_RIGHT))
+        if (IsKeyPressed(KEY_RIGHT))
         {
             if (!engines_functional)
             {
@@ -781,7 +757,7 @@ void updateGame()
                 g_game.uplayer->vel += vec2i(1, 0);
             }
         }
-        if (input_key_pressed(GLFW_KEY_LEFT))
+        if (IsKeyPressed(KEY_LEFT))
         {
             if (!engines_functional)
             {
@@ -793,11 +769,11 @@ void updateGame()
                 g_game.uplayer->vel += vec2i(-1, 0);
             }
         }
-        if (input_key_pressed(GLFW_KEY_O))
+        if (IsKeyPressed(KEY_O))
         {
             g_game.transition = 1.0f;
         }
-        if (input_key_pressed(GLFW_KEY_Z))
+        if (IsKeyPressed(KEY_Z))
         {
             g_game.uplayer->is_aiming = false;
             if (g_game.uplayer->is_aiming_railgun)
@@ -812,7 +788,7 @@ void updateGame()
                 g_game.uplayer->is_aiming_railgun = true;
             }
         }
-        if (input_key_pressed(GLFW_KEY_F))
+        if (IsKeyPressed(KEY_F))
         {
             g_game.uplayer->is_aiming_railgun = false;
             if (g_game.uplayer->is_aiming)
@@ -827,7 +803,7 @@ void updateGame()
                 g_game.uplayer->is_aiming = true;
             }
         }
-        if (input_mouse_button_pressed(GLFW_MOUSE_BUTTON_1))
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
             if (g_game.uplayer->is_aiming)
             {
@@ -844,11 +820,11 @@ void updateGame()
                 g_game.uplayer->is_aiming_railgun = false;
             }
         }
-        if (input_key_pressed(GLFW_KEY_SPACE))
+        if (IsKeyPressed(KEY_SPACE))
         {
             do_turn = true;
         }
-        if (input_key_pressed(GLFW_KEY_D))
+        if (IsKeyPressed(KEY_D))
         {
             for (int i = 0; i < 4; ++i)
             {
@@ -869,7 +845,7 @@ void updateGame()
             }
         }
 
-        if (g_window.inputs.scroll.y != 0)
+        if (GetMouseWheelMove() != 0)
         {
             static u64 last_scroll = 0;
             if (g_window.frame_count - last_scroll > 10)
@@ -1046,35 +1022,23 @@ void updateGame()
             top_bar.append("   empty");
         }
     }
-    g_game.uiterm->fillBg(vec2i(0, g_game.h - 1), vec2i(49, g_game.h - 1), 0xFF101010, LayerPriority_UI - 1);
-    g_game.uiterm->write(vec2i(2, g_game.h - 1), top_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+    g_game.uiterm->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF101010, LayerPriority_UI - 1); // @Sizing
+    g_game.uiterm->write(vec2i(2, 0), top_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
 
     sstring bottom_bar;
-#if !SHIP
-    if (g_game.console_input_displayed)
-    {
-        bottom_bar.appendf("# %s", g_game.console_input);
-        if (g_window.frame_count % 30 < 15)
-            g_game.uiterm->setBg(vec2i(1 + g_game.console_cursor / 2, 0), 0xFFA0A0A0, LayerPriority_UI - 1);
-    }
-    else
-    {
-#endif
-        sstring holding = g_game.current_level->player->holding ? g_game.current_level->player->holding->getName() : sstring("nothing");
-        bottom_bar.appendf("Turn: %d/%d    View: %s    Holding: %s",
-            g_game.current_level->turn, g_game.universe->universe_ticks,
-            g_game.show_universe ? "Universe" : "Ship",
-            holding.c_str());
-#if !SHIP
-    }
-#endif
-    g_game.uiterm->fillBg(vec2i(0, 0), vec2i(49, 0), 0xFF101010, LayerPriority_UI - 2);
-    g_game.uiterm->write(vec2i(2, 0), bottom_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+    sstring holding = g_game.current_level->player->holding ? g_game.current_level->player->holding->getName() : sstring("nothing");
+    bottom_bar.appendf("Turn: %d/%d    View: %s    Holding: %s",
+        g_game.current_level->turn, g_game.universe->universe_ticks,
+        g_game.show_universe ? "Universe" : "Ship",
+        holding.c_str());
+    g_game.uiterm->fillBg(vec2i(0, g_game.h - 1), vec2i(49, g_game.h - 1), 0xFF101010, LayerPriority_UI - 2); // @Sizing
+    g_game.uiterm->write(vec2i(2, g_game.h - 1), bottom_bar.c_str(), 0xFFFFFFFF, LayerPriority_UI);
 
-    g_game.uiterm->fillBg(vec2i(50, 0), vec2i(g_game.w - 1, g_game.h - 1), 0xFF101010, LayerPriority_UI - 2);
+    g_game.uiterm->fillBg(vec2i(50, 0), vec2i(g_game.w - 1, g_game.h - 1), 0xFF101010, LayerPriority_UI - 2); // @Sizing
     {
         // Log
-        int y0 = 15;
+        // @Sizing!!!
+        int y0 = g_game.h - 15;
         g_game.uiterm->setText(vec2i(100, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->fillText(vec2i(101, y0), vec2i(106, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->setText(vec2i(107, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
@@ -1082,26 +1046,27 @@ void updateGame()
         g_game.uiterm->setText(vec2i(113, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->fillText(vec2i(114, y0), vec2i(g_game.w * 2 - 2, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->setText(vec2i(g_game.w * 2 - 1, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->fillText(vec2i(100, 0), vec2i(100, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, 0), vec2i(g_game.w * 2 - 1, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(100, y0 + 1), vec2i(100, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, y0 + 1), vec2i(g_game.w * 2 - 1, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
 
         int rows = 15;
 
         InfoLog& log = g_game.log;
-        int j = 0;
+        int j = 1;
         for (int i = (int)log.entries.size() - 1; i >= 0 && j < rows; --i)
         {
             auto& e = log.entries[i];
             auto parts = smartSplit(e.msg, (g_game.w - 52) * 2);
             for (int k = (int)parts.size() - 1; k >= 0 && j < rows; --k)
             {
-                g_game.uiterm->write(vec2i(102, j), parts[k].c_str(), e.color, LayerPriority_UI);
+                g_game.uiterm->write(vec2i(102, g_game.h - j), parts[k].c_str(), e.color, LayerPriority_UI);
                 j++;
             }
         }
     }
     {
-        int y0 = g_game.h - 5;
+        // @Sizing!!!
+        int y0 = 5;
         g_game.uiterm->setText(vec2i(100, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->fillText(vec2i(101, y0), vec2i(106, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->setText(vec2i(107, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
@@ -1109,51 +1074,51 @@ void updateGame()
         g_game.uiterm->setText(vec2i(114, y0), Border_TeeRight, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->fillText(vec2i(115, y0), vec2i(g_game.w * 2 - 2, y0), Border_Horizontal, 0xFFA0A0A0, LayerPriority_UI - 1);
         g_game.uiterm->setText(vec2i(g_game.w * 2 - 1, y0), Border_TeeLeft, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->fillText(vec2i(100, 9), vec2i(100, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, 9), vec2i(g_game.w * 2 - 1, y0 - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(100, 6), vec2i(100, g_game.h - 16), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, 6), vec2i(g_game.w * 2 - 1, g_game.h - 16), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
 
 #if 1
         Ship* ps = g_game.player_ship;
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Hull: %d", ps->hull_integrity);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
 
         if (ps->pilot)
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Pilot [%s]", ShipObjectStatus[int(ps->pilot->status)]);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
         if (ps->scanner)
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Antenna [%s]", ShipObjectStatus[int(ps->pilot->status)]);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
         if (ps->reactor)
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Reactor [%s]", ShipObjectStatus[int(ps->reactor->status)]);
             if (ps->reactor->status == ShipObject::Status::Active)
                 line_0.appendf(" %.0f/%.0f", ps->reactor->power, ps->reactor->capacity);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
         for (MainEngine* e : ps->engines)
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Engine [%s]", ShipObjectStatus[int(e->status)]);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
         for (TorpedoLauncher* e : ps->torpedoes)
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Torpedo: [%s]", ShipObjectStatus[int(e->status)]);
             if (ps->reactor->status == ShipObject::Status::Active)
@@ -1162,22 +1127,22 @@ void updateGame()
                 if (e->charge_time > 0)
                     line_0.appendf(" Ready-in: %d", e->charge_time);
             }
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
         for (PDC* e : ps->pdcs)
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Point Defence: [%s]", ShipObjectStatus[int(e->status)]);
             if (ps->reactor->status == ShipObject::Status::Active)
             {
                 line_0.appendf(" A: %d/%d", e->rounds, e->max_rounds);
             }
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
         for (Railgun* e : ps->railguns)
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Railgun: [%s]", ShipObjectStatus[int(e->status)]);
             if (ps->reactor->status == ShipObject::Status::Active)
@@ -1186,20 +1151,20 @@ void updateGame()
                 if (e->charge_time > 0)
                     line_0.appendf(" Ready-in: %d", e->charge_time);
             }
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
 #else
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Actors: %d", g_game.universe->actors.size());
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Player: %d %d", g_game.uplayer->pos.x, g_game.uplayer->pos.y);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
 
         vec2i min_pos(99999, 99999);
@@ -1223,36 +1188,36 @@ void updateGame()
             }
         }
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Min: %d %d Max: %d %d", min_pos.x, min_pos.y, max_pos.x, max_pos.y);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
         {
-            --y0;
+            ++y0;
             sstring line_0;
             line_0.appendf("Counts: %d %d %d %d %d %d", tcount[0], tcount[1], tcount[2], tcount[3], tcount[4], tcount[5]);
-            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, y0), line_0.c_str(), 0xFFFFFFFF, LayerPriority_UI);// @Sizing
         }
 #endif
     }
     {
         if (g_game.show_universe)
         {
-            g_game.uiterm->write(vec2i(102, g_game.h - 1), "", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, g_game.h - 2), "arrows: move   space: wait", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, g_game.h - 3), "z: railgun    f: torpedoes", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, g_game.h - 4), "u: stop piloting   d: dock    h: hail", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, 0), "", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, 1), "arrows: move   space: wait", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, 2), "z: railgun    f: torpedoes", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, 3), "u: stop piloting   d: dock    h: hail", 0xFFFFFFFF, LayerPriority_UI);
         }
         else
         {
-            g_game.uiterm->write(vec2i(102, g_game.h - 1), "", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, g_game.h - 2), "arrows: move    space: wait", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, g_game.h - 3), "", 0xFFFFFFFF, LayerPriority_UI);
-            g_game.uiterm->write(vec2i(102, g_game.h - 4), "o: interact     u: use     comma: pickup", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, 0), "", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, 1), "arrows: move    space: wait", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, 2), "", 0xFFFFFFFF, LayerPriority_UI);
+            g_game.uiterm->write(vec2i(102, 3), "o: interact     u: use     comma: pickup", 0xFFFFFFFF, LayerPriority_UI);
         }
-        g_game.uiterm->fillText(vec2i(100, g_game.h - 4), vec2i(100, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
-        g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, g_game.h - 4), vec2i(g_game.w * 2 - 1, g_game.h - 1), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(100, 0), vec2i(100, 4), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
+        g_game.uiterm->fillText(vec2i(g_game.w * 2 - 1, 0), vec2i(g_game.w * 2 - 1, 4), Border_Vertical, 0xFFA0A0A0, LayerPriority_UI - 1);
     }
 
     if (g_game.modal)

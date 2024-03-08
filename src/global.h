@@ -11,14 +11,6 @@ typedef int16_t s16;
 typedef int32_t s32;
 typedef int64_t s64;
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
-#   define OS_WINDOWS
-#elif defined(MACOS)
-#   define OS_MACOS
-#else
-#   define OS_LINUX
-#endif
-
 // Assert macro
 void do_assert(const char* check, const char* file, s32 line, const char* fmt, ...);
 [[noreturn]] void crash();
@@ -36,3 +28,5 @@ void do_assert(const char* check, const char* file, s32 line, const char* fmt, .
 #else
 #define SHIP 1
 #endif
+
+#include "raylib.h"

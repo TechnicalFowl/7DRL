@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef OS_WINDOWS
-#   include <intrin.h>
-#endif
-
 template <typename T> struct float_type { using type = T; };
 template <> struct float_type<s8> { using type = float; };
 template <> struct float_type<s16> { using type = float; };
@@ -13,7 +9,6 @@ template <> struct float_type<s64> { using type = double; };
 namespace scalar
 {
     constexpr double EULER = 2.718281828459045;
-    constexpr double PI = 3.141592653589793;
     constexpr float PIf = 3.141592653589793f;
     constexpr double DEG_2_RAD = 0.017453292519943295;
     constexpr float DEG_2_RADf = 0.017453292519943295f;
@@ -131,35 +126,6 @@ namespace scalar
         a |= a >> 32;
         if (a != 0xFFFFFFFFFFFFFFFF) a++;
         return a;
-    }
-
-    inline int bsf(u64 val)
-    {
-        unsigned long result = 0;
-#ifdef OS_WINDOWS
-        if (!_BitScanForward64(&result, val))
-        {
-            return -1;
-        }
-#else
-        result = __builtin_ffsll(val) - 1;
-#endif
-        return (int)result;
-    }
-
-    inline int bsr(u64 val)
-    {
-        unsigned long result = 0;
-#ifdef OS_WINDOWS
-        if (!_BitScanReverse64(&result, val))
-        {
-            return -1;
-        }
-#else
-        if (val == 0) return -1;
-        result = __builtin_clzll(val);
-#endif
-        return (int)result;
     }
 
     float wrapAngleDeg(float angle);

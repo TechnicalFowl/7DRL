@@ -16,13 +16,17 @@ int main(int argc, const char** argv)
 
     window_open("7drl", w * scale, h * scale);
 
-    while (frame_start())
+    while (!WindowShouldClose())
     {
+        BeginDrawing();
+        ClearBackground(BLACK);
+
         updateGame();
 
         render_buffer(g_game.mapterm, g_window.map_zoom);
         render_buffer(g_game.uiterm, 1.0f);
-        frame_end();
+
+        EndDrawing();
     }
 
     return 0;

@@ -3,8 +3,6 @@
 #include <deque>
 #include <vector>
 
-#include "stb_image.h"
-
 #include "util/random.h"
 
 #include "actor.h"
@@ -617,7 +615,7 @@ struct ShipParameters
 struct ShipGenerator
 {
     int w, h;
-    u32* outline;
+    Image outline;
 
     int size;
 
@@ -654,19 +652,13 @@ struct ShipGenerator
     ShipGenerator(const char* shape_name, int size)
         : size(size)
     {
-        int c;
-        outline = (u32*)stbi_load(shape_name, &w, &h, &c, 4);
-        for (int i = 0; i < w * h; i++)
-        {
-            if ((outline[i] & 0xFF000000) == 0)
-            {
-                outline[i] = 0;
-            }
-        }
+        outline = LoadImage(shape_name);
+        w = outline.width;
+        h = outline.height;
     }
     ~ShipGenerator()
     {
-        stbi_image_free(outline);
+        UnloadImage(outline);
     }
 
     Room* getRoom(int x, int y)
@@ -699,22 +691,29 @@ struct ShipGenerator
         return getRoom(from, vec2i(dx, dy));
     }
 
+    u32 get(int x, int y)
+    {
+        Color c = GetImageColor(outline, x, y);
+        if (c.a == 0) return 0;
+        return (u32(c.r) << 16) | (u32(c.g) << 8) | u32(c.b);
+    }
+
     bool check(float x, float y)
     {
         if (x < 0 || x >= w || y < 0 || y >= h) return false;
         int x0 = scalar::floori(x);
         int y0 = scalar::floori(y);
-        if (x0 == x && y0 == y) return outline[y0 * w + x0] != 0;
+        if (x0 == x && y0 == y) return get(x0, y0) != 0;
 
         int x1 = x0 + 1;
         int y1 = y0 + 1;
         float dx = x - x0;
         float dy = y - y0;
 
-        u32 c = outline[y0 * w + x0] != 0;
-        c += outline[y0 * w + x1] != 0;
-        c += outline[y1 * w + x0] != 0;
-        c += outline[y1 * w + x1] != 0;
+        u32 c = get(x0, y0) != 0;
+        c += get(x1, y0) != 0;
+        c += get(x0, y1) != 0;
+        c += get(x1, y1) != 0;
 
         return c >= 3;
     }
@@ -792,7 +791,7 @@ struct ShipGenerator
                 {
                     for (int x0 = x + 1; x0 <= x + size; ++x0)
                     {
-                        if (outline[x0 + (h - y0 - 1) * w] == 0)
+                        if (get(x0, h - y0 - 1) == 0)
                         {
                             valid_room = false;
                         }
@@ -872,7 +871,7 @@ struct ShipGenerator
             back_distance.push_back(h);
             for (int y = 0; y < h; ++y)
             {
-                if (outline[x + (h - y - 1) * w])
+                if (get(x, h - y - 1))
                 {
                     back_distance.back() = y;
                     break;
@@ -1274,7 +1273,7 @@ struct ShipGenerator
             {
                 for (int y = r.min.y; y <= r.max.y; ++y)
                 {
-                    if (outline[x + (h - y - 1) * w] && map.getTile(vec2i(x, y)) == Terrain::Empty)
+                    if (get(x, h - y - 1) && map.getTile(vec2i(x, y)) == Terrain::Empty)
                     {
                         map.setTile(vec2i(x, y), Terrain::ShipFloor);
                     }
