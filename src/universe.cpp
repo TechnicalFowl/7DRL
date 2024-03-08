@@ -324,25 +324,34 @@ UPirateShip::UPirateShip(vec2i p, int c, u32 col)
     , character(c), color(col)
 {
     ship = generate("pirate", "pirate_ship");
+    for (Actor* a: ship->map->actors)
+    {
+        switch (a->type)
+        {
+        case ActorType::Reactor:
+        {
+            Reactor* r = (Reactor*) a;
+            r->capacity = 100000;
+        } break;
+        case ActorType::Railgun:
+        {
+            Railgun* r = (Railgun*) a;
+            r->status = ShipObject::Status::Active;
+        } break;
+        default: break;
+        }
+    }
     g_game.ships.push_back(ship);
     if (character == 'A')
     {
-        ship->update();
         torp_max_reloads = 100;
         railgun_max_reloads = 100;
-        ship->reactor->capacity = 100000;
-        for (Railgun* r : ship->railguns)
+        for (Actor* a : ship->map->actors)
         {
-            r->firing_variance = scalar::PIf / 160.0f;
-            r->recharge_time = 2;
-        }
-        for (TorpedoLauncher* t : ship->torpedoes)
-        {
-            t->recharge_time = 2;
-        }
-        for (PDC* p : ship->pdcs)
-        {
-            p->firing_variance = scalar::PIf / 20.0f;
+            if (a->type == ActorType::Reactor)
+            {
+                ((Reactor*)a)->capacity = 100000;
+            }
         }
     }
 }
@@ -737,10 +746,6 @@ vec2i getOffset(int& i, int& x, int& y)
 
 Universe::Universe()
 {
-    regions_generated.insert(vec2i(0, 0), true);
-    regions_generated.insert(vec2i(-1, 0), true);
-    regions_generated.insert(vec2i(-1, -1), true);
-    regions_generated.insert(vec2i(0, -1), true);
 }
 
 bool Universe::isVisible(vec2i from, vec2i to)

@@ -16,9 +16,9 @@ struct Universe;
 
 enum class GameState
 {
-    Title,
     MainMenu,
     Ingame,
+    PauseMenu,
     GameOver,
 };
 
@@ -154,13 +154,7 @@ struct Game
     float transition = 0.0f;
     int last_universe_update = -1000;
 
-    GameState state = GameState::Ingame;
-
-#if !SHIP
-    sstring console_input;
-    int console_cursor = 0;
-    bool console_input_displayed = false;
-#endif
+    GameState state = GameState::MainMenu;
 
     Modal* modal = nullptr;
     bool modal_close = false;
