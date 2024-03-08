@@ -14,7 +14,7 @@ int main(int argc, const char** argv)
 
     initGame(w, h);
 
-    window_open("7drl", w * scale, h * scale);
+    window_open("7drl - Salvage Scramble", w * scale, h * scale);
 
     while (!WindowShouldClose())
     {

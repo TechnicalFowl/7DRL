@@ -17,6 +17,7 @@ enum class UActorType
     PirateShip,
     Station,
     ShipWreck,
+    MilitaryStation,
 
     __COUNT,
 };
@@ -43,7 +44,10 @@ struct UAsteroid : UActor
     float sfreq = 0.5f;
     float radius = 2.0f;
 
-    UAsteroid(vec2i p) : UActor(UActorType::Asteroid, p) {}
+    u32 color;
+    u32 inner_color;
+
+    UAsteroid(vec2i p, u32 c, u32 ic) : UActor(UActorType::Asteroid, p), color(c), inner_color(ic) {}
 
     void render(TextBuffer& buffer, vec2i origin) override;
 };
@@ -75,6 +79,9 @@ struct UCargoShip : UShip
 
 struct UPirateShip : UShip
 {
+    int character;
+    u32 color;
+
     u32 target = 0;
     vec2i target_last_pos;
     int check_for_target = 10;
@@ -86,12 +93,15 @@ struct UPirateShip : UShip
     int railgun_max_reloads = 4;
 
     bool has_alerted = false;
+    bool has_warned = false;
 
-    UPirateShip(vec2i p);
+    UPirateShip(vec2i p, int c, u32 col);
 
     void update(pcg32& rng) override;
 
     void render(TextBuffer& buffer, vec2i origin) override;
+
+    bool isTarget(UActor* actor);
 };
 
 struct UPlayer : UShip
@@ -145,6 +155,19 @@ struct UShipWreck : UActor
     void render(TextBuffer& buffer, vec2i origin) override;
 };
 
+struct UMilitaryStation : UActor
+{
+    int charge_time = 5;
+    bool has_warned = false;
+
+    UMilitaryStation(vec2i p);
+
+    void update(pcg32& rng) override;
+
+    void render(TextBuffer& buffer, vec2i origin) override;
+
+};
+
 struct ULostTrack
 {
     vec2i pos;
@@ -168,6 +191,10 @@ struct Universe
     int universe_ticks = 0;
     u32 next_actor = 1;
 
+    bool has_spawned_alien = false;
+
+    Universe();
+
     bool hasActor(vec2i p) { return actors.find(p).found; }
 
     bool isVisible(vec2i from, vec2i to);
@@ -175,6 +202,7 @@ struct Universe
 
     void move(UActor* a, vec2i d);
     void spawn(UActor* a);
+    vec2i findEmpty(vec2i p);
 
     void update(vec2i origin);
 

@@ -17,6 +17,25 @@ const char* UActorTypeNames[UActorTypeCount]
     "PirateShip",
     "Station",
     "ShipWreck",
+    "MilitaryStation",
+};
+
+struct SpawningPct
+{
+    float cargo;
+    float pirate;
+    float station;
+    float military;
+    float mil_station;
+    float alient_remenant;
+};
+SpawningPct spawning_bands[5]
+{
+    { 0.5f, 0.68f, 0.98f, 1.00f, 0.0f, 0.0f },
+    { 0.2f, 0.65f, 0.85f, 0.99f, 1.00f, 0.0f },
+    { 0.1f, 0.4f, 0.5f, 0.9f, 1.0f, 0.0f },
+    { 0.1f, 0.2f, 0.3f, 0.75f, 1.0f, 0.0f },
+    { 0.0f, 0.05f, 0.15f, 0.8f, 0.95f, 1.0f },
 };
 
 bool isShipType(UActorType t)
@@ -300,11 +319,47 @@ void UCargoShip::render(TextBuffer& buffer, vec2i origin)
     }
 }
 
-UPirateShip::UPirateShip(vec2i p)
+UPirateShip::UPirateShip(vec2i p, int c, u32 col)
     : UShip(UActorType::PirateShip, p)
+    , character(c), color(col)
 {
     ship = generate("pirate", "pirate_ship");
     g_game.ships.push_back(ship);
+    if (character == 'A')
+    {
+        ship->update();
+        torp_max_reloads = 100;
+        railgun_max_reloads = 100;
+        ship->reactor->capacity = 100000;
+        for (Railgun* r : ship->railguns)
+        {
+            r->firing_variance = scalar::PIf / 160.0f;
+            r->recharge_time = 2;
+        }
+        for (TorpedoLauncher* t : ship->torpedoes)
+        {
+            t->recharge_time = 2;
+        }
+        for (PDC* p : ship->pdcs)
+        {
+            p->firing_variance = scalar::PIf / 20.0f;
+        }
+    }
+}
+
+bool UPirateShip::isTarget(UActor* actor)
+{
+    switch (actor->type)
+    {
+    case UActorType::Player:
+        return true;
+    case UActorType::CargoShip:
+        return character == 'P' || character == 'A';
+    case UActorType::PirateShip:
+        return ((UPirateShip*)actor)->character != character;
+    default:
+        return false;
+    }
 }
 
 void UPirateShip::update(pcg32& rng)
@@ -323,7 +378,7 @@ void UPirateShip::update(pcg32& rng)
 
             for (auto it : g_game.universe->actors)
             {
-                if (it.value->type == UActorType::Player || it.value->type == UActorType::CargoShip)
+                if (isTarget(it.value))
                 {
                     float dist = (pos - it.value->pos).length();
                     if (dist < closest_distance && dist < sensor_range && g_game.universe->isVisible(pos, it.value->pos))
@@ -480,7 +535,7 @@ void UPirateShip::update(pcg32& rng)
 void UPirateShip::render(TextBuffer& buffer, vec2i origin)
 {
     if (animating) return;
-    buffer.setTile(pos - origin, 'P', 0xFFFF0000, LayerPriority_Actors);
+    buffer.setTile(pos - origin, character, color, LayerPriority_Actors);
     if (!vel.zero())
     {
         buffer.setOverlay((pos + vel) - origin, 0x80FF8080, LayerPriority_Overlay);
@@ -578,8 +633,8 @@ void UAsteroid::render(TextBuffer& buffer, vec2i origin)
         float r = (radius + (float) cos(a * 1.2 + sfreq) * radius);
         vec2i p = pos + vec2i((int) round(cos(a) * r), (int) round(sin(a) * r));
         for (int r0 = 0; r0 < r; ++r0)
-            buffer.setTile(pos + vec2i((int)round(cos(a) * r0), (int)round(sin(a) * r0)) - origin, '0', 0xFF505050, LayerPriority_Background-1);
-        buffer.setTile(p - origin, getProjectileCharacter(rotate90(getDirection(a))), 0xFFFFFFFF, LayerPriority_Background);
+            buffer.setTile(pos + vec2i((int)round(cos(a) * r0), (int)round(sin(a) * r0)) - origin, '0', inner_color, LayerPriority_Background-1);
+        buffer.setTile(p - origin, getProjectileCharacter(rotate90(getDirection(a))), color, LayerPriority_Background);
     }
 }
 
@@ -619,6 +674,42 @@ void UShipWreck::render(TextBuffer& buffer, vec2i origin)
     buffer.setTile(pos - origin, '$', 0xFFFFFFFF, LayerPriority_Actors);
 }
 
+UMilitaryStation::UMilitaryStation(vec2i p)
+    : UActor(UActorType::MilitaryStation, p)
+{
+}
+
+void UMilitaryStation::update(pcg32& rng)
+{
+    UActor::update(rng);
+    float dist = (g_game.uplayer->pos - pos).length();
+    if (dist < 35 && !g_game.uplayer->ship->transponder_masked)
+    {
+        charge_time--;
+        if (charge_time <= 0)
+        {
+            vec2i offs = direction(getDirection(pos, g_game.uplayer->pos));
+            if (offs.zero()) offs = vec2i(1, 0);
+            vec2i spawn_pos = pos + offs * 2;
+
+            UTorpedo* torp = new UTorpedo(spawn_pos);
+            torp->source = id;
+            torp->target = g_game.uplayer->id;
+            torp->target_pos = g_game.uplayer->pos;
+            torp->vel = vec2i(0, 0);
+            g_game.universe->spawn(torp);
+            charge_time = 5;
+        }
+    }
+}
+
+void UMilitaryStation::render(TextBuffer& buffer, vec2i origin)
+{
+    buffer.setTile(pos - origin, 'M', 0xFFFF5000, LayerPriority_Actors);
+    buffer.setText((pos - origin - vec2i(1, 0)) * vec2i(2, 1) + vec2i(1, 0), Border_TeeRight, 0xFFFF5000, LayerPriority_Actors - 1);
+    buffer.setText((pos - origin + vec2i(1, 0)) * vec2i(2, 1), Border_TeeLeft, 0xFFFF5000, LayerPriority_Actors - 1);
+}
+
 vec2i getOffset(int& i, int& x, int& y)
 {
     y++;
@@ -642,6 +733,14 @@ vec2i getOffset(int& i, int& x, int& y)
         x = -i;
         y = -i;
     }
+}
+
+Universe::Universe()
+{
+    regions_generated.insert(vec2i(0, 0), true);
+    regions_generated.insert(vec2i(-1, 0), true);
+    regions_generated.insert(vec2i(-1, -1), true);
+    regions_generated.insert(vec2i(0, -1), true);
 }
 
 bool Universe::isVisible(vec2i from, vec2i to)
@@ -687,7 +786,7 @@ void Universe::move(UActor* a, vec2i d)
             if (it.value->type == UActorType::Torpedo)
             {
                 UTorpedo* t = (UTorpedo*) it.value;
-                if (t->source != a->id || (p.x == a->pos.x + d.x && p.y == a->pos.y + d.y))
+                if (t->source != a->id)
                 {
                     if (pl->ship)
                     {
@@ -716,11 +815,23 @@ void Universe::move(UActor* a, vec2i d)
                     }
                     t->dead = true;
                 }
+                else if (p.x == a->pos.x + d.x && p.y == a->pos.y + d.y)
+                {
+                    UActor* torp = it.value;
+                    last = p;
+                    vec2i p0 = findEmpty(p);
+                    bool rem = actors.erase(p);
+                    debug_assert(rem);
+                    torp->pos = p0;
+                    debug_assert(!actors.find(p0).found);
+                    actors.insert(torp->pos, torp);
+                    continue;
+                }
             }
             else if (a->type == UActorType::Torpedo)
             {
                 UTorpedo* at = (UTorpedo*) a;
-                if (at->source != it.value->id || (p.x == a->pos.x + d.x && p.y == a->pos.y + d.y))
+                if (at->source != it.value->id)
                 {
                     if (isShipType(it.value->type) && ((UShip*) it.value)->ship)
                     {
@@ -800,7 +911,7 @@ void Universe::move(UActor* a, vec2i d)
     }
     if (a->pos != last)
     {
-        if (a != g_game.uplayer)
+        if (a != g_game.uplayer && (a->pos - g_game.uplayer->pos).length() < g_game.uplayer->ship->scannerRange())
         {
             ShipMoveAnimation* anim = new ShipMoveAnimation((UShip*)a, a->pos, last);
             g_game.uanimations.push_back(anim);
@@ -814,16 +925,22 @@ void Universe::move(UActor* a, vec2i d)
     }
 }
 
-void Universe::spawn(UActor* a)
+vec2i Universe::findEmpty(vec2i p0)
 {
-    vec2i p = a->pos;
+    vec2i p = p0;
     int i = 0;
     int x = 0;
     int y = 0;
     while (actors.find(p).found)
     {
-        p = a->pos + getOffset(i, x, y);
+        p = p0 + getOffset(i, x, y);
     }
+    return p;
+}
+
+void Universe::spawn(UActor* a)
+{
+    vec2i p = findEmpty(a->pos);
     actors.insert(p, a);
     a->pos = p;
 
@@ -868,6 +985,8 @@ void Universe::update(vec2i origin)
     for (int y = origin.y - 70; y < origin.y + 70; y += 32)
     {
         int ry = y >> 5;
+        int band = y < 0 ? 0 : y / 500;
+        if (band > 4) band = 4;
         for (int x = origin.x - 70; x < origin.x + 70; x += 32)
         {
             int rx = x >> 5;
@@ -879,34 +998,54 @@ void Universe::update(vec2i origin)
                 {
                     for (int x0 = 0; x0 < 4; ++x0)
                     {
-                        if (rng.nextFloat() < 0.05f)
+                        if (y < -300 || rng.nextFloat() < 0.05f)
                         {
-                            UAsteroid* a = new UAsteroid(vec2i((rx << 5) + (x0 << 3), (ry << 5) + (y0 << 3)));
+                            static u32 band_colors[5]{ 0xFFFFFFFF, 0xFFBBF0FF, 0xFFFFFF80, 0xFFFF9900, 0xFFFF5500, };
+                            static u32 band_icolors[5]{ 0xFF505050, 0xFF105050, 0xFF505010, 0xFF503010, 0xFF502000, };
+                            u32 color = band_colors[band];
+                            u32 icolor = band_icolors[band];
+                            UAsteroid* a = new UAsteroid(vec2i((rx << 5) + (x0 << 3), (ry << 5) + (y0 << 3)), color, icolor);
                             a->sfreq = rng.nextFloat() * 10;
                             a->radius = 1.0f + rng.nextFloat() * 2.0f + rng.nextFloat() * rng.nextFloat() * 8.0f;
                             spawn(a);
                         }
                         else
                         {
-                            if (rng.nextFloat() < 0.01f)
+                            if (rng.nextFloat() < 0.02f)
                             {
                                 vec2i p = vec2i((rx << 5) + (x0 << 4) + 2, (ry << 5) + (y0 << 3));
                                 if (checkArea(p, 1))
                                 {
-                                    int type = rng.nextInt(0, 3);
-                                    if (type == 0)
+                                    SpawningPct& pcts = spawning_bands[band];
+                                    float type = rng.nextFloat();
+                                    if (type < pcts.cargo)
                                     {
                                         UCargoShip* s = new UCargoShip(p);
                                         spawn(s);
                                     }
-                                    else if (type == 1)
+                                    else if (type < pcts.pirate)
                                     {
-                                        UPirateShip* s = new UPirateShip(p);
+                                        UPirateShip* s = new UPirateShip(p, 'P', 0xFFFF0000);
                                         spawn(s);
                                     }
-                                    else
+                                    else if(type < pcts.station)
                                     {
                                         UStation* s = new UStation(p);
+                                        spawn(s);
+                                    }
+                                    else if(type < pcts.military)
+                                    {
+                                        UPirateShip* s = new UPirateShip(p, 'M', 0xFFFF0000);
+                                        spawn(s);
+                                    }
+                                    else if(type < pcts.mil_station)
+                                    {
+                                        UMilitaryStation* s = new UMilitaryStation(p);
+                                        spawn(s);
+                                    }
+                                    else if(type < pcts.alient_remenant && !has_spawned_alien)
+                                    {
+                                        UPirateShip* s = new UPirateShip(p, 'A', 0xFFFF00FF);
                                         spawn(s);
                                     }
                                 }
@@ -965,6 +1104,7 @@ void Universe::update(vec2i origin)
     }
     for (UShip* a : moved)
     {
+        if (a->dead) continue;
         if (!a->vel.zero())
         {
             move(a, a->vel);
@@ -998,8 +1138,22 @@ void Universe::update(vec2i origin)
         }
         else if (a->type == UActorType::CargoShip || a->type == UActorType::PirateShip)
         {
-            UShipWreck* wreck = new UShipWreck(a->pos);
-            spawn(wreck);
+            if (a->dead)
+            {
+                UShipWreck* wreck = new UShipWreck(a->pos);
+                spawn(wreck);
+            }
+            if (a->type == UActorType::PirateShip && ((UPirateShip*)a)->character == 'A')
+            {
+                if (a->dead)
+                {
+                    // Victory
+                }
+                else
+                {
+                    has_spawned_alien = false;
+                }
+            }
         }
         else if (a->type == UActorType::Torpedo)
         {
@@ -1022,18 +1176,21 @@ void Universe::update(vec2i origin)
 
 void Universe::render(TextBuffer& buffer, vec2i origin)
 {
+    float pscanner = g_game.uplayer->ship->scannerRange();
     vec2i bl = origin - vec2i((g_game.w - 30) / 2, g_game.h / 2);
     for (auto it : actors)
     {
         if (it.value->pos == it.key)
         {
-#if 1
+#if 0
             auto lost = lost_tracks.find(it.value->id);
             if (lost.found)
             {
                 buffer.setOverlay(lost.value.pos, lost.value.color, LayerPriority_Overlay);
             }
             else
+#else
+            if ((it.value->pos - origin).length() < pscanner)
 #endif
                 it.value->render(buffer, bl);
         }

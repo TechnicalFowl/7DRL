@@ -42,7 +42,7 @@ void Ship::update()
         switch (a->type)
         {
         case ActorType::PilotSeat: pilot = (PilotSeat*)a; break;
-        case ActorType::Scanner: scanner = (Scanner*) a; break;
+        case ActorType::Scanner: scanner = (Scanner*)a; break;
         case ActorType::Reactor: reactor = (Reactor*)a; break;
         case ActorType::Engine: engines.push_back((MainEngine*)a); break;
         case ActorType::TorpedoLauncher: torpedoes.push_back((TorpedoLauncher*)a); break;
