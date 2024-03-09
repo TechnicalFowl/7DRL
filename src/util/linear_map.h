@@ -85,10 +85,7 @@ namespace hash {
     {
         u32 operator()(u32 key) const noexcept
         {
-            u64 h = (14695981039346656037U ^ key) * 1099511628211U;
-            u32 xorshifted = (u32)(((h >> 18u) ^ h) >> 27u);
-            int rot = (int)(h >> 59u);
-            return (xorshifted >> rot) | (xorshifted << ((-rot) & 31)) | 0x80000000;
+            return key | 0x80000000;
         }
     };
 
@@ -197,7 +194,6 @@ struct linear_map
     {
         K key;
         E value;
-
     };
 
     u32* hash_table;

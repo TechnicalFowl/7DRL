@@ -2,3 +2,4 @@
 /.vs/
 /*.vcxproj.user
 /run_tree/*.pdn
+/run_tree/settings.ini
