@@ -137,7 +137,10 @@ void UShip::update(pcg32& rng)
                         else
                             anim->misses.push_back(torp->pos);
                     }
-                    g_game.uanimations.push_back(anim);
+                    if (g_game.show_universe)
+                        g_game.uanimations.push_back(anim);
+                    else
+                        delete anim;
                 }
                 if (!has_pdc) break;
             }
@@ -300,7 +303,11 @@ bool UShip::fireRailgun(vec2i target, int power)
     }
     if (!hit_anything && this == g_game.uplayer)
         g_game.log.log("Target missed.");
-    g_game.uanimations.push_back(anim);
+
+    if (g_game.show_universe)
+        g_game.uanimations.push_back(anim);
+    else
+        delete anim;
     return true;
 }
 
@@ -1015,7 +1022,7 @@ void Universe::move(UActor* a, vec2i d)
     {
         if (g_game.uplayer)
         {
-            if (a != g_game.uplayer && (a->pos - g_game.uplayer->pos).length() < g_game.uplayer->ship->scannerRange())
+            if (g_game.show_universe && a != g_game.uplayer && (a->pos - g_game.uplayer->pos).length() < g_game.uplayer->ship->scannerRange())
             {
                 ShipMoveAnimation* anim = new ShipMoveAnimation((UShip*)a, a->pos, last);
                 g_game.uanimations.push_back(anim);
