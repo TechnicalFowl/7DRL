@@ -24,3 +24,5 @@ extern Window g_window;
 void window_open(const char* title, int w, int h);
 
 void render_buffer(TextBuffer* term, float zoom);
+
+const char* GetKeyName(int key);

@@ -166,6 +166,35 @@ void Ship::explosion(vec2f d, float power)
     explosionAt(p, power);
 }
 
+void Ship::damageTile(vec2i p)
+{
+    auto it = map->tiles.find(p);
+    if (it.found)
+    {
+        hull_integrity--;
+        if (it.value.terrain == Terrain::ShipWall)
+            it.value.terrain = Terrain::DamagedShipWall;
+        else if (it.value.terrain == Terrain::ShipFloor)
+            it.value.terrain = Terrain::DamagedShipFloor;
+        if (it.value.actor)
+        {
+            switch (it.value.actor->type)
+            {
+            case ActorType::PilotSeat:
+            case ActorType::Reactor:
+            case ActorType::Engine:
+            case ActorType::TorpedoLauncher:
+            case ActorType::PDC:
+            case ActorType::Railgun:
+            {
+                ShipObject* obj = (ShipObject*)it.value.actor;
+                obj->status = ShipObject::Status::Damaged;
+            } break;
+            }
+        }
+    }
+}
+
 void Ship::explosionAt(vec2i p, float power)
 {
     if (!map)
@@ -183,31 +212,7 @@ void Ship::explosionAt(vec2i p, float power)
             float chance = 1 - sqrtf(x * x + y * y) / power;
             chance *= chance;
             if (g_game.rng.nextFloat() > chance) continue;
-            hull_integrity--;
-            auto it = map->tiles.find(p + vec2i(x, y));
-            if (it.found)
-            {
-                if (it.value.terrain == Terrain::ShipWall)
-                    it.value.terrain = Terrain::DamagedShipWall;
-                else if (it.value.terrain == Terrain::ShipFloor)
-                    it.value.terrain = Terrain::DamagedShipFloor;
-                if (it.value.actor)
-                {
-                    switch (it.value.actor->type)
-                    {
-                    case ActorType::PilotSeat:
-                    case ActorType::Reactor:
-                    case ActorType::Engine:
-                    case ActorType::TorpedoLauncher:
-                    case ActorType::PDC:
-                    case ActorType::Railgun:
-                    {
-                        ShipObject* obj = (ShipObject*)it.value.actor;
-                        obj->status = ShipObject::Status::Damaged;
-                    } break;
-                    }
-                }
-            }
+            damageTile(p + vec2i(x, y));
         }
     }
 
@@ -222,14 +227,70 @@ void Ship::explosionAt(vec2i p, float power)
     }
 }
 
-void Ship::railgun(vec2i d)
+void Ship::railgun(vec2i d, int power)
 {
     if (!map)
     {
         hull_integrity = 0;
         return;
     }
+    vec2i f, t;
+    vec2i a;
+    if (d.x == 0)
+    {
+        a = vec2i(1, 0);
+        f = vec2i(map->min.x, g_game.rng.nextInt(map->min.y, map->max.y));
+        t = vec2i(map->max.x, g_game.rng.nextInt(map->min.y, map->max.y));
+    }
+    else if (d.y == 0)
+    {
+        a = vec2i(0, 1);
+        f = vec2i(g_game.rng.nextInt(map->min.x, map->max.x), map->min.y);
+        t = vec2i(g_game.rng.nextInt(map->min.x, map->max.x), map->max.y);
+    }
+    else if (d.x < 0 != d.y < 0)
+    {
+        a = vec2i(1, 1);
+        int hx = (map->max.x + map->min.x) / 2;
+        int hy = (map->max.y + map->min.y) / 2;
+        if (g_game.rng.nextBool())
+        {
+            f = vec2i(map->min.x, g_game.rng.nextInt(hy, map->max.y));
+            t = vec2i(map->max.x, g_game.rng.nextInt(map->min.y, hy));
+        }
+        else
+        {
+            f = vec2i(g_game.rng.nextInt(map->min.x, hx), map->max.y);
+            t = vec2i(g_game.rng.nextInt(hx, map->max.x), map->min.y);
+        }
+    }
+    else
+    {
+        a = vec2i(-1, 1);
+        int hx = (map->max.x + map->min.x) / 2;
+        int hy = (map->max.y + map->min.y) / 2;
+        if (g_game.rng.nextBool())
+        {
+            f = vec2i(map->min.x, g_game.rng.nextInt(map->min.y, hy));
+            t = vec2i(map->max.x, g_game.rng.nextInt(hy, map->max.y));
+        }
+        else
+        {
+            f = vec2i(g_game.rng.nextInt(hx, map->max.x), map->max.y);
+            t = vec2i(g_game.rng.nextInt(map->min.x, hx), map->min.y);
+        }
+    }
 
+    auto points = findRay(f, t);
+    for (vec2i p : points)
+    {
+        damageTile(p);
+        for (int j = 1; j < power; ++j)
+        {
+            damageTile(p + a * j);
+            damageTile(p + a * -j);
+        }
+    }
 }
 
 float Ship::scannerRange() const

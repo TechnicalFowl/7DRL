@@ -135,7 +135,7 @@ void UShip::update(pcg32& rng)
     }
 }
 
-bool UShip::fireTorpedo(vec2i target)
+bool UShip::fireTorpedo(vec2i target, int power)
 {
     auto t = g_game.universe->actors.find(target);
     if (t.found)
@@ -165,7 +165,7 @@ bool UShip::fireTorpedo(vec2i target)
         if (offs.zero()) offs = vec2i(1, 0);
         vec2i spawn_pos = pos - vel + offs * 2;
 
-        UTorpedo* torp = new UTorpedo(spawn_pos);
+        UTorpedo* torp = new UTorpedo(spawn_pos, power);
         torp->source = id;
         torp->target = isShipType(t.value->type) ? t.value->id : 0;
         torp->target_pos = target;
@@ -177,7 +177,7 @@ bool UShip::fireTorpedo(vec2i target)
     return false;
 }
 
-bool UShip::fireRailgun(vec2i target)
+bool UShip::fireRailgun(vec2i target, int power)
 {
     bool found_weapon = false;
     Railgun* weapon = nullptr;
@@ -225,7 +225,8 @@ bool UShip::fireRailgun(vec2i target)
                     g_game.log.log("Railgun impact.");
                     solid_target = true;
                     anim->hits.push_back(s);
-                    ((UShip*)it.value)->ship->railgun(vec2i());
+                    ((UShip*)it.value)->ship->railgun(vec2i(), power);
+                    g_game.gameover_reason = "Railgun fire";
                 }
                 else
                 {
@@ -247,7 +248,7 @@ bool UShip::fireRailgun(vec2i target)
                     if (this == g_game.uplayer) g_game.log.logf("Target hit (%.0f%%).", hit_chance * 100);
                     solid_target = true;
                     anim->hits.push_back(s);
-                    ((UShip*) it.value)->ship->railgun(vec2i());
+                    ((UShip*) it.value)->ship->railgun(vec2i(), power);
                 }
                 else
                 {
@@ -346,6 +347,8 @@ UPirateShip::UPirateShip(vec2i p, int c, u32 col)
     {
         torp_max_reloads = 100;
         railgun_max_reloads = 100;
+        railgun_power = 3;
+        torpedo_power = 16;
         for (Actor* a : ship->map->actors)
         {
             if (a->type == ActorType::Reactor)
@@ -353,6 +356,11 @@ UPirateShip::UPirateShip(vec2i p, int c, u32 col)
                 ((Reactor*)a)->capacity = 100000;
             }
         }
+    }
+    else if (character == 'M')
+    {
+        railgun_power = 2;
+        torpedo_power = 8;
     }
 }
 
@@ -424,11 +432,11 @@ void UPirateShip::update(pcg32& rng)
                 target_last_pos = s->pos;
                 if (dist < 12 && rng.nextFloat() < 0.6f)
                 {
-                    fireRailgun(s->pos);
+                    fireRailgun(s->pos, railgun_power);
                 }
                 else if (dist < 25 && rng.nextFloat() < 0.3f)
                 {
-                    fireTorpedo(s->pos);
+                    fireTorpedo(s->pos, torpedo_power);
                 }
             }
 
@@ -691,6 +699,7 @@ UMilitaryStation::UMilitaryStation(vec2i p)
 void UMilitaryStation::update(pcg32& rng)
 {
     UActor::update(rng);
+    if (!g_game.universe) return;
     float dist = (g_game.uplayer->pos - pos).length();
     if (dist < 35 && !g_game.uplayer->ship->transponder_masked)
     {
@@ -701,7 +710,7 @@ void UMilitaryStation::update(pcg32& rng)
             if (offs.zero()) offs = vec2i(1, 0);
             vec2i spawn_pos = pos + offs * 2;
 
-            UTorpedo* torp = new UTorpedo(spawn_pos);
+            UTorpedo* torp = new UTorpedo(spawn_pos, 12);
             torp->source = id;
             torp->target = g_game.uplayer->id;
             torp->target_pos = g_game.uplayer->pos;
@@ -746,6 +755,14 @@ vec2i getOffset(int& i, int& x, int& y)
 
 Universe::Universe()
 {
+}
+
+Universe::~Universe()
+{
+    for (auto it : actor_ids)
+    {
+        delete it.value;
+    }
 }
 
 bool Universe::isVisible(vec2i from, vec2i to)
@@ -797,7 +814,7 @@ void Universe::move(UActor* a, vec2i d)
                     {
                         float incoming = rng.nextFloat() * scalar::PIf * 2;
                         vec2f dir = vec2f(cos(incoming), sin(incoming));
-                        pl->ship->explosion(dir, rng.nextFloat() * 20 + 10);
+                        pl->ship->explosion(dir, rng.nextFloat() * t->power + 10);
                     }
                     else
                     {
@@ -807,6 +824,7 @@ void Universe::move(UActor* a, vec2i d)
                     if (a == g_game.uplayer)
                     {
                         g_game.log.log("Torpedo detonating on hull!");
+                        g_game.gameover_reason = "Torpedo detonation";
                     }
                     else
                     {
@@ -843,12 +861,13 @@ void Universe::move(UActor* a, vec2i d)
                         float incoming = rng.nextFloat() * scalar::PIf * 2;
                         vec2f dir = vec2f(cos(incoming), sin(incoming));
                         UShip* os = (UShip*)it.value;
-                        os->ship->explosion(dir, rng.nextFloat() * 20 + 10);
+                        os->ship->explosion(dir, rng.nextFloat() * at->power + 10);
                     }
 
                     if (it.value == g_game.uplayer)
                     {
                         g_game.log.log("Torpedo detonating on hull!");
+                        g_game.gameover_reason = "Torpedo detonation";
                     }
                     else
                     {
@@ -866,10 +885,14 @@ void Universe::move(UActor* a, vec2i d)
             }
             else if (pl->vel.length() > 6)
             {
-                if (a == g_game.uplayer) g_game.log.log("Impact alert! Significant damage sustained.");
+                if (a == g_game.uplayer)
+                {
+                    g_game.log.log("Impact alert! Significant damage sustained.");
+                    g_game.gameover_reason = "High-speed collision";
+                }
 
                 vec2f dir = vec2f(rng.nextFloat() - 0.5f, 2.0f).normalize();
-                pl->ship->explosion(dir, rng.nextFloat() * 8 * pl->vel.length() + 10);
+                pl->ship->explosion(dir, rng.nextFloat() * 3 * pl->vel.length() + 5);
                 pl->vel = vec2i(0, 0);
                 break;
             }
@@ -877,10 +900,14 @@ void Universe::move(UActor* a, vec2i d)
             {
                 if (pl->vel.length() > 2)
                 {
-                    if (a == g_game.uplayer) g_game.log.log("Impact alert!");
+                    if (a == g_game.uplayer)
+                    {
+                        g_game.log.log("Impact alert!");
+                        g_game.gameover_reason = "Low-speed collision";
+                    }
 
                     vec2f dir = vec2f(rng.nextFloat() - 0.5f, 2.0f).normalize();
-                    pl->ship->explosion(dir, rng.nextFloat() * 5 * pl->vel.length() + 5);
+                    pl->ship->explosion(dir, rng.nextFloat() * 3 * pl->vel.length() + 5);
                 }
                 else if (!warned_this_step)
                 {
@@ -916,10 +943,13 @@ void Universe::move(UActor* a, vec2i d)
     }
     if (a->pos != last)
     {
-        if (a != g_game.uplayer && (a->pos - g_game.uplayer->pos).length() < g_game.uplayer->ship->scannerRange())
+        if (g_game.uplayer)
         {
-            ShipMoveAnimation* anim = new ShipMoveAnimation((UShip*)a, a->pos, last);
-            g_game.uanimations.push_back(anim);
+            if (a != g_game.uplayer && (a->pos - g_game.uplayer->pos).length() < g_game.uplayer->ship->scannerRange())
+            {
+                ShipMoveAnimation* anim = new ShipMoveAnimation((UShip*)a, a->pos, last);
+                g_game.uanimations.push_back(anim);
+            }
         }
 
         bool rem = actors.erase(a->pos);
@@ -1064,7 +1094,7 @@ void Universe::update(vec2i origin)
         }
     }
 
-    float player_scanners = g_game.uplayer->ship->scannerRange();
+    float player_scanners = g_game.uplayer ? g_game.uplayer->ship->scannerRange() : 1000;
     std::vector<UShip*> moved;
     std::vector<UActor*> to_remove;
     for (auto it : actors)
@@ -1121,6 +1151,7 @@ void Universe::update(vec2i origin)
     }
     for (UActor* a : to_remove)
     {
+        if (a->type == UActorType::Player) continue;
         bool rem = actors.erase(a->pos);
         debug_assert(rem);
         rem = actor_ids.erase(a->id);
@@ -1181,7 +1212,7 @@ void Universe::update(vec2i origin)
 
 void Universe::render(TextBuffer& buffer, vec2i origin)
 {
-    float pscanner = g_game.uplayer->ship->scannerRange();
+    float pscanner = g_game.uplayer ? g_game.uplayer->ship->scannerRange() : 1000;
     vec2i bl = origin - vec2i((g_game.w - 30) / 2, g_game.h / 2);
     for (auto it : actors)
     {

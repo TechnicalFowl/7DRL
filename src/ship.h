@@ -65,9 +65,10 @@ struct Ship
 
     void update();
 
+    void damageTile(vec2i p);
     void explosion(vec2f d, float power);
     void explosionAt(vec2i p, float power);
-    void railgun(vec2i d);
+    void railgun(vec2i d, int power);
 
     float scannerRange() const;
 

@@ -1168,7 +1168,7 @@ struct ShipGenerator
                         ItemType::RailgunRounds,
                         ItemType::PDCRounds,
                     };
-                    ItemType item = storage_items[rng.nextInt(0, 3)];
+                    ItemType item = storage_items[rng.nextInt(0, 4)];
                     
                     if (rng.nextFloat() < 0.8f) placeItem(map, r.min + vec2i(1, 1), item);
                     if (rng.nextFloat() < 0.8f) placeItem(map, r.min + vec2i(size, 1), item);

@@ -322,7 +322,13 @@ struct StationModal : Modal
                 weapon_charge->max_rounds += 5;
                 g_game.log.log("[Station] Your railgun magazine size has been upgraded.");
             }
-            y0 += 3;
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 3), "Upgrade Railgun Power (1000 credits)", 0xFFFFFFFF, g_game.credits < 1000))
+            {
+                g_game.credits -= 1000;
+                g_game.uplayer->railgun_power++;
+                g_game.log.log("[Station] Your railgun power has been upgraded.");
+            }
+            y0 += 4;
         }
         if (upgrades & 0x18)
         {
@@ -347,7 +353,13 @@ struct StationModal : Modal
                 weapon_charge->recharge_time--;
                 g_game.log.log("[Station] Your torpedo launcher charge rate has been upgraded.");
             }
-            y0 += 2;
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 2), "Upgrade Torpedo Explosive Power (500 credits)", 0xFFFFFFFF, g_game.credits < 1000))
+            {
+                g_game.credits -= 1000;
+                g_game.uplayer->torpedo_power += g_game.rng.nextInt(3, 5);
+                g_game.log.log("[Station] Your torpedo explosive power has been increased.");
+            }
+            y0 += 3;
         }
         if (upgrades & 0x30)
         {
@@ -514,8 +526,6 @@ void initGame(int w, int h)
     g_game.mapterm = new TextBuffer(w, h);
     g_game.mapterm->invert = true;
 
-    g_game.log.log("Welcome.");
-
     {
         Registry& reg = g_game.reg;
         reg.terrain_info[int(Terrain::Empty)] = TerrainInfo(Terrain::Empty, "Empty", TileEmpty, 0, 0xFF000000, true);
@@ -546,10 +556,22 @@ void initGame(int w, int h)
         reg.item_type_info[int(ItemType::RailgunRounds)] = ItemTypeInfo(ItemType::RailgunRounds, "Railgun Rounds", ':', 0xFFFFFFFF);
         reg.item_type_info[int(ItemType::PDCRounds)] = ItemTypeInfo(ItemType::PDCRounds, "PDC Rounds", '"', 0xFFFFFFFF);
     }
+}
+
+void startGame()
+{
+    g_game.log.entries.clear();
+    g_game.log.log("Welcome.");
+
+    if (g_game.universe)
+    {
+        delete g_game.universe;
+    }
+    g_game.ships.clear();
     g_game.universe = new Universe;
     g_game.player_ship = generate("player", "player_ship");
     g_game.current_level = g_game.player_ship->map;
-   
+
     g_game.uplayer = new UPlayer(vec2i());
     g_game.uplayer->ship = g_game.player_ship;
     g_game.universe->spawn(g_game.uplayer);
@@ -557,6 +579,17 @@ void initGame(int w, int h)
 
     g_game.player_ship->update();
     g_game.ships.push_back(g_game.player_ship);
+
+    g_game.credits = 1000;
+    g_game.scrap = 0;
+
+    g_game.show_universe = false;
+    g_game.transition = 0.0f;
+    g_game.last_universe_update = -1000;
+
+    g_game.modal = nullptr;
+    g_game.animations.clear();
+    g_game.uanimations.clear();
 }
 
 vec2i game_mouse_pos()
@@ -574,7 +607,7 @@ vec2i universe_mouse_pos()
 vec2f screen_mouse_pos()
 {
     Vector2 mouse = GetMousePosition();
-    return vec2f(mouse.x / 16, g_game.h - mouse.y / 16);
+    return vec2f(mouse.x / 16, mouse.y / 16);
 }
 
 void drawUIFrame(TextBuffer* term, vec2i min, vec2i max, const char* title)
@@ -607,52 +640,53 @@ bool drawButton(TextBuffer* term, vec2i pos, const char* label, u32 color, bool 
 void updateGame()
 {
     bool do_map_turn = false;
-
-    g_game.w = GetScreenWidth() / 16;
-    g_game.h = GetScreenHeight() / 16;
-
     int gw = g_game.w - 30;
+
+    if (IsKeyPressed(KEY_ESCAPE))
+    {
+        g_game.state = GameState::PauseMenu;
+    }
 
     if (!g_game.modal && !g_game.show_universe && g_game.transition == 0)
     {
         Map& map = *g_game.current_level;
         do_map_turn = map.player->next_action.action != Action::Wait;
-        if (IsKeyPressed(KEY_UP))
+        if (IsKeyPressed(g_game.key_up))
         {
             do_map_turn = true;
             map.player->tryMove(map, vec2i(0, 1));
         }
-        if (IsKeyPressed(KEY_DOWN))
+        if (IsKeyPressed(g_game.key_down))
         {
             do_map_turn = true;
             map.player->tryMove(map, vec2i(0, -1));
         }
-        if (IsKeyPressed(KEY_RIGHT))
+        if (IsKeyPressed(g_game.key_right))
         {
             do_map_turn = true;
             map.player->tryMove(map, vec2i(1, 0));
         }
-        if (IsKeyPressed(KEY_LEFT))
+        if (IsKeyPressed(g_game.key_left))
         {
             do_map_turn = true;
             map.player->tryMove(map, vec2i(-1, 0));
         }
-        if (IsKeyPressed(KEY_O))
+        if (IsKeyPressed(g_game.key_open))
         {
             do_map_turn = true;
             map.player->next_action = ActionData(Action::Open, map.player, 1.0f);
         }
-        if (IsKeyPressed(KEY_U))
+        if (IsKeyPressed(g_game.key_use))
         {
             do_map_turn = true;
             map.player->next_action = ActionData(Action::UseOn, map.player, 1.0f);
         }
-        if (IsKeyPressed(KEY_COMMA))
+        if (IsKeyPressed(g_game.key_pickup))
         {
             do_map_turn = true;
             map.player->next_action = ActionData(Action::Pickup, map.player, 1.0f);
         }
-        if (IsKeyPressed(KEY_SPACE))
+        if (IsKeyPressed(g_game.key_wait))
         {
             do_map_turn = true;
             map.player->next_action = ActionData(Action::Wait, map.player, 1.0f);
@@ -667,6 +701,7 @@ void updateGame()
                 last_scroll = g_window.frame_count;
             }
         }
+#if 0
         if (IsKeyPressed(KEY_X))
         {
             vec2i center = (map.max + map.min) / 2;
@@ -674,7 +709,7 @@ void updateGame()
             vec2f dir = offset.cast<float>().normalize();
             g_game.player_ship->explosionAt(game_mouse_pos(), g_game.rng.nextFloat() * 20 + 10);
         }
-
+#endif
 
 #if 0
         if (IsKeyPressed(KEY_Z))
@@ -726,7 +761,7 @@ void updateGame()
         }
 
         bool do_turn = g_game.modal_close;
-        if (IsKeyPressed(KEY_UP))
+        if (IsKeyPressed(g_game.key_up))
         {
             if (!engines_functional)
             {
@@ -738,7 +773,7 @@ void updateGame()
                 g_game.uplayer->vel += vec2i(0, 1);
             }
         }
-        if (IsKeyPressed(KEY_DOWN))
+        if (IsKeyPressed(g_game.key_down))
         {
             if (!engines_functional)
             {
@@ -750,7 +785,7 @@ void updateGame()
                 g_game.uplayer->vel += vec2i(0, -1);
             }
         }
-        if (IsKeyPressed(KEY_RIGHT))
+        if (IsKeyPressed(g_game.key_right))
         {
             if (!engines_functional)
             {
@@ -762,7 +797,7 @@ void updateGame()
                 g_game.uplayer->vel += vec2i(1, 0);
             }
         }
-        if (IsKeyPressed(KEY_LEFT))
+        if (IsKeyPressed(g_game.key_left))
         {
             if (!engines_functional)
             {
@@ -774,17 +809,17 @@ void updateGame()
                 g_game.uplayer->vel += vec2i(-1, 0);
             }
         }
-        if (IsKeyPressed(KEY_O))
+        if (IsKeyPressed(g_game.key_open))
         {
             g_game.transition = 1.0f;
         }
-        if (IsKeyPressed(KEY_Z))
+        if (IsKeyPressed(g_game.key_railgun))
         {
             g_game.uplayer->is_aiming = false;
             if (g_game.uplayer->is_aiming_railgun)
             {
                 vec2i target = universe_mouse_pos();
-                if (g_game.uplayer->fireRailgun(target))
+                if (g_game.uplayer->fireRailgun(target, g_game.uplayer->railgun_power))
                     do_turn = true;
                 g_game.uplayer->is_aiming_railgun = false;
             }
@@ -793,13 +828,13 @@ void updateGame()
                 g_game.uplayer->is_aiming_railgun = true;
             }
         }
-        if (IsKeyPressed(KEY_F))
+        if (IsKeyPressed(g_game.key_fire))
         {
             g_game.uplayer->is_aiming_railgun = false;
             if (g_game.uplayer->is_aiming)
             {
                 vec2i target = universe_mouse_pos();
-                if (g_game.uplayer->fireTorpedo(target))
+                if (g_game.uplayer->fireTorpedo(target, g_game.uplayer->torpedo_power))
                     do_turn = true;
                 g_game.uplayer->is_aiming = false;
             }
@@ -813,23 +848,23 @@ void updateGame()
             if (g_game.uplayer->is_aiming)
             {
                 vec2i target = universe_mouse_pos();
-                if (g_game.uplayer->fireTorpedo(target))
+                if (g_game.uplayer->fireTorpedo(target, g_game.uplayer->torpedo_power))
                     do_turn = true;
                 g_game.uplayer->is_aiming = false;
             }
             else if (g_game.uplayer->is_aiming_railgun)
             {
                 vec2i target = universe_mouse_pos();
-                if (g_game.uplayer->fireRailgun(target))
+                if (g_game.uplayer->fireRailgun(target, g_game.uplayer->railgun_power))
                     do_turn = true;
                 g_game.uplayer->is_aiming_railgun = false;
             }
         }
-        if (IsKeyPressed(KEY_SPACE))
+        if (IsKeyPressed(g_game.key_wait))
         {
             do_turn = true;
         }
-        if (IsKeyPressed(KEY_D))
+        if (IsKeyPressed(g_game.key_dock))
         {
             for (int i = 0; i < 4; ++i)
             {
@@ -866,6 +901,11 @@ void updateGame()
             g_game.modal_close = false;
             g_game.last_universe_update = g_game.current_level->turn;
             g_game.universe->update(g_game.uplayer->pos);
+        }
+
+        if (g_game.uplayer && g_game.uplayer->ship->pilot->status != ShipObject::Status::Active)
+        {
+            g_game.transition = 1.0f;
         }
     }
 
@@ -937,8 +977,6 @@ void updateGame()
             g_game.log.log("Your ship sustained too much damage and your hull breaks apart.");
             g_game.log.log("Game over.");
             g_game.state = GameState::GameOver;
-            g_game.player_ship->hull_integrity = 500;
-            g_game.uplayer->dead = false;
         }
     }
 

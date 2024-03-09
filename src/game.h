@@ -17,6 +17,7 @@ struct Universe;
 enum class GameState
 {
     MainMenu,
+    Settings,
     Ingame,
     PauseMenu,
     GameOver,
@@ -155,9 +156,25 @@ struct Game
     int last_universe_update = -1000;
 
     GameState state = GameState::MainMenu;
+    sstring gameover_reason;
 
     Modal* modal = nullptr;
     bool modal_close = false;
+
+    int music_volume = 8;
+    int sound_volume = 8;
+
+    int key_left = KEY_LEFT;
+    int key_right = KEY_RIGHT;
+    int key_up = KEY_UP;
+    int key_down = KEY_DOWN;
+    int key_fire = KEY_F;
+    int key_railgun = KEY_Z;
+    int key_dock = KEY_D;
+    int key_open = KEY_O;
+    int key_use = KEY_U;
+    int key_pickup = KEY_COMMA;
+    int key_wait = KEY_SPACE;
 
     std::vector<Animation*> animations;
     std::vector<Animation*> uanimations;
@@ -165,6 +182,7 @@ struct Game
 extern Game g_game;
 
 void initGame(int w, int h);
+void startGame();
 void updateGame();
 
 vec2i game_mouse_pos();

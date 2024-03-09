@@ -64,8 +64,8 @@ struct UShip : UActor
 
     virtual void update(pcg32& rng) override;
 
-    bool fireTorpedo(vec2i target);
-    bool fireRailgun(vec2i target);
+    bool fireTorpedo(vec2i target, int power);
+    bool fireRailgun(vec2i target, int power);
 };
 
 struct UCargoShip : UShip
@@ -95,6 +95,9 @@ struct UPirateShip : UShip
     bool has_alerted = false;
     bool has_warned = false;
 
+    int railgun_power = 1;
+    int torpedo_power = 8;
+
     UPirateShip(vec2i p, int c, u32 col);
 
     void update(pcg32& rng) override;
@@ -109,6 +112,9 @@ struct UPlayer : UShip
     bool is_aiming = false;
     bool is_aiming_railgun = false;
 
+    int railgun_power = 1;
+    int torpedo_power = 8;
+
     UPlayer(vec2i p) : UShip(UActorType::Player, p) {}
 
     void update(pcg32& rng) override;
@@ -122,7 +128,9 @@ struct UTorpedo : UShip
     u32 target = 0;
     u32 source = 0;
 
-    UTorpedo(vec2i p) : UShip(UActorType::Torpedo, p) {}
+    int power;
+
+    UTorpedo(vec2i p, int power) : UShip(UActorType::Torpedo, p), power(power) {}
 
     void update(pcg32& rng) override;
 
@@ -194,6 +202,7 @@ struct Universe
     bool has_spawned_alien = false;
 
     Universe();
+    ~Universe();
 
     bool hasActor(vec2i p) { return actors.find(p).found; }
 
