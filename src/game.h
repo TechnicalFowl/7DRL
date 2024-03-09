@@ -21,6 +21,7 @@ enum class GameState
     Ingame,
     PauseMenu,
     GameOver,
+    Victory,
 };
 
 struct InfoLog

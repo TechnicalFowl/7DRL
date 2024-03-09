@@ -1260,7 +1260,7 @@ void Universe::update(vec2i origin)
             {
                 if (a->dead)
                 {
-                    // Victory
+                    g_game.state = GameState::Victory;
                 }
                 else
                 {

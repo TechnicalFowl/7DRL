@@ -179,11 +179,19 @@ void drawSettings(TextBuffer& buf)
 
 void drawGameOver(TextBuffer& buf)
 {
-    buf.write(vec2i(g_game.w + 5, g_game.h - 10), "Game Over!", 0xFFFFFFFF);
-    sstring line0; line0.appendf("Died to: %s", g_game.gameover_reason.c_str());
-    buf.write(vec2i(g_game.w + 5, g_game.h - 8), line0.c_str(), 0xFFFFFFFF);
+    sstring line0;
+    if (g_game.state == GameState::GameOver)
+    {
+        buf.write(vec2i(g_game.w + 5, g_game.h - 10), "Game Over!", 0xFFFFFFFF);
+        line0.appendf("Died to: %s", g_game.gameover_reason.c_str());
+        buf.write(vec2i(g_game.w + 5, g_game.h - 8), line0.c_str(), 0xFFFFFFFF);
+    }
+    else
+    {
+        buf.write(vec2i(g_game.w + 5, g_game.h - 10), "Victory!", 0xFFFFFFFF);
+    }
 
-    if (drawButton(&buf, vec2i(g_game.w + 5, g_game.h - 5), "Start Game", 0xFFFFFFFF))
+    if (drawButton(&buf, vec2i(g_game.w + 5, g_game.h - 5), "New Game", 0xFFFFFFFF))
     {
         g_game.state = GameState::Ingame;
         startGame();
@@ -271,7 +279,7 @@ int main(int argc, const char** argv)
             updateGame();
         }
 
-        if (g_game.state == GameState::Ingame || g_game.state == GameState::PauseMenu || g_game.state == GameState::GameOver)
+        if (g_game.state == GameState::Ingame || g_game.state == GameState::PauseMenu || g_game.state == GameState::GameOver || g_game.state == GameState::Victory)
         {
             int dw = g_window.width - g_game.w * 16;
             int dh = g_window.height - g_game.h * 16;
@@ -283,7 +291,7 @@ int main(int argc, const char** argv)
             if (g_game.state == GameState::Ingame)
                 render_buffer(g_game.uiterm, 1.0f);
 
-            if (g_game.state == GameState::PauseMenu || g_game.state == GameState::GameOver)
+            if (g_game.state == GameState::PauseMenu || g_game.state == GameState::GameOver || g_game.state == GameState::Victory)
             {
                 menu_frame++;
                 menuterm->clear(g_game.w, g_game.h);
