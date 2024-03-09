@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 void do_assert(const char* check, const char* file, s32 line, const char* fmt, ...) {
-    printf("Assertion failed (%s) ", check);
+    TraceLog(LOG_ERROR, "Assertion failed (%s) ", check);
     char* msg = nullptr;
     if (fmt[0]) {
         va_list args;

@@ -2,10 +2,77 @@
 #include <cstdio>
 
 #include "game.h"
+#include "map.h"
 #include "sound.h"
 #include "vterm.h"
 #include "universe.h"
 #include "window.h"
+
+bool want_close = false;
+
+void readSettings()
+{
+    if (!FileExists("settings.ini")) return;
+    char* settings = LoadFileText("settings.ini");
+    sstring s(settings);
+    auto lines = s.split('\n');
+    for (auto& line : lines)
+    {
+        auto parts = line.split('=');
+        if (parts.size() != 2) continue;
+        parts[1].trim();
+        if (!strings::isInteger(parts[1])) continue;
+        if (parts[0] == "music")
+            g_game.music_volume = atoi(parts[1].c_str());
+        else if (parts[0] == "sound")
+            g_game.sound_volume = atoi(parts[1].c_str());
+        else if (parts[0] == "key_left")
+            g_game.key_left = atoi(parts[1].c_str());
+        else if (parts[0] == "key_right")
+            g_game.key_right = atoi(parts[1].c_str());
+        else if (parts[0] == "key_up")
+            g_game.key_up = atoi(parts[1].c_str());
+        else if (parts[0] == "key_down")
+            g_game.key_down = atoi(parts[1].c_str());
+        else if (parts[0] == "key_fire")
+            g_game.key_fire = atoi(parts[1].c_str());
+        else if (parts[0] == "key_railgun")
+            g_game.key_railgun = atoi(parts[1].c_str());
+        else if (parts[0] == "key_dock")
+            g_game.key_dock = atoi(parts[1].c_str());
+        else if (parts[0] == "key_open")
+            g_game.key_open = atoi(parts[1].c_str());
+        else if (parts[0] == "key_use")
+            g_game.key_use = atoi(parts[1].c_str());
+        else if (parts[0] == "key_pickup")
+            g_game.key_pickup = atoi(parts[1].c_str());
+        else if (parts[0] == "key_wait")
+            g_game.key_wait = atoi(parts[1].c_str());
+        else if (parts[0] == "key_hail")
+            g_game.key_hail = atoi(parts[1].c_str());
+    }
+}
+
+void writeSettings()
+{
+    sstring s;
+    s.appendf("music=%d\n", g_game.music_volume);
+    s.appendf("sound=%d\n", g_game.sound_volume);
+    s.appendf("key_left=%d\n", g_game.key_left);
+    s.appendf("key_right=%d\n", g_game.key_right);
+    s.appendf("key_up=%d\n", g_game.key_up);
+    s.appendf("key_down=%d\n", g_game.key_down);
+    s.appendf("key_fire=%d\n", g_game.key_fire);
+    s.appendf("key_railgun=%d\n", g_game.key_railgun);
+    s.appendf("key_dock=%d\n", g_game.key_dock);
+    s.appendf("key_open=%d\n", g_game.key_open);
+    s.appendf("key_use=%d\n", g_game.key_use);
+    s.appendf("key_pickup=%d\n", g_game.key_pickup);
+    s.appendf("key_wait=%d\n", g_game.key_wait);
+    s.appendf("key_hail=%d\n", g_game.key_hail);
+
+    SaveFileText("settings.ini", s.mut_str());
+}
 
 void drawTitle(TextBuffer& buf)
 {
@@ -28,7 +95,7 @@ void drawMenu(TextBuffer& buf)
     }
     if (drawButton(&buf, vec2i(g_game.w + 5, g_game.h - 7), "Exit", 0xFFFFFFFF))
     {
-        exit(0);
+        want_close = true;
     }
 }
 
@@ -106,6 +173,7 @@ void drawSettings(TextBuffer& buf)
     keySelector(buf, vec2i(g_game.w + 45, g_game.h - 7), g_game.key_fire, "Fire");
     keySelector(buf, vec2i(g_game.w + 45, g_game.h - 6), g_game.key_railgun, "Railgun");
     keySelector(buf, vec2i(g_game.w + 45, g_game.h - 5), g_game.key_dock, "Dock");
+    keySelector(buf, vec2i(g_game.w + 45, g_game.h - 4), g_game.key_hail, "Hail");
 
 }
 
@@ -126,15 +194,25 @@ void drawGameOver(TextBuffer& buf)
     }
     if (drawButton(&buf, vec2i(g_game.w + 5, g_game.h - 3), "Exit", 0xFFFFFFFF))
     {
-        exit(0);
+        want_close = true;
     }
 
-    buf.write(vec2i(g_game.w + 45, g_game.h - 10), "Turns: XXX", 0xFFFFFFFF);
-    buf.write(vec2i(g_game.w + 45, g_game.h - 9), "Torpedoes Launched: XXX", 0xFFFFFFFF);
-    buf.write(vec2i(g_game.w + 45, g_game.h - 8), "Railgun Fired: XXX", 0xFFFFFFFF);
-    buf.write(vec2i(g_game.w + 45, g_game.h - 7), "Stations Visited: XXX", 0xFFFFFFFF);
-    buf.write(vec2i(g_game.w + 45, g_game.h - 6), "Ships Killed: XXX", 0xFFFFFFFF);
-    buf.write(vec2i(g_game.w + 45, g_game.h - 5), "Damage Taken: XXX", 0xFFFFFFFF);
+    line0 = ""; line0.appendf("Turns: %d/%d", g_game.current_level->turn, g_game.universe->universe_ticks);
+    buf.write(vec2i(g_game.w + 45, g_game.h - 10), line0.c_str(), 0xFFFFFFFF);
+    line0 = ""; line0.appendf("Torpedoes Launched: %d", g_game.uplayer->torpedoes_launched);
+    buf.write(vec2i(g_game.w + 45, g_game.h - 9), line0.c_str(), 0xFFFFFFFF);
+    line0 = ""; line0.appendf("Railguns Fired: %d", g_game.uplayer->railgun_fired);
+    buf.write(vec2i(g_game.w + 45, g_game.h - 8), line0.c_str(), 0xFFFFFFFF);
+    line0 = ""; line0.appendf("Stations Visited: %d", g_game.uplayer->stations_visited);
+    buf.write(vec2i(g_game.w + 45, g_game.h - 7), line0.c_str(), 0xFFFFFFFF);
+    line0 = ""; line0.appendf("Scrap Salvaged: %d", g_game.uplayer->scrap_salvaged);
+    buf.write(vec2i(g_game.w + 45, g_game.h - 6), line0.c_str(), 0xFFFFFFFF);
+    line0 = ""; line0.appendf("Credits Spent: %d", g_game.uplayer->credits_spent);
+    buf.write(vec2i(g_game.w + 45, g_game.h - 5), line0.c_str(), 0xFFFFFFFF);
+    line0 = ""; line0.appendf("Ships Killed: %d", g_game.uplayer->ships_killed);
+    buf.write(vec2i(g_game.w + 45, g_game.h - 4), line0.c_str(), 0xFFFFFFFF);
+    line0 = ""; line0.appendf("Damage Taken: %d", g_game.uplayer->damage_taken);
+    buf.write(vec2i(g_game.w + 45, g_game.h - 3), line0.c_str(), 0xFFFFFFFF);
 }
 
 int main(int argc, const char** argv)
@@ -145,6 +223,7 @@ int main(int argc, const char** argv)
     int scale = 16;
 
     initGame(w, h);
+    readSettings();
     window_open("7drl - Salvage Scramble", w * scale, h * scale);
 
     Image img = LoadImage("assets/ship_cover.png");
@@ -175,7 +254,7 @@ int main(int argc, const char** argv)
 
     initSounds();
 
-    while (!WindowShouldClose())
+    while (!WindowShouldClose() && !want_close)
     {
         updateSounds();
 
@@ -206,6 +285,7 @@ int main(int argc, const char** argv)
 
             if (g_game.state == GameState::PauseMenu || g_game.state == GameState::GameOver)
             {
+                menu_frame++;
                 menuterm->clear(g_game.w, g_game.h);
                 Rectangle dest{ dw / 2.0f, dh / 2.0f, g_game.w * 16.0f, g_game.h * 16.0f };
                 Rectangle src{ 0.0f, 0.0f, (float)menu_tex.width, (float)menu_tex.height };
@@ -216,6 +296,10 @@ int main(int argc, const char** argv)
                 if (g_game.state == GameState::PauseMenu)
                 {
                     drawSettings(*menuterm);
+                    if (menu_frame > 1 && IsKeyPressed(KEY_ESCAPE))
+                    {
+                        g_game.state = GameState::Ingame;
+                    }
 
                     if (drawButton(menuterm, vec2i(g_game.w + 45, g_game.h - 3), "Return to Game", 0xFFFFFFFF))
                     {
@@ -227,7 +311,7 @@ int main(int argc, const char** argv)
                     }
                     if (drawButton(menuterm, vec2i(g_game.w + 45, g_game.h - 1), "Exit", 0xFFFFFFFF))
                     {
-                        exit(0);
+                        want_close = true;
                     }
                 }
                 else
@@ -236,6 +320,10 @@ int main(int argc, const char** argv)
                 }
 
                 render_buffer(menuterm, 1.0f);
+            }
+            else
+            {
+                menu_frame = 0;
             }
 
             EndScissorMode();
@@ -296,6 +384,8 @@ int main(int argc, const char** argv)
 
         EndDrawing();
     }
+
+    writeSettings();
 
     return 0;
 }

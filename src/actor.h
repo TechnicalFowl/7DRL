@@ -281,7 +281,7 @@ struct TorpedoLauncher : ShipObject
 struct PDC : ShipObject
 {
     int rounds = 1000;
-    float firing_variance = scalar::PIf / 4;
+    float firing_variance = scalar::PIf / 2;
 
     int max_rounds = 1000;
 
@@ -295,7 +295,7 @@ struct Railgun : ShipObject
 
     int max_rounds = 25;
     int recharge_time = 4;
-    float firing_variance = scalar::PIf / 20;
+    float firing_variance = scalar::PIf / 10;
 
     Railgun(vec2i pos);
 };

@@ -4,6 +4,7 @@
 #include "game.h"
 #include "map.h"
 #include "sound.h"
+#include "universe.h"
 
 ShipRoom* Ship::getRoom(vec2i p)
 {
@@ -180,6 +181,7 @@ void Ship::damageTile(vec2i p)
     if (it.found)
     {
         hull_integrity--;
+        if (this == g_game.player_ship) g_game.uplayer->damage_taken++;
         if (it.value.terrain == Terrain::ShipWall)
             it.value.terrain = Terrain::DamagedShipWall;
         else if (it.value.terrain == Terrain::ShipFloor)

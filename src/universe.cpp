@@ -241,7 +241,7 @@ bool UShip::fireRailgun(vec2i target, int power)
             {
                 if (rng.nextFloat() < hit_chance)
                 {
-                    g_game.log.log("Railgun impact.");
+                    g_game.log.logf("Railgun impact (%.0f%%).", hit_chance * 100);
                     solid_target = true;
                     anim->hits.push_back(s);
                     ((UShip*)it.value)->ship->railgun(vec2i(), power);
@@ -269,6 +269,8 @@ bool UShip::fireRailgun(vec2i target, int power)
                     solid_target = true;
                     anim->hits.push_back(s);
                     ((UShip*) it.value)->ship->railgun(vec2i(), power);
+                    if (this == g_game.uplayer && ((UShip*)it.value)->ship->hull_integrity <= 0)
+                        g_game.uplayer->ships_killed++;
                 }
                 else
                 {
@@ -307,6 +309,25 @@ UCargoShip::UCargoShip(vec2i p)
 {
     ship = generate("cargo", "cargo_ship");
     g_game.ships.push_back(ship);
+
+    for (Actor* a : ship->map->actors)
+    {
+        switch (a->type)
+        {
+        case ActorType::Reactor:
+        {
+            Reactor* r = (Reactor*)a;
+            r->capacity = 100000;
+        } break;
+        case ActorType::PDC:
+        {
+            PDC* r = (PDC*)a;
+            r->status = ShipObject::Status::Active;
+            r->firing_variance *= 4;
+        } break;
+        default: break;
+        }
+    }
 }
 
 void UCargoShip::update(pcg32& rng)
@@ -359,6 +380,13 @@ UPirateShip::UPirateShip(vec2i p, int c, u32 col)
             Railgun* r = (Railgun*) a;
             r->status = ShipObject::Status::Active;
         } break;
+        case ActorType::PDC:
+        {
+            PDC* r = (PDC*) a;
+            r->status = ShipObject::Status::Active;
+            if (character == 'M') r->firing_variance *= 2;
+            else if (character == 'P') r->firing_variance *= 4;
+        } break;
         default: break;
         }
     }
@@ -389,7 +417,9 @@ bool UPirateShip::isTarget(UActor* actor)
     switch (actor->type)
     {
     case UActorType::Player:
-        return character != 'M' || !g_game.uplayer->ship->transponder_masked;
+        if (character == 'M') return !g_game.uplayer->ship->transponder_masked;
+        if (character == 'P') return !has_bribed;
+        return true;
     case UActorType::CargoShip:
         return character == 'P' || character == 'A';
     case UActorType::PirateShip:
@@ -445,21 +475,33 @@ void UPirateShip::update(pcg32& rng)
         else
         {
             UShip* s = (UShip*) target_it.value;
-            float dist = (pos - s->pos).length();
-            if (dist < sensor_range && g_game.universe->isVisible(pos, s->pos))
+            if (!isTarget(s))
             {
-                // If the target is visible and within sensor range, update its last known position and potentially fire upon it
-                target_last_pos = s->pos;
-                if (dist < 12 && rng.nextFloat() < 0.6f)
+                target = 0;
+                check_for_target = 5;
+            }
+            else
+            {
+                float dist = (pos - s->pos).length();
+                if (dist < sensor_range && g_game.universe->isVisible(pos, s->pos))
                 {
-                    fireRailgun(s->pos, railgun_power);
+                    // If the target is visible and within sensor range, update its last known position and potentially fire upon it
+                    target_last_pos = s->pos;
+                    if (dist < 12 && rng.nextFloat() < 0.6f)
+                    {
+                        fireRailgun(s->pos, railgun_power);
+                    }
+                    else if (dist < 25 && rng.nextFloat() < 0.3f)
+                    {
+                        fireTorpedo(s->pos, torpedo_power);
+                    }
                 }
-                else if (dist < 25 && rng.nextFloat() < 0.3f)
+                else
                 {
-                    fireTorpedo(s->pos, torpedo_power);
+                    target = 0;
+                    check_for_target = 5;
                 }
             }
-
         }
     }
 
@@ -854,7 +896,9 @@ void Universe::move(UActor* a, vec2i d)
                             if (t->target == a->id)
                                 g_game.log.log("Target ship hit.");
                             else
-                                g_game.log.log("Unknown ship hit.");
+                                g_game.log.log("Torpedo detonated on unknown target.");
+                            if (pl->ship->hull_integrity <= 0)
+                                g_game.uplayer->ships_killed++;
                         }
                     }
                     t->dead = true;
@@ -899,6 +943,8 @@ void Universe::move(UActor* a, vec2i d)
                                 g_game.log.log("Target ship hit.");
                             else
                                 g_game.log.log("Torpedo detonated on unknown target.");
+                            if (isShipType(it.value->type) && ((UShip*)it.value)->ship && ((UShip*)it.value)->ship->hull_integrity <= 0)
+                                g_game.uplayer->ships_killed++;
                         }
                     }
                     at->dead = true;
@@ -1057,7 +1103,7 @@ void Universe::update(vec2i origin)
                 {
                     for (int x0 = 0; x0 < 4; ++x0)
                     {
-                        if (y < -300 || rng.nextFloat() < 0.05f)
+                        if (y < -300 || (rng.nextFloat() < 0.05f && (rx != 0 || ry != 0)))
                         {
                             static u32 band_colors[5]{ 0xFFFFFFFF, 0xFFBBF0FF, 0xFFFFFF80, 0xFFFF9900, 0xFFFF5500, };
                             static u32 band_icolors[5]{ 0xFF505050, 0xFF105050, 0xFF505010, 0xFF503010, 0xFF502000, };

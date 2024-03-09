@@ -132,6 +132,16 @@ struct Modal
     virtual void draw() = 0;
 };
 
+struct HailModal : Modal
+{
+    UShip* ship;
+    bool was_masked = false;
+
+    HailModal(UShip* s);
+
+    void draw() override;
+};
+
 struct Game
 {
     int w=0, h=0;
@@ -175,6 +185,9 @@ struct Game
     int key_use = KEY_U;
     int key_pickup = KEY_COMMA;
     int key_wait = KEY_SPACE;
+    int key_hail = KEY_H;
+
+    bool is_aiming_hail = false;
 
     std::vector<Animation*> animations;
     std::vector<Animation*> uanimations;

@@ -94,6 +94,7 @@ struct UPirateShip : UShip
 
     bool has_alerted = false;
     bool has_warned = false;
+    bool has_bribed = false;
 
     int railgun_power = 1;
     int torpedo_power = 8;
@@ -114,6 +115,14 @@ struct UPlayer : UShip
 
     int railgun_power = 1;
     int torpedo_power = 8;
+
+    int torpedoes_launched = 0;
+    int railgun_fired = 0;
+    int stations_visited = 0;
+    int ships_killed = 0;
+    int damage_taken = 0;
+    int credits_spent = 0;
+    int scrap_salvaged = 0;
 
     UPlayer(vec2i p) : UShip(UActorType::Player, p) {}
 
@@ -143,6 +152,8 @@ struct UStation : UActor
 
     int repair_cost = 3;
     int scrap_price = 3;
+
+    bool has_visited = false;
 
     UStation(vec2i p);
 

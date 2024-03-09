@@ -246,18 +246,21 @@ struct StationModal : Modal
             if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Repair 10", 0xFFFFFFFF, g_game.credits < cost * 10 || ps->hull_integrity == ps->max_integrity))
             {
                 g_game.credits -= cost * 10;
+                g_game.uplayer->credits_spent += cost * 10;
                 ps->repair(10);
                 g_game.log.log("[Station] We have repaired some damage to your hull.");
             }
             if (drawButton(g_game.uiterm, vec2i(28, y0 - 1), "Repair 50", 0xFFFFFFFF, g_game.credits < cost * 50 || ps->hull_integrity >= ps->max_integrity - 10))
             {
                 g_game.credits -= cost * 50;
+                g_game.uplayer->credits_spent += cost * 50;
                 ps->repair(50);
                 g_game.log.log("[Station] We have repaired some damage to your hull.");
             }
             if (drawButton(g_game.uiterm, vec2i(48, y0 - 1), "Repair 100", 0xFFFFFFFF, g_game.credits < cost * 100 || ps->hull_integrity >= ps->max_integrity - 50))
             {
                 g_game.credits -= cost * 100;
+                g_game.uplayer->credits_spent += cost * 100;
                 ps->repair(100);
                 g_game.log.log("[Station] We have repaired some damage to your hull.");
             }
@@ -272,6 +275,7 @@ struct StationModal : Modal
                 g_game.credits -= cost;
                 ps->max_integrity += 100;
                 ps->hull_integrity += 100;
+                g_game.uplayer->credits_spent += cost;
                 g_game.log.log("[Station] Your hull has been reinforced.");
             }
             y0 += 2;
@@ -286,6 +290,7 @@ struct StationModal : Modal
             {
                 g_game.credits -= cost;
                 ps->reactor->capacity += 1000;
+                g_game.uplayer->credits_spent += 1000;
                 g_game.log.log("[Station] Your reactor capacity has been upgraded.");
             }
             y0++;
@@ -307,24 +312,28 @@ struct StationModal : Modal
             if (drawButton(g_game.uiterm, vec2i(12, y0), "Upgrade Railgun Accuracy (500 credits)", 0xFFFFFFFF, !weapon_variance || g_game.credits < 500))
             {
                 g_game.credits -= 500;
+                g_game.uplayer->credits_spent += 500;
                 weapon_variance->firing_variance /= 2;
                 g_game.log.log("[Station] Your railgun accuracy has been upgraded.");
             }
             if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Upgrade Railgun Charge Rate (500 credits)", 0xFFFFFFFF, !weapon_charge || weapon_charge->recharge_time == 0 || g_game.credits < 500))
             {
                 g_game.credits -= 500;
+                g_game.uplayer->credits_spent += 500;
                 weapon_charge->recharge_time--;
                 g_game.log.log("[Station] Your railgun charge rate has been upgraded.");
             }
             if (drawButton(g_game.uiterm, vec2i(12, y0 - 2), "Upgrade Railgun Max Rounds (500 credits)", 0xFFFFFFFF, !weapon_rounds || g_game.credits < 500))
             {
                 g_game.credits -= 500;
+                g_game.uplayer->credits_spent += 500;
                 weapon_charge->max_rounds += 5;
                 g_game.log.log("[Station] Your railgun magazine size has been upgraded.");
             }
             if (drawButton(g_game.uiterm, vec2i(12, y0 - 3), "Upgrade Railgun Power (1000 credits)", 0xFFFFFFFF, g_game.credits < 1000))
             {
                 g_game.credits -= 1000;
+                g_game.uplayer->credits_spent += 1000;
                 g_game.uplayer->railgun_power++;
                 g_game.log.log("[Station] Your railgun power has been upgraded.");
             }
@@ -344,18 +353,21 @@ struct StationModal : Modal
             if (drawButton(g_game.uiterm, vec2i(12, y0), "Upgrade Torpedo Count (500 credits)", 0xFFFFFFFF, !weapon_count || g_game.credits < 500))
             {
                 g_game.credits -= 500;
+                g_game.uplayer->credits_spent += 500;
                 weapon_count->max_torpedoes++;
                 g_game.log.log("[Station] Your torpedo launcher magazine size has been upgraded.");
             }
             if (drawButton(g_game.uiterm, vec2i(12, y0 - 1), "Upgrade Torpedo Launcher Charge Rate (500 credits)", 0xFFFFFFFF, !weapon_charge || weapon_charge->recharge_time == 0 || g_game.credits < 500))
             {
                 g_game.credits -= 500;
+                g_game.uplayer->credits_spent += 500;
                 weapon_charge->recharge_time--;
                 g_game.log.log("[Station] Your torpedo launcher charge rate has been upgraded.");
             }
-            if (drawButton(g_game.uiterm, vec2i(12, y0 - 2), "Upgrade Torpedo Explosive Power (500 credits)", 0xFFFFFFFF, g_game.credits < 1000))
+            if (drawButton(g_game.uiterm, vec2i(12, y0 - 2), "Upgrade Torpedo Explosive Power (1000 credits)", 0xFFFFFFFF, g_game.credits < 1000))
             {
                 g_game.credits -= 1000;
+                g_game.uplayer->credits_spent += 1000;
                 g_game.uplayer->torpedo_power += g_game.rng.nextInt(3, 5);
                 g_game.log.log("[Station] Your torpedo explosive power has been increased.");
             }
@@ -375,6 +387,7 @@ struct StationModal : Modal
             if (drawButton(g_game.uiterm, vec2i(12, y0), "Upgrade PDC Accuracy (500 credits)", 0xFFFFFFFF, !weapon_count || g_game.credits < 500))
             {
                 g_game.credits -= 500;
+                g_game.uplayer->credits_spent += 500;
                 weapon_count->firing_variance /= 2;
                 g_game.log.log("[Station] Your point defence accuracy has been upgraded.");
             }
@@ -382,6 +395,7 @@ struct StationModal : Modal
             {
                 g_game.credits -= 500;
                 weapon_charge->max_rounds += 500;
+                g_game.uplayer->credits_spent += 500;
                 g_game.log.log("[Station] Your point defence magazine size has been upgraded.");
             }
             y0 += 2;
@@ -396,6 +410,7 @@ struct StationModal : Modal
                 if (ps->spawnItemInAirlock(item))
                 {
                     g_game.credits -= 50;
+                    g_game.uplayer->credits_spent += 50;
                     g_game.log.log("[Station] Repair parts transported to your airlock");
                 }
                 else
@@ -415,6 +430,7 @@ struct StationModal : Modal
                 if (ps->spawnItemInAirlock(item))
                 {
                     g_game.credits -= 100;
+                    g_game.uplayer->credits_spent += 100;
                     g_game.log.log("[Station] Torpedoes transported to your airlock");
                 }
                 else
@@ -434,6 +450,7 @@ struct StationModal : Modal
                 if (ps->spawnItemInAirlock(item))
                 {
                     g_game.credits -= 100;
+                    g_game.uplayer->credits_spent += 100;
                     g_game.log.log("[Station] Railgun Rounds transported to your airlock");
                 }
                 else
@@ -453,6 +470,7 @@ struct StationModal : Modal
                 if (ps->spawnItemInAirlock(item))
                 {
                     g_game.credits -= 100;
+                    g_game.uplayer->credits_spent += 100;
                     g_game.log.log("[Station] PDC Rounds transported to your airlock");
                 }
                 else
@@ -471,6 +489,7 @@ struct StationModal : Modal
             {
                 g_game.player_ship->transponder_masked = true;
                 g_game.credits -= 1000;
+                g_game.uplayer->credits_spent += 1000;
                 g_game.log.log("[Station] If anyone asks you didn't buy this here.");
                 g_game.log.log("Military Transponder code: 1234");
             }
@@ -507,6 +526,7 @@ struct SalvageModal : Modal
         {
             g_game.scrap += wreck->scrap;
             g_game.log.logf("Salvaged %d scrap.", wreck->scrap);
+            g_game.uplayer->scrap_salvaged += wreck->scrap;
             wreck->dead = true;
             close = true;
         }
@@ -517,6 +537,79 @@ struct SalvageModal : Modal
         }
     }
 };
+
+HailModal::HailModal(UShip* s)
+    : Modal(vec2i(4, 4), vec2i(40, g_game.h - 10), "Ship Hail")
+    , ship(s)
+{
+    was_masked = g_game.player_ship->transponder_masked;
+}
+
+void HailModal::draw()
+{
+    switch (ship->type)
+    {
+    case UActorType::CargoShip:
+    {
+        g_game.uiterm->write(vec2i(12, 7), "[Cargo Hauler] Careful, there are a lot of pirates around these parts.", 0xFFFFFFFF, LayerPriority_UI + 1);
+        g_game.uiterm->write(vec2i(12, 7), "[Cargo Hauler] And there's some sort of military interdiction farther", 0xFFFFFFFF, LayerPriority_UI + 1);
+        g_game.uiterm->write(vec2i(12, 7), "               up in the asteroid field.", 0xFFFFFFFF, LayerPriority_UI + 1);
+    } break;
+    case UActorType::PirateShip:
+    {
+        UPirateShip* pirate = (UPirateShip*) ship;
+        if (pirate->character == 'P')
+        {
+            if (pirate->has_bribed)
+            {
+                g_game.uiterm->write(vec2i(12, 7), "[Pirate] Thanks for the credits.", 0xFFFFFFFF, LayerPriority_UI + 1);
+                g_game.uiterm->write(vec2i(12, 8), "[Pirate] I'd leave now before I change my mind.", 0xFFFFFFFF, LayerPriority_UI + 1);
+            }
+            else
+            {
+                g_game.uiterm->write(vec2i(12, 7), "[Pirate] What do you want?", 0xFFFFFFFF, LayerPriority_UI + 1);
+                if (drawButton(g_game.uiterm, vec2i(12, 9), "Bribe (100 credits)", 0xFFFFFFFF, g_game.credits < 100))
+                {
+                    g_game.credits -= 100;
+                    g_game.uplayer->credits_spent += 100;
+                    pirate->has_bribed = true;
+                }
+            }
+        }
+        else if (pirate->character == 'M')
+        {
+            if (was_masked)
+            {
+                g_game.uiterm->write(vec2i(12, 7), "[Military Ship] What? How did you get those transponder codes?", 0xFFFFFFFF, LayerPriority_UI + 1);
+                g_game.uiterm->write(vec2i(12, 9), "(Your codes seem to have been invalidated)", 0xFFFFFFFF, LayerPriority_UI + 1);
+                g_game.player_ship->transponder_masked = false;
+            }
+            else
+            {
+                g_game.uiterm->write(vec2i(12, 7), "[Military Ship] This area is under military control.", 0xFFFFFFFF, LayerPriority_UI + 1);
+                g_game.uiterm->write(vec2i(12, 8), "[Military Ship] Leave at once or be fired upon.", 0xFFFFFFFF, LayerPriority_UI + 1);
+            }
+        }
+        else if (pirate->character == 'A')
+        {
+            g_game.uiterm->write(vec2i(12, 7), "????", 0xFFFFFFFF, LayerPriority_UI + 1);
+        }
+        else
+        {
+            g_game.uiterm->write(vec2i(12, 7), "No response.", 0xFFFFFFFF, LayerPriority_UI + 1);
+        }
+    } break;
+    default:
+    {
+        g_game.uiterm->write(vec2i(12, 7), "No response.", 0xFFFFFFFF, LayerPriority_UI + 1);
+    } break;
+    }
+
+    if (drawButton(g_game.uiterm, vec2i(78, g_game.h - 7), "Leave", 0xFFFFFFFF))
+    {
+        close = true;
+    }
+}
 
 void initGame(int w, int h)
 {
@@ -815,12 +908,16 @@ void updateGame()
         }
         if (IsKeyPressed(g_game.key_railgun))
         {
+            g_game.is_aiming_hail = false;
             g_game.uplayer->is_aiming = false;
             if (g_game.uplayer->is_aiming_railgun)
             {
                 vec2i target = universe_mouse_pos();
                 if (g_game.uplayer->fireRailgun(target, g_game.uplayer->railgun_power))
+                {
                     do_turn = true;
+                    g_game.uplayer->railgun_fired++;
+                }
                 g_game.uplayer->is_aiming_railgun = false;
             }
             else
@@ -830,17 +927,40 @@ void updateGame()
         }
         if (IsKeyPressed(g_game.key_fire))
         {
+            g_game.is_aiming_hail = false;
             g_game.uplayer->is_aiming_railgun = false;
             if (g_game.uplayer->is_aiming)
             {
                 vec2i target = universe_mouse_pos();
                 if (g_game.uplayer->fireTorpedo(target, g_game.uplayer->torpedo_power))
+                {
                     do_turn = true;
+                    g_game.uplayer->torpedoes_launched++;
+                }
                 g_game.uplayer->is_aiming = false;
             }
             else
             {
                 g_game.uplayer->is_aiming = true;
+            }
+        }
+        if (IsKeyPressed(g_game.key_hail))
+        {
+            g_game.uplayer->is_aiming = false;
+            g_game.uplayer->is_aiming_railgun = false;
+            if (g_game.is_aiming_hail)
+            {
+                vec2i target = universe_mouse_pos();
+                auto it = g_game.universe->actors.find(target);
+                if (it.found && (it.value->type == UActorType::CargoShip || it.value->type == UActorType::PirateShip))
+                {
+                    g_game.modal = new HailModal((UShip*)it.value);
+                }
+                g_game.is_aiming_hail = false;
+            }
+            else
+            {
+                g_game.is_aiming_hail = true;
             }
         }
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
@@ -849,15 +969,31 @@ void updateGame()
             {
                 vec2i target = universe_mouse_pos();
                 if (g_game.uplayer->fireTorpedo(target, g_game.uplayer->torpedo_power))
+                {
                     do_turn = true;
+                    g_game.uplayer->torpedoes_launched++;
+                }
                 g_game.uplayer->is_aiming = false;
             }
             else if (g_game.uplayer->is_aiming_railgun)
             {
                 vec2i target = universe_mouse_pos();
                 if (g_game.uplayer->fireRailgun(target, g_game.uplayer->railgun_power))
+                {
                     do_turn = true;
+                    g_game.uplayer->railgun_fired++;
+                }
                 g_game.uplayer->is_aiming_railgun = false;
+            }
+            else if (g_game.is_aiming_hail)
+            {
+                vec2i target = universe_mouse_pos();
+                auto it = g_game.universe->actors.find(target);
+                if (it.found && (it.value->type == UActorType::CargoShip || it.value->type == UActorType::PirateShip))
+                {
+                    g_game.modal = new HailModal((UShip*)it.value);
+                }
+                g_game.is_aiming_hail = false;
             }
         }
         if (IsKeyPressed(g_game.key_wait))
@@ -873,13 +1009,27 @@ void updateGame()
                 {
                     if (it.value->type == UActorType::Station)
                     {
-                        g_game.modal = new StationModal((UStation*)it.value);
+                        UStation* station = (UStation*)it.value;
+                        if (!station->has_visited)
+                        {
+                            station->has_visited = true;
+                            g_game.uplayer->stations_visited++;
+                        }
+                        g_game.modal = new StationModal(station);
                         break;
                     }
                     else if (it.value->type == UActorType::ShipWreck)
                     {
                         g_game.modal = new SalvageModal((UShipWreck*) it.value);
                         break;
+                    }
+                    else if (it.value->type == UActorType::MilitaryStation)
+                    {
+                        if (g_game.player_ship->transponder_masked)
+                        {
+                            g_game.log.log("Attempting to dock with the military station reveals your faked transponder codes.");
+                            g_game.player_ship->transponder_masked = false;
+                        }
                     }
                 }
             }
@@ -1005,7 +1155,7 @@ void updateGame()
 #endif
     if (g_game.show_universe)
     {
-        if (g_game.uplayer->is_aiming)
+        if (g_game.uplayer->is_aiming || g_game.is_aiming_hail)
         {
             vec2i mouse_pos = universe_mouse_pos();
             vec2i bl = g_game.uplayer->pos - vec2i((g_game.w - 30) / 2, g_game.h / 2);
