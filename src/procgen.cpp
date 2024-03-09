@@ -649,16 +649,25 @@ struct ShipGenerator
     std::vector<Room> decorate_rooms;
     std::vector<PlacedRoom> placed_rooms;
 
+    static Image getImage(const char* name)
+    {
+        static linear_map<sstring, Image> cache;
+        auto it = cache.find(name);
+        if (it.found) return it.value;
+        Image img = LoadImage(name);
+        cache.insert(name, img);
+        return img;
+    }
+
     ShipGenerator(const char* shape_name, int size)
         : size(size)
     {
-        outline = LoadImage(shape_name);
+        outline = getImage(shape_name);
         w = outline.width;
         h = outline.height;
     }
     ~ShipGenerator()
     {
-        UnloadImage(outline);
     }
 
     Room* getRoom(int x, int y)
@@ -1289,13 +1298,13 @@ Ship* generate(const sstring& name, const char* type)
     pcg32 rng;
     static const char* ship_shapes[]
     {
-        "ship_0.png",
-        "ship_1.png",
-        "ship_2.png",
-        "ship_3.png",
-        "ship_4.png",
-        "ship_5.png",
-        "ship_6.png",
+        "assets/ship_0.png",
+        "assets/ship_1.png",
+        "assets/ship_2.png",
+        "assets/ship_3.png",
+        "assets/ship_4.png",
+        "assets/ship_5.png",
+        "assets/ship_6.png",
     };
 
     if (strings::equals(type, "player_ship"))

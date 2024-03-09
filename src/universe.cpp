@@ -6,6 +6,7 @@
 #include "game.h"
 #include "map.h"
 #include "ship.h"
+#include "sound.h"
 #include "procgen.h"
 
 const char* UActorTypeNames[UActorTypeCount]
@@ -71,6 +72,10 @@ void UShip::update(pcg32& rng)
         {
             if (t->target == id)
             {
+                if ((pos - t->pos).length() > 35)
+                {
+                    continue;
+                }
                 bool has_pdc = false;
                 int i = 0;
                 for (PDC* p : ship->pdcs)
@@ -79,6 +84,11 @@ void UShip::update(pcg32& rng)
                     if (p->status != ShipObject::Status::Active) continue;
                     if (p->rounds == 0) continue;
                     if (pdc_used[i]) continue;
+
+                    if (this == g_game.uplayer)
+                    {
+                        playSound(SoundEffect::PDCFire);
+                    }
 
                     std::vector<UTorpedo*> intermediates;
                     auto points = findRay(pos, t->pos);
@@ -171,7 +181,11 @@ bool UShip::fireTorpedo(vec2i target, int power)
         torp->target_pos = target;
         torp->vel = vel;
         g_game.universe->spawn(torp);
-        if (this == g_game.uplayer) g_game.log.log("Torpedo launched.");
+        if (this == g_game.uplayer)
+        {
+            g_game.log.log("Torpedo launched.");
+            playSound(SoundEffect::TorpedoLaunch);
+        }
         return true;
     }
     return false;
@@ -202,6 +216,11 @@ bool UShip::fireRailgun(vec2i target, int power)
         return false;
     }
 
+    if (this == g_game.uplayer)
+    {
+        playSound(SoundEffect::RailgunFire);
+    }
+
     pcg32& rng = g_game.universe->rng;
     float firing_variance = weapon->firing_variance;
     bool hit_anything = false;
@@ -227,6 +246,7 @@ bool UShip::fireRailgun(vec2i target, int power)
                     anim->hits.push_back(s);
                     ((UShip*)it.value)->ship->railgun(vec2i(), power);
                     g_game.gameover_reason = "Railgun fire";
+                    playSound(SoundEffect::RailgunImpact);
                 }
                 else
                 {
@@ -369,7 +389,7 @@ bool UPirateShip::isTarget(UActor* actor)
     switch (actor->type)
     {
     case UActorType::Player:
-        return true;
+        return character != 'M' || !g_game.uplayer->ship->transponder_masked;
     case UActorType::CargoShip:
         return character == 'P' || character == 'A';
     case UActorType::PirateShip:
@@ -825,6 +845,7 @@ void Universe::move(UActor* a, vec2i d)
                     {
                         g_game.log.log("Torpedo detonating on hull!");
                         g_game.gameover_reason = "Torpedo detonation";
+                        playSound(SoundEffect::TorpedoImpact);
                     }
                     else
                     {
@@ -868,6 +889,7 @@ void Universe::move(UActor* a, vec2i d)
                     {
                         g_game.log.log("Torpedo detonating on hull!");
                         g_game.gameover_reason = "Torpedo detonation";
+                        playSound(SoundEffect::TorpedoImpact);
                     }
                     else
                     {
@@ -889,6 +911,7 @@ void Universe::move(UActor* a, vec2i d)
                 {
                     g_game.log.log("Impact alert! Significant damage sustained.");
                     g_game.gameover_reason = "High-speed collision";
+                    playSound(SoundEffect::AsteroidImpact);
                 }
 
                 vec2f dir = vec2f(rng.nextFloat() - 0.5f, 2.0f).normalize();
@@ -904,6 +927,7 @@ void Universe::move(UActor* a, vec2i d)
                     {
                         g_game.log.log("Impact alert!");
                         g_game.gameover_reason = "Low-speed collision";
+                        playSound(SoundEffect::AsteroidImpact);
                     }
 
                     vec2f dir = vec2f(rng.nextFloat() - 0.5f, 2.0f).normalize();
@@ -1226,7 +1250,7 @@ void Universe::render(TextBuffer& buffer, vec2i origin)
             }
             else
 #else
-            if ((it.value->pos - origin).length() < pscanner)
+            if (it.value->type == UActorType::Asteroid || (it.value->pos - origin).length() < pscanner)
 #endif
                 it.value->render(buffer, bl);
         }

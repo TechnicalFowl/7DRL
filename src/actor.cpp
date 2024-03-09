@@ -7,6 +7,7 @@
 #include "game.h"
 #include "map.h"
 #include "ship.h"
+#include "sound.h"
 
 const char* ShipObjectStatus[4]
 {
@@ -391,12 +392,27 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                     case ShipObject::Status::Active:
                     {
                         obj->status = ShipObject::Status::Disabled;
-                        if (actor == map.player) g_game.log.logf("You deactivate the %s.", ai.name.c_str());
+                        if (actor == map.player)
+                        {
+                            g_game.log.logf("You deactivate the %s.", ai.name.c_str());
+                            if (obj->type == ActorType::Reactor)
+                            {
+                                g_game.log.log("The lights go out.");
+                                playSound(SoundEffect::ReactorShutdown);
+                            }
+                        }
                     } break;
                     case ShipObject::Status::Disabled:
                     {
                         obj->status = ShipObject::Status::Active;
-                        if (actor == map.player) g_game.log.logf("You activate the %s.", ai.name.c_str());
+                        if (actor == map.player)
+                        {
+                            g_game.log.logf("You activate the %s.", ai.name.c_str());
+                            if (obj->type == ActorType::Reactor)
+                            {
+                                playSound(SoundEffect::ReactorStartup);
+                            }
+                        }
                     } break;
                     case ShipObject::Status::Damaged:
                     {
@@ -417,7 +433,10 @@ bool ActionData::apply(Ship* ship, pcg32& rng)
                     } break;
                     case ShipObject::Status::Unpowered:
                     {
-                        if (actor == map.player) g_game.log.logf("The %s is unpowered.", ai.name.c_str());
+                        if (actor == map.player)
+                        {
+                            g_game.log.logf("The %s is unpowered.", ai.name.c_str());
+                        }
                     } break;
                     }
                     return true;

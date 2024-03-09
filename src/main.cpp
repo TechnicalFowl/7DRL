@@ -2,6 +2,7 @@
 #include <cstdio>
 
 #include "game.h"
+#include "sound.h"
 #include "vterm.h"
 #include "universe.h"
 #include "window.h"
@@ -31,9 +32,23 @@ void drawMenu(TextBuffer& buf)
     }
 }
 
-void drawSlider(TextBuffer& buf, vec2i p, int& value, const char* label)
+void drawSlider(TextBuffer& buf, vec2i pos, int& value, const char* label)
 {
+    char slider[12]{ 0 };
+    for (int i = 0; i < 11; ++i)
+    {
+        slider[i] = i == value ? FullChar : Border_Horizontal;
+    }
+    vec2f mouse = screen_mouse_pos();
+    bool hovered = mouse.x >= pos.x / 2.0f && mouse.x < (pos.x + 11) / 2.0f && scalar::floori(mouse.y) == pos.y;
+    u32 col = hovered ? 0xFF00FF00 : 0xFFFFFFFF;
+    if (hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+        value = scalar::clamp(scalar::floori((mouse.x - pos.x / 2.0f) * 2.0f), 0, 10);
+    }
 
+    buf.write(pos, slider, 0xFFFFFFFF);
+    buf.write(vec2i(pos.x + 13, pos.y), label, 0xFFFFFFFF);
 }
 
 void keySelector(TextBuffer& buf, vec2i pos, int& key, const char* label)
@@ -131,6 +146,20 @@ int main(int argc, const char** argv)
 
     initGame(w, h);
     window_open("7drl - Salvage Scramble", w * scale, h * scale);
+
+    Image img = LoadImage("assets/ship_cover.png");
+    if (!img.data)
+    {
+        while (!WindowShouldClose())
+        {
+            BeginDrawing();
+            ClearBackground(BLACK);
+            DrawText("Missing assets?", 100, h * scale / 2, 64, WHITE);
+            EndDrawing();
+        }
+        return -1;
+    }
+
     SetExitKey(0);
 
     g_game.state = GameState::MainMenu;
@@ -141,12 +170,15 @@ int main(int argc, const char** argv)
     int menu_frame = 0;
     vec2i menu_ship_pos = vec2i(0, 0);
 
-    Image img = LoadImage("ship_cover.png");
     Texture menu_tex = LoadTextureFromImage(img);
     UnloadImage(img);
 
+    initSounds();
+
     while (!WindowShouldClose())
     {
+        updateSounds();
+
         BeginDrawing();
 
         g_window.width = GetScreenWidth();

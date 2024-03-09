@@ -17,7 +17,7 @@ void window_open(const char* title, int w, int h)
     g_window.width = w;
     g_window.height = h;
 
-    Image img = LoadImage("rl_text16.png");
+    Image img = LoadImage("assets/rl_text16.png");
     g_window.font_texture = LoadTextureFromImage(img);
     UnloadImage(img);
 }

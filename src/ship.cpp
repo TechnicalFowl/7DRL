@@ -3,6 +3,7 @@
 #include "actor.h"
 #include "game.h"
 #include "map.h"
+#include "sound.h"
 
 ShipRoom* Ship::getRoom(vec2i p)
 {
@@ -75,7 +76,10 @@ void Ship::update()
         if (reactor->power > reactor->capacity)
         {
             if (this == g_game.player_ship)
+            {
                 g_game.log.log("Your reactor is overloaded, shutting down non-essential systems!");
+                playSound(SoundEffect::ReactorShutdown);
+            }
 
             while (reactor->power > reactor->capacity)
             {
@@ -135,6 +139,10 @@ void Ship::update()
         for (ShipObject* o : all_objects)
             if (o->status == ShipObject::Status::Active)
                 o->status = ShipObject::Status::Unpowered;
+    }
+    if (scanner && scanner->status == ShipObject::Status::Disabled)
+    {
+        scanner->status = ShipObject::Status::Active;
     }
 
     for (TorpedoLauncher* t : torpedoes)

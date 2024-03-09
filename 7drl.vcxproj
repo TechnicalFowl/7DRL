@@ -142,6 +142,7 @@
     <ClCompile Include="src\map.cpp" />
     <ClCompile Include="src\procgen.cpp" />
     <ClCompile Include="src\ship.cpp" />
+    <ClCompile Include="src\sound.cpp" />
     <ClCompile Include="src\universe.cpp" />
     <ClCompile Include="src\util\direction.cpp" />
     <ClCompile Include="src\util\linear_map.cpp" />
@@ -159,6 +160,7 @@
     <ClInclude Include="src\map.h" />
     <ClInclude Include="src\procgen.h" />
     <ClInclude Include="src\ship.h" />
+    <ClInclude Include="src\sound.h" />
     <ClInclude Include="src\types.h" />
     <ClInclude Include="src\universe.h" />
     <ClInclude Include="src\util\direction.h" />
