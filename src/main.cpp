@@ -217,8 +217,8 @@ void drawGameOver(TextBuffer& buf)
 
 int main(int argc, const char** argv)
 {
-    int w = 120;
-    int h = 67;
+    int w = 80;
+    int h = 45;
 
     int scale = 16;
 
